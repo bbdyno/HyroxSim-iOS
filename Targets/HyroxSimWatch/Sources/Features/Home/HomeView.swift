@@ -3,10 +3,20 @@ import HyroxKit
 
 struct HomeView: View {
     let persistence: PersistenceController
+    @State private var customTemplates: [WorkoutTemplate] = []
 
     var body: some View {
         NavigationStack {
             List {
+                if !customTemplates.isEmpty {
+                    Section("My Workouts") {
+                        ForEach(customTemplates) { t in
+                            NavigationLink(value: t) {
+                                PresetRow(template: t)
+                            }
+                        }
+                    }
+                }
                 Section("HYROX Presets") {
                     ForEach(HyroxPresets.all) { template in
                         NavigationLink(value: template) {
@@ -18,6 +28,9 @@ struct HomeView: View {
             .navigationTitle("HyroxSim")
             .navigationDestination(for: WorkoutTemplate.self) { template in
                 ConfirmStartView(template: template, persistence: persistence)
+            }
+            .onAppear {
+                customTemplates = (try? persistence.fetchAllTemplates()) ?? []
             }
         }
     }

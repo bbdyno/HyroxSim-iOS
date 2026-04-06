@@ -4,6 +4,7 @@ import HyroxKit
 @main
 struct HyroxSimWatchApp: App {
     @State private var persistence: PersistenceController?
+    @State private var syncCoordinator: WatchConnectivitySyncCoordinator?
 
     var body: some Scene {
         WindowGroup {
@@ -16,7 +17,13 @@ struct HyroxSimWatchApp: App {
             }
             .onAppear {
                 if persistence == nil {
-                    persistence = try? PersistenceController()
+                    let p = try? PersistenceController()
+                    persistence = p
+                    if let p {
+                        let s = WatchConnectivitySyncCoordinator(persistence: p)
+                        s.activate()
+                        syncCoordinator = s
+                    }
                 }
             }
         }

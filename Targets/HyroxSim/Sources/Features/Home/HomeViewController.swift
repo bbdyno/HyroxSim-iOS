@@ -38,6 +38,12 @@ final class HomeViewController: UIViewController {
         view.backgroundColor = .systemBackground
         setupCollectionView()
         setupDataSource()
+        NotificationCenter.default.addObserver(self, selector: #selector(handleSyncUpdate), name: .syncDataUpdated, object: nil)
+    }
+
+    @objc private func handleSyncUpdate() {
+        viewModel.load()
+        applySnapshot()
     }
 
     override func viewWillAppear(_ animated: Bool) {

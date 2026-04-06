@@ -31,6 +31,7 @@ final class WatchActiveWorkoutModel {
     private let workoutSession: WatchWorkoutSession
     private let locationAdapter: CoreLocationAdapter
     private let persistence: PersistenceController
+    private let syncCoordinator: (any SyncCoordinator)?
     private let maxHeartRate: Int
 
     private var displayTimer: Timer?
@@ -40,11 +41,17 @@ final class WatchActiveWorkoutModel {
     var finishHandler: ((CompletedWorkout) -> Void)?
     var errorHandler: ((Error) -> Void)?
 
-    init(template: WorkoutTemplate, persistence: PersistenceController, maxHeartRate: Int = 190) {
+    init(
+        template: WorkoutTemplate,
+        persistence: PersistenceController,
+        syncCoordinator: (any SyncCoordinator)? = nil,
+        maxHeartRate: Int = 190
+    ) {
         self.engine = WorkoutEngine(template: template)
         self.workoutSession = WatchWorkoutSession()
         self.locationAdapter = CoreLocationAdapter()
         self.persistence = persistence
+        self.syncCoordinator = syncCoordinator
         self.maxHeartRate = maxHeartRate
     }
 
@@ -170,6 +177,7 @@ final class WatchActiveWorkoutModel {
         do {
             let completed = try engine.makeCompletedWorkout()
             try persistence.saveCompletedWorkout(completed)
+            try? syncCoordinator?.sendCompletedWorkout(completed)
             isFinished = true
             finishHandler?(completed)
         } catch {

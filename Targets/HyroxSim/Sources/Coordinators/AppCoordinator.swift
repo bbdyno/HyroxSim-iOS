@@ -7,11 +7,13 @@ public final class AppCoordinator {
     private let window: UIWindow
     private let navigationController: UINavigationController
     let persistence: PersistenceController
+    private let syncCoordinator: WatchConnectivitySyncCoordinator
 
     public init(window: UIWindow) throws {
         self.window = window
         self.navigationController = UINavigationController()
         self.persistence = try PersistenceController()
+        self.syncCoordinator = WatchConnectivitySyncCoordinator(persistence: persistence)
         navigationController.navigationBar.prefersLargeTitles = true
     }
 
@@ -20,6 +22,25 @@ public final class AppCoordinator {
         navigationController.viewControllers = [homeVC]
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
+
+        syncCoordinator.activate()
+        syncCoordinator.onReceiveCompletedWorkout = { [weak self] _ in
+            self?.refreshHomeIfVisible()
+        }
+        syncCoordinator.onReceiveTemplate = { [weak self] _ in
+            self?.refreshHomeIfVisible()
+        }
+        syncCoordinator.onReceiveTemplateDeleted = { [weak self] _ in
+            self?.refreshHomeIfVisible()
+        }
+    }
+
+    private func refreshHomeIfVisible() {
+        // Trigger viewWillAppear-equivalent reload by popping to root if possible,
+        // or just set a flag. Simplest: call reload if the VC exposes it.
+        // HomeViewController reloads in viewWillAppear, so next appearance is fine.
+        // For immediate update, post a notification.
+        NotificationCenter.default.post(name: .syncDataUpdated, object: nil)
     }
 
     // MARK: - Factory
@@ -121,6 +142,7 @@ extension AppCoordinator: WorkoutBuilderViewControllerDelegate {
     }
 
     func builderDidSaveTemplate(_ template: WorkoutTemplate) {
+        try? syncCoordinator.sendTemplate(template)
         navigationController.dismiss(animated: true)
     }
 }

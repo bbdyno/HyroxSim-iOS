@@ -107,4 +107,36 @@ public final class PersistenceController {
         context.delete(stored)
         try context.save()
     }
+
+    // MARK: - Upsert (Sync)
+
+    /// Inserts or replaces a completed workout by ID. Used for sync receive.
+    public func upsertCompletedWorkout(_ workout: CompletedWorkout) throws {
+        let targetId = workout.id
+        let predicate = #Predicate<StoredWorkout> { $0.id == targetId }
+        var descriptor = FetchDescriptor<StoredWorkout>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        let existing = try context.fetch(descriptor)
+        if let old = existing.first {
+            context.delete(old)
+        }
+        let stored = try CompletedWorkoutMapper.toStored(workout)
+        context.insert(stored)
+        try context.save()
+    }
+
+    /// Inserts or replaces a template by ID. Used for sync receive.
+    public func upsertTemplate(_ template: WorkoutTemplate) throws {
+        let targetId = template.id
+        let predicate = #Predicate<StoredTemplate> { $0.id == targetId }
+        var descriptor = FetchDescriptor<StoredTemplate>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        let existing = try context.fetch(descriptor)
+        if let old = existing.first {
+            context.delete(old)
+        }
+        let stored = try WorkoutTemplateMapper.toStored(template)
+        context.insert(stored)
+        try context.save()
+    }
 }
