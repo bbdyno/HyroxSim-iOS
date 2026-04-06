@@ -1,5 +1,5 @@
 import XCTest
-@testable import HyroxSim
+@testable import HyroxKit
 
 final class DurationFormatterTests: XCTestCase {
 
