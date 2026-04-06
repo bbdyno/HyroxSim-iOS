@@ -37,6 +37,25 @@ public final class AppCoordinator {
         vc.delegate = self
         return vc
     }
+
+    private func presentBuilderEntry() {
+        let vc = BuilderEntrySheetViewController()
+        vc.delegate = self
+        let nav = UINavigationController(rootViewController: vc)
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+        }
+        navigationController.present(nav, animated: true)
+    }
+
+    private func presentBuilder(startingFrom template: WorkoutTemplate?) {
+        let vm = WorkoutBuilderViewModel(startingFrom: template, persistence: persistence)
+        let vc = WorkoutBuilderViewController(viewModel: vm)
+        vc.delegate = self
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .formSheet
+        navigationController.present(nav, animated: true)
+    }
 }
 
 // MARK: - HomeViewControllerDelegate
@@ -55,14 +74,7 @@ extension AppCoordinator: HomeViewControllerDelegate {
     }
 
     func homeDidTapNewWorkout() {
-        // TODO: 08 단계 — Workout Builder
-        let alert = UIAlertController(
-            title: "New Workout",
-            message: "Builder coming soon",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        navigationController.present(alert, animated: true)
+        presentBuilderEntry()
     }
 
     func homeDidTapHistory() {
@@ -87,7 +99,6 @@ extension AppCoordinator: HomeViewControllerDelegate {
 extension AppCoordinator: HistoryViewControllerDelegate {
 
     func historyDidSelect(_ workout: CompletedWorkout) {
-        // TODO: Summary detail view
         let alert = UIAlertController(
             title: workout.templateName,
             message: DurationFormatter.hms(workout.totalDuration),
@@ -95,5 +106,49 @@ extension AppCoordinator: HistoryViewControllerDelegate {
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         navigationController.present(alert, animated: true)
+    }
+}
+
+// MARK: - BuilderEntrySheetDelegate
+
+extension AppCoordinator: BuilderEntrySheetDelegate {
+
+    func builderEntryDidSelectPreset(_ template: WorkoutTemplate) {
+        navigationController.dismiss(animated: true) { [self] in
+            presentBuilder(startingFrom: template)
+        }
+    }
+
+    func builderEntryDidSelectScratch() {
+        navigationController.dismiss(animated: true) { [self] in
+            presentBuilder(startingFrom: nil)
+        }
+    }
+}
+
+// MARK: - WorkoutBuilderViewControllerDelegate
+
+extension AppCoordinator: WorkoutBuilderViewControllerDelegate {
+
+    func builderDidCancel() {
+        navigationController.dismiss(animated: true)
+    }
+
+    func builderDidRequestStart(template: WorkoutTemplate) {
+        navigationController.dismiss(animated: true) {
+            // TODO: 09 단계 — 운동 시작
+            let alert = UIAlertController(
+                title: "Start Workout",
+                message: "\(template.name)\nComing in next stage",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            self.navigationController.present(alert, animated: true)
+        }
+    }
+
+    func builderDidSaveTemplate(_ template: WorkoutTemplate) {
+        navigationController.dismiss(animated: true)
+        // Home's viewWillAppear will reload data automatically
     }
 }
