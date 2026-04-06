@@ -21,11 +21,16 @@ final class HomeViewController: UIViewController {
     weak var delegate: HomeViewControllerDelegate?
     private let viewModel: HomeViewModel
 
+    /// Unified horizontal margin for all sections
+    private let hMargin: CGFloat = 20
+
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private var carouselCollectionView: UICollectionView!
     private let pageControl = UIPageControl()
-    private var recentCard: UIView?
+
+    private var cardWidth: CGFloat { view.bounds.width - hMargin * 2 }
+    private let cardSpacing: CGFloat = 10
 
     init(viewModel: HomeViewModel) {
         self.viewModel = viewModel
@@ -50,13 +55,13 @@ final class HomeViewController: UIViewController {
         super.viewWillAppear(animated)
         viewModel.load()
         carouselCollectionView?.reloadData()
-        updateRecentCard()
+        rebuildRecentCard()
     }
 
     @objc private func handleSyncUpdate() {
         viewModel.load()
         carouselCollectionView?.reloadData()
-        updateRecentCard()
+        rebuildRecentCard()
     }
 
     // MARK: - Nav Bar
@@ -74,7 +79,7 @@ final class HomeViewController: UIViewController {
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
     }
 
-    // MARK: - Layout
+    // MARK: - Scroll View
 
     private func setupScrollView() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -88,19 +93,21 @@ final class HomeViewController: UIViewController {
         ])
 
         contentStack.axis = .vertical
-        contentStack.spacing = 20
+        contentStack.spacing = 16
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStack)
         NSLayoutConstraint.activate([
             contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -32)
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -40)
         ])
     }
 
+    // MARK: - Build Content
+
     private func buildContent() {
-        // Recent workout (placeholder — filled on viewWillAppear)
+        // Recent workout placeholder
         let recentContainer = UIView()
         recentContainer.tag = 100
         contentStack.addArrangedSubview(recentContainer)
@@ -111,24 +118,23 @@ final class HomeViewController: UIViewController {
 
         pageControl.numberOfPages = HyroxPresets.all.count
         pageControl.currentPageIndicatorTintColor = .white
-        pageControl.pageIndicatorTintColor = UIColor.white.withAlphaComponent(0.25)
+        pageControl.pageIndicatorTintColor = UIColor.white.withAlphaComponent(0.2)
         pageControl.isUserInteractionEnabled = false
         contentStack.addArrangedSubview(pageControl)
 
         // Actions
         contentStack.addArrangedSubview(makeSectionHeader("MY WORKOUTS"))
-        contentStack.addArrangedSubview(makeActionButton(title: "Create Custom Workout", icon: "plus.circle.fill", action: #selector(newWorkoutTapped)))
-        contentStack.addArrangedSubview(makeActionButton(title: "Workout History", icon: "clock.arrow.circlepath", action: #selector(historyTapped)))
+        contentStack.addArrangedSubview(makeActionRow(title: "Create Custom Workout", icon: "plus.circle.fill", action: #selector(newWorkoutTapped)))
+        contentStack.addArrangedSubview(makeActionRow(title: "Workout History", icon: "clock.arrow.circlepath", action: #selector(historyTapped)))
     }
 
-    // MARK: - Carousel
+    // MARK: - Carousel (paging snap)
 
     private func makeCarousel() -> UIView {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
-        layout.itemSize = CGSize(width: UIScreen.main.bounds.width - 48, height: 160)
-        layout.minimumLineSpacing = 12
-        layout.sectionInset = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24)
+        layout.minimumLineSpacing = cardSpacing
+        layout.sectionInset = UIEdgeInsets(top: 0, left: hMargin, bottom: 0, right: hMargin)
 
         carouselCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         carouselCollectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -144,7 +150,7 @@ final class HomeViewController: UIViewController {
 
     // MARK: - Recent Card
 
-    private func updateRecentCard() {
+    private func rebuildRecentCard() {
         guard let container = contentStack.arrangedSubviews.first(where: { $0.tag == 100 }) else { return }
         container.subviews.forEach { $0.removeFromSuperview() }
 
@@ -155,21 +161,21 @@ final class HomeViewController: UIViewController {
         container.isHidden = false
 
         let card = UIView()
-        card.backgroundColor = UIColor.white.withAlphaComponent(0.06)
-        card.layer.cornerRadius = 16
+        card.backgroundColor = DesignTokens.Color.surface
+        card.layer.cornerRadius = DesignTokens.Radius.card
         card.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(card)
         NSLayoutConstraint.activate([
             card.topAnchor.constraint(equalTo: container.topAnchor),
-            card.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
-            card.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            card.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
+            card.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
             card.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
 
         let badge = UILabel()
         badge.text = "RECENT"
         badge.font = .systemFont(ofSize: 10, weight: .bold)
-        badge.textColor = UIColor.white.withAlphaComponent(0.4)
+        badge.textColor = DesignTokens.Color.textTertiary
 
         let nameLabel = UILabel()
         nameLabel.text = workout.division?.shortName ?? workout.templateName
@@ -184,30 +190,28 @@ final class HomeViewController: UIViewController {
         let dateLabel = UILabel()
         dateLabel.text = RelativeDateFormatter.short(workout.finishedAt)
         dateLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        dateLabel.textColor = UIColor.white.withAlphaComponent(0.5)
+        dateLabel.textColor = DesignTokens.Color.textTertiary
 
         let stack = UIStackView(arrangedSubviews: [badge, nameLabel, timeLabel, dateLabel])
         stack.axis = .vertical
-        stack.spacing = 4
+        stack.spacing = 3
         stack.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(stack)
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = DesignTokens.Color.textTertiary
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(chevron)
+
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
             stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
-            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16)
-        ])
-
-        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
-        chevron.tintColor = UIColor.white.withAlphaComponent(0.3)
-        chevron.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(chevron)
-        NSLayoutConstraint.activate([
+            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16),
             chevron.centerYAnchor.constraint(equalTo: card.centerYAnchor),
             chevron.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16)
         ])
 
-        let tap = UITapGestureRecognizer(target: self, action: #selector(recentTapped))
-        card.addGestureRecognizer(tap)
+        card.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(recentTapped)))
         card.isUserInteractionEnabled = true
     }
 
@@ -222,27 +226,27 @@ final class HomeViewController: UIViewController {
         let label = UILabel()
         label.text = text
         label.font = .systemFont(ofSize: 12, weight: .bold)
-        label.textColor = UIColor.white.withAlphaComponent(0.4)
+        label.textColor = DesignTokens.Color.textTertiary
+        label.translatesAutoresizingMaskIntoConstraints = false
 
         let container = UIView()
-        label.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(label)
         NSLayoutConstraint.activate([
             label.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 24),
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
             label.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         return container
     }
 
-    private func makeActionButton(title: String, icon: String, action: Selector) -> UIView {
+    private func makeActionRow(title: String, icon: String, action: Selector) -> UIView {
         let button = UIButton(type: .system)
         var config = UIButton.Configuration.filled()
         config.title = title
         config.image = UIImage(systemName: icon)
         config.imagePadding = 10
         config.baseForegroundColor = .white
-        config.baseBackgroundColor = UIColor.white.withAlphaComponent(0.06)
+        config.baseBackgroundColor = DesignTokens.Color.surface
         config.cornerStyle = .large
         config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
         button.configuration = config
@@ -254,8 +258,8 @@ final class HomeViewController: UIViewController {
         container.addSubview(button)
         NSLayoutConstraint.activate([
             button.topAnchor.constraint(equalTo: container.topAnchor),
-            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
-            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
+            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
             button.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         return container
@@ -267,9 +271,9 @@ final class HomeViewController: UIViewController {
     @objc private func historyTapped() { delegate?.homeDidTapHistory() }
 }
 
-// MARK: - UICollectionViewDataSource & Delegate
+// MARK: - UICollectionViewDataSource
 
-extension HomeViewController: UICollectionViewDataSource, UICollectionViewDelegate {
+extension HomeViewController: UICollectionViewDataSource {
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         viewModel.presets.count
@@ -280,15 +284,38 @@ extension HomeViewController: UICollectionViewDataSource, UICollectionViewDelega
         cell.configure(with: viewModel.presets[indexPath.item])
         return cell
     }
+}
+
+// MARK: - UICollectionViewDelegateFlowLayout
+
+extension HomeViewController: UICollectionViewDelegateFlowLayout {
+
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        CGSize(width: cardWidth, height: 160)
+    }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         delegate?.homeDidSelectTemplate(viewModel.presets[indexPath.item])
     }
 
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+    // Snap-to-card paging
+    func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
         guard scrollView == carouselCollectionView else { return }
-        let width = UIScreen.main.bounds.width - 48 + 12
-        let page = Int(round(scrollView.contentOffset.x / width))
-        pageControl.currentPage = min(max(page, 0), viewModel.presets.count - 1)
+        let pageWidth = cardWidth + cardSpacing
+        let currentOffset = scrollView.contentOffset.x
+        let targetOffset = targetContentOffset.pointee.x
+
+        var newPage: Int
+        if velocity.x > 0.3 {
+            newPage = Int(ceil(currentOffset / pageWidth))
+        } else if velocity.x < -0.3 {
+            newPage = Int(floor(currentOffset / pageWidth))
+        } else {
+            newPage = Int(round(targetOffset / pageWidth))
+        }
+
+        newPage = max(0, min(newPage, viewModel.presets.count - 1))
+        targetContentOffset.pointee.x = CGFloat(newPage) * pageWidth
+        pageControl.currentPage = newPage
     }
 }
