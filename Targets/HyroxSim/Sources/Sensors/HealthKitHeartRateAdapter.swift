@@ -49,9 +49,12 @@ public final class HealthKitHeartRateAdapter: HeartRateStreaming, @unchecked Sen
         // so we proceed optimistically. If access is denied, the query returns no results.
         authorizationStatus = .authorized
 
+        // Only fetch samples from now onward to avoid stale historical data
+        let startPredicate = HKQuery.predicateForSamples(withStart: Date(), end: nil, options: .strictStartDate)
+
         let query = HKAnchoredObjectQuery(
             type: heartRateType,
-            predicate: nil,
+            predicate: startPredicate,
             anchor: anchor,
             limit: HKObjectQueryNoLimit
         ) { [weak self] _, samples, _, newAnchor, _ in
