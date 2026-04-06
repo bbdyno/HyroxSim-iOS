@@ -28,7 +28,9 @@ struct WatchHistoryView: View {
             } else {
                 List {
                     ForEach(workouts) { workout in
-                        HStack {
+                        NavigationLink {
+                            SummaryView(workout: workout, onDone: {})
+                        } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(workout.division?.shortName ?? workout.templateName)
                                     .font(.system(size: 13, weight: .bold))
@@ -36,8 +38,10 @@ struct WatchHistoryView: View {
                                 Text(DurationFormatter.hms(workout.totalDuration))
                                     .font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
                                     .foregroundStyle(accent)
+                                Text(workout.finishedAt, style: .relative)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.gray)
                             }
-                            Spacer()
                         }
                         .listRowBackground(Color.white.opacity(0.06))
                     }
@@ -53,8 +57,7 @@ struct WatchHistoryView: View {
 
     private func deleteWorkouts(at offsets: IndexSet) {
         for index in offsets {
-            let workout = workouts[index]
-            try? persistence.deleteCompletedWorkout(id: workout.id)
+            try? persistence.deleteCompletedWorkout(id: workouts[index].id)
         }
         workouts.remove(atOffsets: offsets)
     }

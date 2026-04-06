@@ -10,7 +10,7 @@ import HyroxKit
 
 struct SummaryView: View {
     let workout: CompletedWorkout
-    let onDone: () -> Void
+    var onDone: (() -> Void)? = nil
 
     private let accent = Color(red: 1.0, green: 0.84, blue: 0.0)
 
@@ -54,17 +54,19 @@ struct SummaryView: View {
                     }
                 }
 
-                Button("Done") { onDone() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(accent)
-                    .foregroundStyle(.black)
-                    .padding(.top, 8)
+                if let onDone {
+                    Button("Done") { onDone() }
+                        .buttonStyle(.borderedProminent)
+                        .tint(accent)
+                        .foregroundStyle(.black)
+                        .padding(.top, 8)
+                }
             }
             .padding(.horizontal, 8)
         }
         .background(Color.black)
-        .navigationTitle("Complete")
-        .navigationBarBackButtonHidden(true)
+        .navigationTitle(onDone != nil ? "Complete" : "Detail")
+        .navigationBarBackButtonHidden(onDone != nil)
     }
 
     private func metricRow(_ label: String, _ value: String) -> some View {
