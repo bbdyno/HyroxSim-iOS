@@ -14,15 +14,11 @@ final class HomeViewController: UIViewController {
     weak var delegate: HomeViewControllerDelegate?
     private let viewModel: HomeViewModel
 
-    private enum Section: Int, CaseIterable {
-        case recent
-        case presets
-        case custom
-        case actions
-    }
-
-    private var collectionView: UICollectionView!
-    private var dataSource: UICollectionViewDiffableDataSource<Section, AnyHashable>!
+    private let scrollView = UIScrollView()
+    private let contentStack = UIStackView()
+    private var carouselCollectionView: UICollectionView!
+    private let pageControl = UIPageControl()
+    private var recentCard: UIView?
 
     init(viewModel: HomeViewModel) {
         self.viewModel = viewModel
@@ -34,207 +30,258 @@ final class HomeViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .black
+        navigationController?.navigationBar.prefersLargeTitles = true
         title = "HYROX"
-        view.backgroundColor = .systemBackground
-        setupCollectionView()
-        setupDataSource()
+        configureNavBar()
+        setupScrollView()
+        buildContent()
         NotificationCenter.default.addObserver(self, selector: #selector(handleSyncUpdate), name: .syncDataUpdated, object: nil)
-    }
-
-    @objc private func handleSyncUpdate() {
-        viewModel.load()
-        applySnapshot()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         viewModel.load()
-        applySnapshot()
+        carouselCollectionView?.reloadData()
+        updateRecentCard()
     }
 
-    // MARK: - Collection View Setup
+    @objc private func handleSyncUpdate() {
+        viewModel.load()
+        carouselCollectionView?.reloadData()
+        updateRecentCard()
+    }
 
-    private func setupCollectionView() {
-        let layout = createLayout()
-        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.backgroundColor = .systemBackground
-        collectionView.delegate = self
-        view.addSubview(collectionView)
+    // MARK: - Nav Bar
 
+    private func configureNavBar() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .black
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor.white,
+            .font: UIFont.systemFont(ofSize: 34, weight: .black)
+        ]
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+    }
+
+    // MARK: - Layout
+
+    private func setupScrollView() {
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.showsVerticalScrollIndicator = false
+        view.addSubview(scrollView)
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        contentStack.axis = .vertical
+        contentStack.spacing = 20
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(contentStack)
+        NSLayoutConstraint.activate([
+            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -32)
         ])
     }
 
-    private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { sectionIndex, environment in
-            guard let section = Section(rawValue: sectionIndex) else { return nil }
-            switch section {
-            case .recent:
-                return Self.fullWidthSection(estimatedHeight: 80)
-            case .presets:
-                return Self.fullWidthSection(estimatedHeight: 72)
-            case .custom:
-                return Self.fullWidthSection(estimatedHeight: 60)
-            case .actions:
-                return Self.fullWidthSection(estimatedHeight: 50)
-            }
-        }
+    private func buildContent() {
+        // Recent workout (placeholder — filled on viewWillAppear)
+        let recentContainer = UIView()
+        recentContainer.tag = 100
+        contentStack.addArrangedSubview(recentContainer)
+
+        // Carousel
+        contentStack.addArrangedSubview(makeSectionHeader("SELECT DIVISION"))
+        contentStack.addArrangedSubview(makeCarousel())
+
+        pageControl.numberOfPages = HyroxPresets.all.count
+        pageControl.currentPageIndicatorTintColor = .white
+        pageControl.pageIndicatorTintColor = UIColor.white.withAlphaComponent(0.25)
+        pageControl.isUserInteractionEnabled = false
+        contentStack.addArrangedSubview(pageControl)
+
+        // Actions
+        contentStack.addArrangedSubview(makeSectionHeader("MY WORKOUTS"))
+        contentStack.addArrangedSubview(makeActionButton(title: "Create Custom Workout", icon: "plus.circle.fill", action: #selector(newWorkoutTapped)))
+        contentStack.addArrangedSubview(makeActionButton(title: "Workout History", icon: "clock.arrow.circlepath", action: #selector(historyTapped)))
     }
 
-    private static func fullWidthSection(estimatedHeight: CGFloat) -> NSCollectionLayoutSection {
-        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(estimatedHeight))
-        let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(estimatedHeight))
-        let group = NSCollectionLayoutGroup.vertical(layoutSize: groupSize, subitems: [item])
-        let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: DesignTokens.Spacing.s, leading: DesignTokens.Spacing.m, bottom: DesignTokens.Spacing.s, trailing: DesignTokens.Spacing.m)
-        section.interGroupSpacing = DesignTokens.Spacing.s
-        return section
+    // MARK: - Carousel
+
+    private func makeCarousel() -> UIView {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.itemSize = CGSize(width: UIScreen.main.bounds.width - 48, height: 160)
+        layout.minimumLineSpacing = 12
+        layout.sectionInset = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24)
+
+        carouselCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        carouselCollectionView.translatesAutoresizingMaskIntoConstraints = false
+        carouselCollectionView.backgroundColor = .clear
+        carouselCollectionView.showsHorizontalScrollIndicator = false
+        carouselCollectionView.decelerationRate = .fast
+        carouselCollectionView.dataSource = self
+        carouselCollectionView.delegate = self
+        carouselCollectionView.register(PresetCardCell.self, forCellWithReuseIdentifier: PresetCardCell.reuseId)
+        carouselCollectionView.heightAnchor.constraint(equalToConstant: 168).isActive = true
+        return carouselCollectionView
     }
 
-    // MARK: - Data Source
+    // MARK: - Recent Card
 
-    private func setupDataSource() {
-        let presetReg = UICollectionView.CellRegistration<UICollectionViewListCell, PresetItem> { cell, _, item in
-            var config = UIListContentConfiguration.subtitleCell()
-            config.text = item.template.name
-            config.secondaryText = "8 stations · ~\(Int(item.template.estimatedDurationSeconds / 60)) min"
-            config.textProperties.font = .preferredFont(forTextStyle: .headline)
-            config.secondaryTextProperties.font = .preferredFont(forTextStyle: .caption1)
-            config.secondaryTextProperties.color = .secondaryLabel
-            cell.contentConfiguration = config
-            cell.accessories = [.disclosureIndicator()]
-            var bg = UIBackgroundConfiguration.listGroupedCell()
-            bg.cornerRadius = DesignTokens.Radius.card
-            bg.backgroundColor = DesignTokens.Color.cardBackground
-            cell.backgroundConfiguration = bg
-        }
+    private func updateRecentCard() {
+        guard let container = contentStack.arrangedSubviews.first(where: { $0.tag == 100 }) else { return }
+        container.subviews.forEach { $0.removeFromSuperview() }
 
-        let recentReg = UICollectionView.CellRegistration<UICollectionViewListCell, RecentItem> { cell, _, item in
-            var config = UIListContentConfiguration.subtitleCell()
-            config.text = item.workout.templateName
-            config.secondaryText = DurationFormatter.hms(item.workout.totalDuration) + " · " + RelativeDateFormatter.short(item.workout.finishedAt)
-            config.textProperties.font = .preferredFont(forTextStyle: .headline)
-            config.secondaryTextProperties.font = DesignTokens.Font.smallNumber
-            cell.contentConfiguration = config
-            cell.accessories = [.disclosureIndicator()]
-            var bg = UIBackgroundConfiguration.listGroupedCell()
-            bg.cornerRadius = DesignTokens.Radius.card
-            bg.backgroundColor = DesignTokens.Color.cardBackground
-            cell.backgroundConfiguration = bg
+        guard let workout = viewModel.mostRecentWorkout else {
+            container.isHidden = true
+            return
         }
+        container.isHidden = false
 
-        let customReg = UICollectionView.CellRegistration<UICollectionViewListCell, CustomItem> { cell, _, item in
-            var config = UIListContentConfiguration.cell()
-            config.text = item.template.name
-            config.textProperties.font = .preferredFont(forTextStyle: .body)
-            cell.contentConfiguration = config
-            cell.accessories = [.disclosureIndicator()]
-        }
+        let card = UIView()
+        card.backgroundColor = UIColor.white.withAlphaComponent(0.06)
+        card.layer.cornerRadius = 16
+        card.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(card)
+        NSLayoutConstraint.activate([
+            card.topAnchor.constraint(equalTo: container.topAnchor),
+            card.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
+            card.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            card.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
 
-        let actionReg = UICollectionView.CellRegistration<UICollectionViewListCell, ActionItem> { cell, _, item in
-            var config = UIListContentConfiguration.cell()
-            config.text = item.title
-            config.textProperties.font = .preferredFont(forTextStyle: .body)
-            config.textProperties.color = .systemBlue
-            config.image = UIImage(systemName: item.icon)
-            cell.contentConfiguration = config
-        }
+        let badge = UILabel()
+        badge.text = "RECENT"
+        badge.font = .systemFont(ofSize: 10, weight: .bold)
+        badge.textColor = UIColor.white.withAlphaComponent(0.4)
 
-        dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
-            switch item {
-            case let preset as PresetItem:
-                return cv.dequeueConfiguredReusableCell(using: presetReg, for: indexPath, item: preset)
-            case let recent as RecentItem:
-                return cv.dequeueConfiguredReusableCell(using: recentReg, for: indexPath, item: recent)
-            case let custom as CustomItem:
-                return cv.dequeueConfiguredReusableCell(using: customReg, for: indexPath, item: custom)
-            case let action as ActionItem:
-                return cv.dequeueConfiguredReusableCell(using: actionReg, for: indexPath, item: action)
-            default:
-                return nil
-            }
-        }
+        let nameLabel = UILabel()
+        nameLabel.text = workout.division?.shortName ?? workout.templateName
+        nameLabel.font = .systemFont(ofSize: 17, weight: .bold)
+        nameLabel.textColor = .white
+
+        let timeLabel = UILabel()
+        timeLabel.text = DurationFormatter.hms(workout.totalDuration)
+        timeLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .semibold)
+        timeLabel.textColor = .white
+
+        let dateLabel = UILabel()
+        dateLabel.text = RelativeDateFormatter.short(workout.finishedAt)
+        dateLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        dateLabel.textColor = UIColor.white.withAlphaComponent(0.5)
+
+        let stack = UIStackView(arrangedSubviews: [badge, nameLabel, timeLabel, dateLabel])
+        stack.axis = .vertical
+        stack.spacing = 4
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
+            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16)
+        ])
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = UIColor.white.withAlphaComponent(0.3)
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(chevron)
+        NSLayoutConstraint.activate([
+            chevron.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            chevron.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16)
+        ])
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(recentTapped))
+        card.addGestureRecognizer(tap)
+        card.isUserInteractionEnabled = true
     }
 
-    private func applySnapshot() {
-        var snapshot = NSDiffableDataSourceSnapshot<Section, AnyHashable>()
-
-        if let recent = viewModel.mostRecentWorkout {
-            snapshot.appendSections([.recent])
-            snapshot.appendItems([RecentItem(workout: recent)], toSection: .recent)
-        }
-
-        snapshot.appendSections([.presets])
-        snapshot.appendItems(viewModel.presets.map { PresetItem(template: $0) }, toSection: .presets)
-
-        if !viewModel.customTemplates.isEmpty {
-            snapshot.appendSections([.custom])
-            snapshot.appendItems(viewModel.customTemplates.map { CustomItem(template: $0) }, toSection: .custom)
-        }
-
-        snapshot.appendSections([.actions])
-        var actions: [ActionItem] = [
-            ActionItem(id: "new", title: "New Workout", icon: "plus.circle"),
-            ActionItem(id: "history", title: "View All History", icon: "clock.arrow.circlepath")
-        ]
-        snapshot.appendItems(actions, toSection: .actions)
-
-        dataSource.apply(snapshot, animatingDifferences: false)
+    @objc private func recentTapped() {
+        guard let workout = viewModel.mostRecentWorkout else { return }
+        delegate?.homeDidSelectRecent(workout)
     }
+
+    // MARK: - Components
+
+    private func makeSectionHeader(_ text: String) -> UIView {
+        let label = UILabel()
+        label.text = text
+        label.font = .systemFont(ofSize: 12, weight: .bold)
+        label.textColor = UIColor.white.withAlphaComponent(0.4)
+
+        let container = UIView()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 24),
+            label.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        return container
+    }
+
+    private func makeActionButton(title: String, icon: String, action: Selector) -> UIView {
+        let button = UIButton(type: .system)
+        var config = UIButton.Configuration.filled()
+        config.title = title
+        config.image = UIImage(systemName: icon)
+        config.imagePadding = 10
+        config.baseForegroundColor = .white
+        config.baseBackgroundColor = UIColor.white.withAlphaComponent(0.06)
+        config.cornerStyle = .large
+        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
+        button.configuration = config
+        button.contentHorizontalAlignment = .leading
+        button.addTarget(self, action: action, for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = UIView()
+        container.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.topAnchor.constraint(equalTo: container.topAnchor),
+            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
+            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            button.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        return container
+    }
+
+    // MARK: - Actions
+
+    @objc private func newWorkoutTapped() { delegate?.homeDidTapNewWorkout() }
+    @objc private func historyTapped() { delegate?.homeDidTapHistory() }
 }
 
-// MARK: - UICollectionViewDelegate
+// MARK: - UICollectionViewDataSource & Delegate
 
-extension HomeViewController: UICollectionViewDelegate {
+extension HomeViewController: UICollectionViewDataSource, UICollectionViewDelegate {
+
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        viewModel.presets.count
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: PresetCardCell.reuseId, for: indexPath) as! PresetCardCell
+        cell.configure(with: viewModel.presets[indexPath.item])
+        return cell
+    }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        collectionView.deselectItem(at: indexPath, animated: true)
-        guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-
-        switch item {
-        case let preset as PresetItem:
-            delegate?.homeDidSelectTemplate(preset.template)
-        case let recent as RecentItem:
-            delegate?.homeDidSelectRecent(recent.workout)
-        case let custom as CustomItem:
-            delegate?.homeDidSelectTemplate(custom.template)
-        case let action as ActionItem:
-            if action.id == "new" { delegate?.homeDidTapNewWorkout() }
-            else if action.id == "history" { delegate?.homeDidTapHistory() }
-        default:
-            break
-        }
+        delegate?.homeDidSelectTemplate(viewModel.presets[indexPath.item])
     }
-}
 
-// MARK: - Item Types
-
-private struct PresetItem: Hashable {
-    let template: WorkoutTemplate
-    func hash(into hasher: inout Hasher) { hasher.combine(template.id) }
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.template.id == rhs.template.id }
-}
-
-private struct RecentItem: Hashable {
-    let workout: CompletedWorkout
-    func hash(into hasher: inout Hasher) { hasher.combine(workout.id) }
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.workout.id == rhs.workout.id }
-}
-
-private struct CustomItem: Hashable {
-    let template: WorkoutTemplate
-    func hash(into hasher: inout Hasher) { hasher.combine(template.id) }
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.template.id == rhs.template.id }
-}
-
-private struct ActionItem: Hashable {
-    let id: String
-    let title: String
-    let icon: String
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        guard scrollView == carouselCollectionView else { return }
+        let width = UIScreen.main.bounds.width - 48 + 12
+        let page = Int(round(scrollView.contentOffset.x / width))
+        pageControl.currentPage = min(max(page, 0), viewModel.presets.count - 1)
+    }
 }

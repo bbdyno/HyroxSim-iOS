@@ -48,6 +48,18 @@ public final class WorkoutSummaryViewModel {
         workout.maxHeartRate.map(String.init) ?? "—"
     }
 
+    /// Total time spent in all run segments
+    public var totalRunTimeText: String {
+        let total = workout.runSegments.reduce(0.0) { $0 + $1.activeDuration }
+        return DurationFormatter.hms(total)
+    }
+
+    /// Total time spent in all ROX Zone segments
+    public var totalRoxZoneTimeText: String {
+        let total = workout.roxZoneSegments.reduce(0.0) { $0 + $1.activeDuration }
+        return DurationFormatter.hms(total)
+    }
+
     // MARK: - Run Paces
 
     public struct RunPaceItem: Hashable {

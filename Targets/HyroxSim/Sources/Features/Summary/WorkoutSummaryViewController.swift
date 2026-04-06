@@ -7,12 +7,17 @@ protocol WorkoutSummaryViewControllerDelegate: AnyObject {
     func summaryDidTapShare(_ workout: CompletedWorkout)
 }
 
+/// Workout summary screen — black + yellow accent, matching HYROX results aesthetic.
 final class WorkoutSummaryViewController: UIViewController {
 
     weak var delegate: WorkoutSummaryViewControllerDelegate?
     private let viewModel: WorkoutSummaryViewModel
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
+
+    private let accent = DesignTokens.Color.accent
+    private let bg = DesignTokens.Color.background
+    private let surface = DesignTokens.Color.surface
 
     init(viewModel: WorkoutSummaryViewModel) {
         self.viewModel = viewModel
@@ -25,20 +30,24 @@ final class WorkoutSummaryViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Summary"
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = bg
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneTapped))
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(shareTapped))
+
+        // Style nav bar for dark theme
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = bg
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        navigationItem.standardAppearance = appearance
+        navigationItem.scrollEdgeAppearance = appearance
+
         setupScrollView()
         buildContent()
     }
 
-    @objc private func doneTapped() {
-        delegate?.summaryDidTapDone()
-    }
-
-    @objc private func shareTapped() {
-        delegate?.summaryDidTapShare(viewModel.workout)
-    }
+    @objc private func doneTapped() { delegate?.summaryDidTapDone() }
+    @objc private func shareTapped() { delegate?.summaryDidTapShare(viewModel.workout) }
 
     // MARK: - Layout
 
@@ -53,11 +62,10 @@ final class WorkoutSummaryViewController: UIViewController {
         ])
 
         contentStack.axis = .vertical
-        contentStack.spacing = DesignTokens.Spacing.l
+        contentStack.spacing = 0
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStack)
-
-        let margin = DesignTokens.Spacing.m
+        let margin: CGFloat = 20
         NSLayoutConstraint.activate([
             contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: margin),
             contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
@@ -68,186 +76,193 @@ final class WorkoutSummaryViewController: UIViewController {
 
     private func buildContent() {
         // Header
-        let totalLabel = makeCaption("TOTAL TIME")
-        let totalValue = UILabel()
-        totalValue.text = viewModel.totalTimeText
-        totalValue.font = DesignTokens.Font.largeNumber
-        totalValue.textAlignment = .center
+        addSpacer(16)
+        addCenteredLabel(viewModel.totalTimeText, font: DesignTokens.Font.largeNumber, color: .white)
+        addSpacer(4)
+        addCenteredLabel("TOTAL TIME", font: DesignTokens.Font.label, color: DesignTokens.Color.textTertiary)
+        addSpacer(12)
+        addCenteredLabel(viewModel.titleText, font: .systemFont(ofSize: 16, weight: .bold), color: accent)
+        addCenteredLabel(viewModel.dateText, font: .systemFont(ofSize: 12, weight: .medium), color: DesignTokens.Color.textTertiary)
+        addSpacer(24)
+        addSeparator()
 
-        let titleLabel = UILabel()
-        titleLabel.text = viewModel.titleText
-        titleLabel.font = .preferredFont(forTextStyle: .headline)
-        titleLabel.textAlignment = .center
+        // Summary table header (yellow)
+        addSpacer(16)
+        addTableHeader(["Split", "Time", "Place"])
+        addSpacer(8)
 
-        let dateLabel = UILabel()
-        dateLabel.text = viewModel.dateText
-        dateLabel.font = .preferredFont(forTextStyle: .subheadline)
-        dateLabel.textColor = .secondaryLabel
-        dateLabel.textAlignment = .center
-
-        contentStack.addArrangedSubview(totalLabel)
-        contentStack.addArrangedSubview(totalValue)
-        contentStack.addArrangedSubview(titleLabel)
-        contentStack.addArrangedSubview(dateLabel)
-        contentStack.addArrangedSubview(makeSeparator())
-
-        // Summary 2x2
-        contentStack.addArrangedSubview(makeCaption("SUMMARY"))
-        let grid = makeSummaryGrid()
-        contentStack.addArrangedSubview(grid)
-        contentStack.addArrangedSubview(makeSeparator())
-
-        // Run Paces
-        if !viewModel.runPaces.isEmpty {
-            contentStack.addArrangedSubview(makeCaption("PACE BY RUN"))
-            let chart = BarChartView()
-            chart.accentColor = DesignTokens.Color.runAccent
-            chart.bars = viewModel.runPaces.map { item in
-                BarChartView.Bar(
-                    label: "Run \(item.index)",
-                    value: item.secondsPerKm ?? 0,
-                    display: item.durationText
+        // Segment breakdown — HYROX results style
+        let segments = viewModel.workout.segments
+        var stationIndex = 0
+        for (i, record) in segments.enumerated() {
+            switch record.type {
+            case .run:
+                let runNum = segments[0...i].filter { $0.type == .run }.count
+                addSegmentRow(badge: nil, name: "Running \(runNum)", time: DurationFormatter.hms(record.activeDuration), isBold: false)
+            case .roxZone:
+                // ROX Zone rows are subtle
+                addSegmentRow(badge: nil, name: "Rox Zone", time: DurationFormatter.hms(record.activeDuration), isBold: false, dimmed: true)
+            case .station:
+                stationIndex += 1
+                let displayName = record.stationDisplayName ?? "Station"
+                addSegmentRow(
+                    badge: String(format: "%02d", stationIndex),
+                    name: displayName,
+                    time: DurationFormatter.hms(record.activeDuration),
+                    isBold: true
                 )
             }
-            contentStack.addArrangedSubview(chart)
-            contentStack.addArrangedSubview(makeSeparator())
         }
 
-        // Stations
-        if !viewModel.stationItems.isEmpty {
-            contentStack.addArrangedSubview(makeCaption("STATIONS"))
-            let chart = BarChartView()
-            chart.accentColor = DesignTokens.Color.stationAccent
-            chart.bars = viewModel.stationItems.map { item in
-                BarChartView.Bar(label: item.name, value: item.durationSeconds, display: item.durationText)
-            }
-            contentStack.addArrangedSubview(chart)
-            contentStack.addArrangedSubview(makeSeparator())
+        // Summary totals (like the reference bottom section)
+        addSpacer(12)
+        addSeparator()
+        addSpacer(8)
+        addSummaryRow("Roxzone Time", viewModel.totalRoxZoneTimeText, highlighted: true)
+        addSummaryRow("Run Total", viewModel.totalRunTimeText, highlighted: true)
+        addSpacer(4)
+        addSummaryRow("Distance", viewModel.distanceText, highlighted: false)
+        addSummaryRow("Avg Pace", viewModel.averagePaceText, highlighted: false)
+        addSummaryRow("Avg HR", viewModel.averageHeartRateText, highlighted: false)
+        addSummaryRow("Max HR", viewModel.maxHeartRateText, highlighted: false)
+        addSpacer(20)
+    }
+
+    // MARK: - Row Builders
+
+    private func addTableHeader(_ columns: [String]) {
+        let row = UIStackView()
+        row.distribution = .fillProportionally
+
+        let col1 = makeLabel(columns[0], font: .systemFont(ofSize: 13, weight: .bold), color: accent)
+        col1.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
+        row.addArrangedSubview(col1)
+
+        let col2 = makeLabel(columns[1], font: .systemFont(ofSize: 13, weight: .bold), color: accent)
+        col2.textAlignment = .center
+        row.addArrangedSubview(col2)
+
+        if columns.count > 2 {
+            let col3 = makeLabel(columns[2], font: .systemFont(ofSize: 13, weight: .bold), color: accent)
+            col3.textAlignment = .right
+            col3.widthAnchor.constraint(equalToConstant: 50).isActive = true
+            row.addArrangedSubview(col3)
         }
 
-        // HR Zones
-        let zones = viewModel.heartRateZoneDistribution
-        if !zones.isEmpty {
-            contentStack.addArrangedSubview(makeCaption("HEART RATE ZONES"))
-            let bar = StackedZoneBarView()
-            bar.zones = zones.map { StackedZoneBarView.ZoneData(zone: $0.zone, ratio: $0.ratio, durationText: $0.durationText) }
-            contentStack.addArrangedSubview(bar)
-            contentStack.addArrangedSubview(makeSeparator())
+        contentStack.addArrangedSubview(row)
+        addSeparator(color: accent.withAlphaComponent(0.3))
+    }
+
+    private func addSegmentRow(badge: String?, name: String, time: String, isBold: Bool, dimmed: Bool = false) {
+        let row = UIStackView()
+        row.alignment = .center
+        row.spacing = 8
+
+        // Badge
+        if let badge {
+            let bv = UIView()
+            bv.backgroundColor = accent
+            bv.layer.cornerRadius = DesignTokens.Radius.badge
+            bv.translatesAutoresizingMaskIntoConstraints = false
+            bv.widthAnchor.constraint(equalToConstant: 30).isActive = true
+            bv.heightAnchor.constraint(equalToConstant: 20).isActive = true
+
+            let bl = UILabel()
+            bl.text = badge
+            bl.font = .systemFont(ofSize: 11, weight: .black)
+            bl.textColor = .black
+            bl.textAlignment = .center
+            bl.translatesAutoresizingMaskIntoConstraints = false
+            bv.addSubview(bl)
+            NSLayoutConstraint.activate([
+                bl.centerXAnchor.constraint(equalTo: bv.centerXAnchor),
+                bl.centerYAnchor.constraint(equalTo: bv.centerYAnchor)
+            ])
+            row.addArrangedSubview(bv)
+        } else {
+            let spacer = UIView()
+            spacer.widthAnchor.constraint(equalToConstant: 30).isActive = true
+            row.addArrangedSubview(spacer)
         }
 
-        // Breakdown
-        contentStack.addArrangedSubview(makeCaption("SEGMENT BREAKDOWN"))
-        for item in viewModel.breakdownItems {
-            contentStack.addArrangedSubview(makeBreakdownRow(item))
-        }
+        let alpha: CGFloat = dimmed ? 0.4 : 1.0
+        let nameLabel = makeLabel(name,
+            font: isBold ? .systemFont(ofSize: 15, weight: .bold) : .systemFont(ofSize: 14, weight: .regular),
+            color: DesignTokens.Color.textPrimary.withAlphaComponent(alpha))
+        row.addArrangedSubview(nameLabel)
+
+        let timeLabel = makeLabel(time,
+            font: .monospacedDigitSystemFont(ofSize: 14, weight: .medium),
+            color: DesignTokens.Color.textPrimary.withAlphaComponent(alpha))
+        timeLabel.textAlignment = .right
+        timeLabel.widthAnchor.constraint(equalToConstant: 80).isActive = true
+        row.addArrangedSubview(timeLabel)
+
+        let container = UIView()
+        row.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6)
+        ])
+        contentStack.addArrangedSubview(container)
+    }
+
+    private func addSummaryRow(_ label: String, _ value: String, highlighted: Bool) {
+        let row = UIStackView()
+        row.distribution = .fill
+
+        let lbl = makeLabel(label,
+            font: .systemFont(ofSize: 14, weight: highlighted ? .bold : .medium),
+            color: highlighted ? accent : DesignTokens.Color.textSecondary)
+        row.addArrangedSubview(lbl)
+
+        let val = makeLabel(value,
+            font: .monospacedDigitSystemFont(ofSize: 14, weight: .semibold),
+            color: highlighted ? accent : DesignTokens.Color.textPrimary)
+        val.textAlignment = .right
+        row.addArrangedSubview(val)
+
+        let container = UIView()
+        row.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4)
+        ])
+        contentStack.addArrangedSubview(container)
     }
 
     // MARK: - Helpers
 
-    private func makeCaption(_ text: String) -> UILabel {
+    private func makeLabel(_ text: String, font: UIFont, color: UIColor) -> UILabel {
         let l = UILabel()
         l.text = text
-        l.font = .preferredFont(forTextStyle: .caption1)
-        l.textColor = .secondaryLabel
+        l.font = font
+        l.textColor = color
         return l
     }
 
-    private func makeSeparator() -> UIView {
+    private func addCenteredLabel(_ text: String, font: UIFont, color: UIColor) {
+        let l = makeLabel(text, font: font, color: color)
+        l.textAlignment = .center
+        contentStack.addArrangedSubview(l)
+    }
+
+    private func addSpacer(_ height: CGFloat) {
         let v = UIView()
-        v.backgroundColor = .separator
+        v.heightAnchor.constraint(equalToConstant: height).isActive = true
+        contentStack.addArrangedSubview(v)
+    }
+
+    private func addSeparator(color: UIColor = UIColor.white.withAlphaComponent(0.1)) {
+        let v = UIView()
+        v.backgroundColor = color
         v.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
-        return v
-    }
-
-    private func makeSummaryGrid() -> UIView {
-        let row1 = UIStackView(arrangedSubviews: [
-            makeMetricCell(viewModel.distanceText, caption: "Distance"),
-            makeMetricCell(viewModel.averagePaceText, caption: "Avg Pace")
-        ])
-        row1.distribution = .fillEqually
-        row1.spacing = DesignTokens.Spacing.m
-
-        let row2 = UIStackView(arrangedSubviews: [
-            makeMetricCell(viewModel.averageHeartRateText, caption: "Avg HR"),
-            makeMetricCell(viewModel.maxHeartRateText, caption: "Max HR")
-        ])
-        row2.distribution = .fillEqually
-        row2.spacing = DesignTokens.Spacing.m
-
-        let grid = UIStackView(arrangedSubviews: [row1, row2])
-        grid.axis = .vertical
-        grid.spacing = DesignTokens.Spacing.s
-        return grid
-    }
-
-    private func makeMetricCell(_ value: String, caption: String) -> UIView {
-        let container = UIView()
-        container.backgroundColor = DesignTokens.Color.cardBackground
-        container.layer.cornerRadius = DesignTokens.Radius.card
-
-        let vLabel = UILabel()
-        vLabel.text = value
-        vLabel.font = DesignTokens.Font.mediumNumber
-        vLabel.textAlignment = .center
-
-        let cLabel = UILabel()
-        cLabel.text = caption
-        cLabel.font = DesignTokens.Font.label
-        cLabel.textColor = .secondaryLabel
-        cLabel.textAlignment = .center
-
-        let stack = UIStackView(arrangedSubviews: [vLabel, cLabel])
-        stack.axis = .vertical
-        stack.spacing = 2
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(stack)
-
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: DesignTokens.Spacing.m),
-            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DesignTokens.Spacing.s),
-            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DesignTokens.Spacing.s),
-            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -DesignTokens.Spacing.m)
-        ])
-        return container
-    }
-
-    private func makeBreakdownRow(_ item: WorkoutSummaryViewModel.BreakdownItem) -> UIView {
-        let row = UIStackView()
-        row.spacing = DesignTokens.Spacing.s
-        row.alignment = .center
-
-        let dot = UIView()
-        dot.layer.cornerRadius = 4
-        switch item.accent {
-        case .run: dot.backgroundColor = DesignTokens.Color.runAccent
-        case .roxZone: dot.backgroundColor = DesignTokens.Color.roxZoneAccent
-        case .station: dot.backgroundColor = DesignTokens.Color.stationAccent
-        }
-        dot.translatesAutoresizingMaskIntoConstraints = false
-        dot.widthAnchor.constraint(equalToConstant: 8).isActive = true
-        dot.heightAnchor.constraint(equalToConstant: 8).isActive = true
-
-        let indexLabel = UILabel()
-        indexLabel.text = "\(item.index)."
-        indexLabel.font = .preferredFont(forTextStyle: .body)
-        indexLabel.textColor = .secondaryLabel
-        indexLabel.widthAnchor.constraint(equalToConstant: 28).isActive = true
-
-        let titleLabel = UILabel()
-        titleLabel.text = item.detail != nil ? "\(item.title) — \(item.detail!)" : item.title
-        titleLabel.font = .preferredFont(forTextStyle: .body)
-
-        let timeLabel = UILabel()
-        timeLabel.text = item.durationText
-        timeLabel.font = DesignTokens.Font.smallNumber
-        timeLabel.textAlignment = .right
-
-        row.addArrangedSubview(dot)
-        row.addArrangedSubview(indexLabel)
-        row.addArrangedSubview(titleLabel)
-        row.addArrangedSubview(timeLabel)
-        titleLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
-
-        return row
+        contentStack.addArrangedSubview(v)
     }
 }

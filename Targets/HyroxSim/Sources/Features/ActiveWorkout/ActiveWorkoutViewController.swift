@@ -275,9 +275,9 @@ final class ActiveWorkoutViewController: UIViewController {
 
     private func backgroundColor(for accent: ActiveWorkoutViewModel.AccentKind) -> UIColor {
         switch accent {
-        case .run: return DesignTokens.Color.runAccent
-        case .roxZone: return DesignTokens.Color.roxZoneAccent
-        case .station: return DesignTokens.Color.stationAccent
+        case .run: return DesignTokens.Color.runBackground
+        case .roxZone: return DesignTokens.Color.roxZoneBackground
+        case .station: return DesignTokens.Color.stationBackground
         }
     }
 
