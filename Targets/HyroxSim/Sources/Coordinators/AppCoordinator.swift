@@ -177,8 +177,8 @@ extension AppCoordinator {
         let vc = ActiveWorkoutViewController(viewModel: vm)
 
         vm.errorHandler = { [weak self] error in
-            let alert = UIAlertController(title: "Error", message: "\(error)", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            let alert = DarkAlertController(title: "Error", message: "\(error)")
+            alert.addAction(.init(title: "OK", style: .normal, handler: nil))
             self?.navigationController.presentedViewController?.present(alert, animated: true)
         }
         vm.finishHandler = { [weak self] completed in

@@ -65,11 +65,11 @@ final class WorkoutBuilderViewController: UIViewController {
     }
 
     @objc private func cancelTapped() {
-        let alert = UIAlertController(title: "Discard Changes?", message: nil, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Discard", style: .destructive) { [weak self] _ in
+        let alert = DarkAlertController(title: "Discard Changes?", message: nil)
+        alert.addAction(.init(title: "Keep Editing", style: .cancel, handler: nil))
+        alert.addAction(.init(title: "Discard", style: .destructive, handler: { [weak self] in
             self?.delegate?.builderDidCancel()
-        })
-        alert.addAction(UIAlertAction(title: "Keep Editing", style: .cancel))
+        }))
         present(alert, animated: true)
     }
 
@@ -106,18 +106,17 @@ final class WorkoutBuilderViewController: UIViewController {
 
     @objc private func saveTapped() {
         guard viewModel.canSave else { return }
-        let alert = UIAlertController(title: "Save Template", message: "Enter a name", preferredStyle: .alert)
+        let alert = DarkAlertController(title: "Save Template", message: "Enter a name")
         alert.addTextField { [weak self] tf in
             tf.text = self?.viewModel.name
-            tf.applyDarkStyle()
         }
-        alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
-            guard let self, let name = alert.textFields?.first?.text, !name.isEmpty else { return }
+        alert.addAction(.init(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(.init(title: "Save", style: .normal, handler: { [weak self] in
+            guard let self, let name = alert.textField?.text, !name.isEmpty else { return }
             self.viewModel.rename(to: name)
             guard let template = try? self.viewModel.saveAsTemplate() else { return }
             self.delegate?.builderDidSaveTemplate(template)
-        })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        }))
         present(alert, animated: true)
     }
 

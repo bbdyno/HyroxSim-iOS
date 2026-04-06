@@ -8,6 +8,7 @@
 import UIKit
 
 /// Reusable view displaying a large value with a small caption below.
+/// Prevents truncation by using adjustsFontSizeToFitWidth.
 final class MetricView: UIView {
 
     let valueLabel = UILabel()
@@ -36,12 +37,15 @@ final class MetricView: UIView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        valueLabel.font = DesignTokens.Font.largeNumber
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 36, weight: .bold)
         valueLabel.textColor = .white
         valueLabel.textAlignment = .center
+        valueLabel.adjustsFontSizeToFitWidth = true
+        valueLabel.minimumScaleFactor = 0.5
+        valueLabel.numberOfLines = 1
 
-        captionLabel.font = DesignTokens.Font.label
-        captionLabel.textColor = UIColor.white.withAlphaComponent(0.7)
+        captionLabel.font = .systemFont(ofSize: 11, weight: .bold)
+        captionLabel.textColor = UIColor.white.withAlphaComponent(0.5)
         captionLabel.textAlignment = .center
     }
 

@@ -48,10 +48,12 @@ final class HistoryViewController: UIViewController {
         tableView = UITableView(frame: .zero, style: .plain)
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.backgroundColor = DesignTokens.Color.background
-        tableView.separatorColor = UIColor.white.withAlphaComponent(0.08)
+        tableView.separatorStyle = .none
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "WorkoutCell")
+        tableView.register(HistoryCardCell.self, forCellReuseIdentifier: HistoryCardCell.reuseId)
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 88
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
@@ -70,11 +72,9 @@ final class HistoryViewController: UIViewController {
         emptyLabel.textColor = DesignTokens.Color.textTertiary
         emptyLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(emptyLabel)
-
         NSLayoutConstraint.activate([
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            emptyLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 40)
+            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
 
@@ -84,6 +84,8 @@ final class HistoryViewController: UIViewController {
     }
 }
 
+// MARK: - DataSource
+
 extension HistoryViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -91,31 +93,8 @@ extension HistoryViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "WorkoutCell", for: indexPath)
-        let workout = viewModel.workouts[indexPath.row]
-        cell.backgroundColor = DesignTokens.Color.background
-        cell.selectedBackgroundView = {
-            let v = UIView()
-            v.backgroundColor = DesignTokens.Color.surface
-            return v
-        }()
-
-        var config = UIListContentConfiguration.subtitleCell()
-        config.text = workout.division?.shortName ?? workout.templateName
-        config.textProperties.font = .systemFont(ofSize: 16, weight: .bold)
-        config.textProperties.color = .white
-
-        let duration = DurationFormatter.hms(workout.totalDuration)
-        let date = RelativeDateFormatter.short(workout.finishedAt)
-        config.secondaryText = "\(duration)  ·  \(date)"
-        config.secondaryTextProperties.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
-        config.secondaryTextProperties.color = DesignTokens.Color.textSecondary
-
-        cell.contentConfiguration = config
-
-        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
-        chevron.tintColor = DesignTokens.Color.textTertiary
-        cell.accessoryView = chevron
+        let cell = tableView.dequeueReusableCell(withIdentifier: HistoryCardCell.reuseId, for: indexPath) as! HistoryCardCell
+        cell.configure(with: viewModel.workouts[indexPath.row])
         return cell
     }
 
@@ -128,10 +107,89 @@ extension HistoryViewController: UITableViewDataSource {
     }
 }
 
-extension HistoryViewController: UITableViewDelegate {
+// MARK: - Delegate
 
+extension HistoryViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         delegate?.historyDidSelect(viewModel.workouts[indexPath.row])
+    }
+}
+
+// MARK: - Custom Cell
+
+private final class HistoryCardCell: UITableViewCell {
+
+    static let reuseId = "HistoryCardCell"
+
+    private let cardView = UIView()
+    private let divisionLabel = UILabel()
+    private let timeLabel = UILabel()
+    private let dateLabel = UILabel()
+    private let stationsLabel = UILabel()
+    private let chevron = UIImageView()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        setupUI()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setupUI() {
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
+        selectionStyle = .none
+
+        cardView.backgroundColor = DesignTokens.Color.surface
+        cardView.layer.cornerRadius = 14
+        cardView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(cardView)
+        NSLayoutConstraint.activate([
+            cardView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
+            cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            cardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4)
+        ])
+
+        divisionLabel.font = .systemFont(ofSize: 15, weight: .bold)
+        divisionLabel.textColor = .white
+
+        timeLabel.font = .monospacedDigitSystemFont(ofSize: 22, weight: .bold)
+        timeLabel.textColor = DesignTokens.Color.accent
+
+        dateLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        dateLabel.textColor = DesignTokens.Color.textTertiary
+
+        stationsLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        stationsLabel.textColor = DesignTokens.Color.textSecondary
+
+        chevron.image = UIImage(systemName: "chevron.right")
+        chevron.tintColor = DesignTokens.Color.textTertiary
+        chevron.setContentHuggingPriority(.required, for: .horizontal)
+
+        let textStack = UIStackView(arrangedSubviews: [divisionLabel, timeLabel, stationsLabel, dateLabel])
+        textStack.axis = .vertical
+        textStack.spacing = 2
+
+        let hStack = UIStackView(arrangedSubviews: [textStack, chevron])
+        hStack.alignment = .center
+        hStack.spacing = 12
+        hStack.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(hStack)
+        NSLayoutConstraint.activate([
+            hStack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 14),
+            hStack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
+            hStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+            hStack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -14)
+        ])
+    }
+
+    func configure(with workout: CompletedWorkout) {
+        divisionLabel.text = workout.division?.shortName ?? workout.templateName
+        timeLabel.text = DurationFormatter.hms(workout.totalDuration)
+        stationsLabel.text = "\(workout.stationSegments.count) stations · \(workout.segments.count) segments"
+        dateLabel.text = RelativeDateFormatter.short(workout.finishedAt)
     }
 }

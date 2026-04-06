@@ -67,47 +67,51 @@ final class ActiveWorkoutViewController: UIViewController {
     // MARK: - Setup
 
     private func setupUI() {
-        view.backgroundColor = DesignTokens.Color.runAccent
+        view.backgroundColor = DesignTokens.Color.background
 
         // Header
-        headerLabel.font = .systemFont(ofSize: 24, weight: .bold)
-        headerLabel.textColor = .white
+        headerLabel.font = .systemFont(ofSize: 16, weight: .bold)
+        headerLabel.textColor = DesignTokens.Color.accent
         headerLabel.textAlignment = .center
 
-        subHeaderLabel.font = .systemFont(ofSize: 18, weight: .medium)
-        subHeaderLabel.textColor = UIColor.white.withAlphaComponent(0.8)
+        subHeaderLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        subHeaderLabel.textColor = UIColor.white.withAlphaComponent(0.6)
         subHeaderLabel.textAlignment = .center
         subHeaderLabel.isHidden = true
 
-        // Row 1: Segment + Total
-        let row1 = UIStackView(arrangedSubviews: [segmentMetric, totalMetric])
-        row1.distribution = .fillEqually
-        row1.spacing = DesignTokens.Spacing.m
+        // Segment time (biggest)
+        segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 64, weight: .bold)
+        // Total time (smaller below)
+        totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .medium)
+        totalMetric.valueLabel.textColor = UIColor.white.withAlphaComponent(0.6)
 
-        // Row 2a: Pace + Distance (run/roxZone)
+        // Row 2a: Pace + Distance
         let row2Run = UIStackView(arrangedSubviews: [paceMetric, distanceMetric])
         row2Run.distribution = .fillEqually
-        row2Run.spacing = DesignTokens.Spacing.m
+        row2Run.spacing = 16
 
-        // Row 2b: Station name + target (station)
+        // Row 2b: Station
         let row2Station = UIStackView(arrangedSubviews: [stationNameMetric, stationTargetMetric])
         row2Station.distribution = .fillEqually
-        row2Station.spacing = DesignTokens.Spacing.m
+        row2Station.spacing = 16
 
-        // Main stack
+        // Main vertical layout
         let mainStack = UIStackView(arrangedSubviews: [
-            headerLabel, subHeaderLabel, row1, row2Run, row2Station, heartMetric
+            headerLabel, subHeaderLabel,
+            segmentMetric, totalMetric,
+            row2Run, row2Station,
+            heartMetric
         ])
         mainStack.axis = .vertical
         mainStack.alignment = .fill
-        mainStack.spacing = DesignTokens.Spacing.l
+        mainStack.spacing = 12
         mainStack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(mainStack)
 
         NSLayoutConstraint.activate([
-            mainStack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -30),
-            mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignTokens.Spacing.l),
-            mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignTokens.Spacing.l)
+            mainStack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -50),
+            mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
         ])
 
         // Pause overlay
@@ -214,20 +218,20 @@ final class ActiveWorkoutViewController: UIViewController {
     }
 
     @objc private func undoTapped() {
-        let alert = UIAlertController(title: "Go back to previous segment?", message: nil, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Undo", style: .destructive) { [weak self] _ in
+        let alert = DarkAlertController(title: "Go back to previous segment?", message: nil)
+        alert.addAction(.init(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(.init(title: "Undo", style: .destructive, handler: { [weak self] in
             self?.viewModel.undo()
-        })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        }))
         present(alert, animated: true)
     }
 
     @objc private func endTapped() {
-        let alert = UIAlertController(title: "End workout?", message: "Your progress will be saved.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "End", style: .destructive) { [weak self] _ in
+        let alert = DarkAlertController(title: "End workout?", message: "Your progress will be saved.")
+        alert.addAction(.init(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(.init(title: "End", style: .destructive, handler: { [weak self] in
             self?.viewModel.endWorkout()
-        })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        }))
         present(alert, animated: true)
     }
 
@@ -268,7 +272,8 @@ final class ActiveWorkoutViewController: UIViewController {
         heartMetric.setValue("\(viewModel.heartRateText) ♥", caption: "HEART")
         heartMetric.setValueColor(colorFor(zone: viewModel.heartRateZone))
 
-        view.backgroundColor = backgroundColor(for: viewModel.accentKind)
+        // Keep black background, tint header with accent color
+        headerLabel.textColor = accentColor(for: viewModel.accentKind)
         pauseOverlay.isHidden = !viewModel.isPaused
         pauseButton.setImage(
             UIImage(systemName: viewModel.isPaused ? "play.fill" : "pause.fill"),
@@ -280,11 +285,11 @@ final class ActiveWorkoutViewController: UIViewController {
         }
     }
 
-    private func backgroundColor(for accent: ActiveWorkoutViewModel.AccentKind) -> UIColor {
+    private func accentColor(for accent: ActiveWorkoutViewModel.AccentKind) -> UIColor {
         switch accent {
-        case .run: return DesignTokens.Color.runBackground
-        case .roxZone: return DesignTokens.Color.roxZoneBackground
-        case .station: return DesignTokens.Color.stationBackground
+        case .run: return DesignTokens.Color.runAccent
+        case .roxZone: return DesignTokens.Color.roxZoneAccent
+        case .station: return DesignTokens.Color.accent
         }
     }
 
