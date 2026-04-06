@@ -24,8 +24,37 @@ struct ActiveWorkoutView: View {
     }
 
     var body: some View {
+        // TimelineView가 0.5초마다 뷰를 강제 재평가 → 실시간 갱신 보장
+        TimelineView(.periodic(from: .now, by: 0.5)) { context in
+            let _ = model.triggerRefresh() // 매 틱마다 모델 갱신
+            workoutContent
+        }
+        .onAppear {
+            model.finishHandler = { workout in
+                completedWorkout = workout
+                showSummary = true
+            }
+            model.errorHandler = { err in print("Workout error: \(err)") }
+            Task { await model.start() }
+        }
+        .navigationBarBackButtonHidden(true)
+        .alert("End workout?", isPresented: $showEndConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("End", role: .destructive) { model.endWorkout() }
+        }
+        .navigationDestination(isPresented: $showSummary) {
+            if let workout = completedWorkout {
+                SummaryView(workout: workout, onDone: {
+                    navigationPath = NavigationPath()
+                })
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var workoutContent: some View {
         VStack(spacing: 4) {
-            // Header — segment label + GPS dot
+            // Header
             HStack(spacing: 4) {
                 if model.gpsActive {
                     Image(systemName: "location.fill")
@@ -43,21 +72,19 @@ struct ActiveWorkoutView: View {
                     .foregroundStyle(.gray)
             }
 
-            // Segment time — large
+            // Segment time
             Text(model.segmentElapsedText)
                 .font(.system(size: 40, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(.white)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
 
-            // Total time — smaller
+            // Total time
             Text(model.totalElapsedText)
                 .font(.system(size: 14, weight: .medium, design: .rounded).monospacedDigit())
                 .foregroundStyle(.gray)
 
-            // Middle data row
-            middleBlock
-                .padding(.vertical, 2)
+            middleBlock.padding(.vertical, 2)
 
             // Heart rate
             HStack(spacing: 3) {
@@ -71,7 +98,7 @@ struct ActiveWorkoutView: View {
 
             Spacer(minLength: 2)
 
-            // Buttons — compact
+            // Buttons
             HStack(spacing: 8) {
                 Button { model.togglePause() } label: {
                     Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
@@ -101,27 +128,6 @@ struct ActiveWorkoutView: View {
         }
         .padding(.horizontal, 4)
         .background(Color.black)
-        .onAppear {
-            model.finishHandler = { workout in
-                completedWorkout = workout
-                showSummary = true
-            }
-            model.errorHandler = { err in print("Workout error: \(err)") }
-            Task { await model.start() }
-        }
-        .navigationBarBackButtonHidden(true)
-        .alert("End workout?", isPresented: $showEndConfirm) {
-            Button("Cancel", role: .cancel) {}
-            Button("End", role: .destructive) { model.endWorkout() }
-        }
-        .navigationDestination(isPresented: $showSummary) {
-            if let workout = completedWorkout {
-                SummaryView(workout: workout, onDone: {
-                    // 홈으로 직접 복귀 — NavigationPath를 비움
-                    navigationPath = NavigationPath()
-                })
-            }
-        }
     }
 
     private var accentColor: Color {
@@ -141,29 +147,22 @@ struct ActiveWorkoutView: View {
                     Text(model.paceText)
                         .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
                         .foregroundStyle(.white)
-                    Text("PACE")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.gray)
+                    Text("PACE").font(.system(size: 8, weight: .bold)).foregroundStyle(.gray)
                 }
                 VStack(spacing: 0) {
                     Text(model.distanceText)
                         .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
                         .foregroundStyle(.white)
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(1)
-                    Text("DIST")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.gray)
+                        .minimumScaleFactor(0.7).lineLimit(1)
+                    Text("DIST").font(.system(size: 8, weight: .bold)).foregroundStyle(.gray)
                 }
             }
         case .station:
             VStack(spacing: 1) {
                 Text(model.stationNameText ?? "—")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.yellow)
+                    .font(.system(size: 13, weight: .bold)).foregroundStyle(.yellow)
                 Text(model.stationTargetText ?? "")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.gray)
+                    .font(.system(size: 11)).foregroundStyle(.gray)
             }
         }
     }

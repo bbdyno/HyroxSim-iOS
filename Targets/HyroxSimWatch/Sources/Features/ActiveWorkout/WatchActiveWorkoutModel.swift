@@ -67,6 +67,13 @@ final class WatchActiveWorkoutModel {
         self.maxHeartRate = maxHeartRate
     }
 
+    /// TimelineView에서 매 틱마다 호출 — UI 갱신용
+    @discardableResult
+    func triggerRefresh() -> Bool {
+        refresh()
+        return true
+    }
+
     // MARK: - Lifecycle
 
     func start() async {
@@ -225,13 +232,13 @@ final class WatchActiveWorkoutModel {
         sync.sendLiveState(state)
     }
 
-    /// watchOS에서 Timer.scheduledTimer는 운동 중 안정적으로 fire되지 않음.
-    /// Task.sleep 기반 루프로 교체하여 확실한 실시간 갱신 보장.
+    /// UI 갱신은 TimelineView가 담당. 이 타이머는 백그라운드 브로드캐스트 전용.
+    /// TimelineView가 보이지 않을 때도 폰에 실시간 전송을 유지하기 위해 필요.
     private func startDisplayTimer() {
         displayTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(500))
-                await MainActor.run { self?.refresh() }
+                try? await Task.sleep(for: .seconds(1))
+                await MainActor.run { self?.broadcastLiveState() }
             }
         }
     }
