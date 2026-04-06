@@ -11,6 +11,7 @@ import HyroxKit
 enum AddStationMode {
     case create
     case edit(existing: WorkoutSegment, index: Int)
+    var isEdit: Bool { if case .edit = self { return true }; return false }
 }
 
 @MainActor
@@ -37,14 +38,7 @@ final class AddStationSheetViewController: UIViewController {
 
     private enum TargetType: Int, CaseIterable {
         case distance, reps, duration, none
-        var title: String {
-            switch self {
-            case .distance: return "Distance"
-            case .reps: return "Reps"
-            case .duration: return "Duration"
-            case .none: return "None"
-            }
-        }
+        var title: String { switch self { case .distance: "Distance"; case .reps: "Reps"; case .duration: "Duration"; case .none: "None" } }
     }
 
     private let scrollView = UIScrollView()
@@ -55,15 +49,14 @@ final class AddStationSheetViewController: UIViewController {
     private let weightSwitch = UISwitch()
     private let weightField = UITextField()
     private let weightNoteField = UITextField()
-    private let saveButton = UIButton(type: .system)
 
     init(mode: AddStationMode) {
         self.mode = mode
         super.init(nibName: nil, bundle: nil)
         if case .edit(let seg, _) = mode {
             selectedKind = seg.stationKind ?? .skiErg
-            if let target = seg.stationTarget {
-                switch target {
+            if let t = seg.stationTarget {
+                switch t {
                 case .distance(let m): targetType = .distance; targetValue = m
                 case .reps(let c): targetType = .reps; targetValue = Double(c)
                 case .duration(let s): targetType = .duration; targetValue = s
@@ -80,20 +73,15 @@ final class AddStationSheetViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = DesignTokens.Color.background
         title = mode.isEdit ? "Edit Station" : "Add Station"
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped)
-        )
+        applyDarkNavBarAppearance()
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
         setupUI()
         populateFromState()
     }
 
-    @objc private func cancelTapped() {
-        delegate?.cancelAddStation()
-    }
-
-    // MARK: - Setup
+    @objc private func cancelTapped() { delegate?.cancelAddStation() }
 
     private func setupUI() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -106,25 +94,28 @@ final class AddStationSheetViewController: UIViewController {
         ])
 
         stackView.axis = .vertical
-        stackView.spacing = DesignTokens.Spacing.m
+        stackView.spacing = 12
         stackView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(stackView)
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: DesignTokens.Spacing.m),
-            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignTokens.Spacing.m),
-            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignTokens.Spacing.m),
-            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -DesignTokens.Spacing.m)
+            stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 16),
+            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -16)
         ])
 
         // Station Kind
-        stackView.addArrangedSubview(makeLabel("Station Type"))
+        stackView.addArrangedSubview(makeSectionLabel("STATION TYPE"))
         let kindStack = UIStackView()
         kindStack.axis = .vertical
-        kindStack.spacing = DesignTokens.Spacing.xs
+        kindStack.spacing = 4
         for kind in stationKinds {
             let btn = UIButton(type: .system)
-            btn.setTitle(kind.displayName, for: .normal)
+            btn.setTitle("  \(kind.displayName)", for: .normal)
             btn.contentHorizontalAlignment = .leading
+            btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+            btn.layer.cornerRadius = 8
+            btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
             btn.tag = stationKinds.firstIndex(of: kind) ?? 0
             btn.addTarget(self, action: #selector(kindSelected(_:)), for: .touchUpInside)
             kindButtons.append(btn)
@@ -133,49 +124,63 @@ final class AddStationSheetViewController: UIViewController {
         stackView.addArrangedSubview(kindStack)
 
         // Target
-        stackView.addArrangedSubview(makeLabel("Target"))
-        for (i, t) in TargetType.allCases.enumerated() {
-            targetSegmented.insertSegment(withTitle: t.title, at: i, animated: false)
-        }
+        stackView.addArrangedSubview(makeSectionLabel("TARGET"))
+        for (i, t) in TargetType.allCases.enumerated() { targetSegmented.insertSegment(withTitle: t.title, at: i, animated: false) }
         targetSegmented.selectedSegmentIndex = targetType.rawValue
         targetSegmented.addTarget(self, action: #selector(targetTypeChanged), for: .valueChanged)
         stackView.addArrangedSubview(targetSegmented)
 
-        targetField.borderStyle = .roundedRect
-        targetField.keyboardType = .decimalPad
         targetField.placeholder = "Value"
+        targetField.keyboardType = .decimalPad
+        targetField.font = DesignTokens.Font.mediumNumber
+        targetField.textAlignment = .center
+        targetField.applyDarkStyle()
+        targetField.heightAnchor.constraint(equalToConstant: 44).isActive = true
         stackView.addArrangedSubview(targetField)
 
         // Weight
-        stackView.addArrangedSubview(makeLabel("Weight"))
-        let weightRow = UIStackView(arrangedSubviews: [UILabel(), weightSwitch])
-        (weightRow.arrangedSubviews[0] as? UILabel)?.text = "Add Weight"
-        weightRow.spacing = DesignTokens.Spacing.s
+        stackView.addArrangedSubview(makeSectionLabel("WEIGHT"))
+        let weightRow = UIStackView()
+        let wLabel = UILabel()
+        wLabel.text = "Add Weight"
+        wLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        wLabel.textColor = .white
+        weightRow.addArrangedSubview(wLabel)
+        weightRow.addArrangedSubview(weightSwitch)
+        weightSwitch.onTintColor = DesignTokens.Color.accent
         weightSwitch.addTarget(self, action: #selector(weightToggled), for: .valueChanged)
         stackView.addArrangedSubview(weightRow)
 
-        weightField.borderStyle = .roundedRect
-        weightField.keyboardType = .decimalPad
         weightField.placeholder = "kg"
+        weightField.keyboardType = .decimalPad
+        weightField.applyDarkStyle()
+        weightField.heightAnchor.constraint(equalToConstant: 40).isActive = true
         weightField.isHidden = true
         stackView.addArrangedSubview(weightField)
 
-        weightNoteField.borderStyle = .roundedRect
         weightNoteField.placeholder = "Note (e.g., per hand)"
+        weightNoteField.applyDarkStyle()
+        weightNoteField.heightAnchor.constraint(equalToConstant: 40).isActive = true
         weightNoteField.isHidden = true
         stackView.addArrangedSubview(weightNoteField)
 
         // Save
-        saveButton.setTitle(mode.isEdit ? "Save Changes" : "Add to Workout", for: .normal)
-        saveButton.titleLabel?.font = .preferredFont(forTextStyle: .headline)
-        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
-        stackView.addArrangedSubview(saveButton)
+        let saveBtn = UIButton(type: .system)
+        saveBtn.setTitle(mode.isEdit ? "Save Changes" : "Add to Workout", for: .normal)
+        saveBtn.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+        saveBtn.setTitleColor(.black, for: .normal)
+        saveBtn.backgroundColor = DesignTokens.Color.accent
+        saveBtn.layer.cornerRadius = 22
+        saveBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        saveBtn.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        stackView.addArrangedSubview(saveBtn)
     }
 
-    private func makeLabel(_ text: String) -> UILabel {
+    private func makeSectionLabel(_ text: String) -> UILabel {
         let l = UILabel()
         l.text = text
-        l.font = .preferredFont(forTextStyle: .headline)
+        l.font = .systemFont(ofSize: 12, weight: .bold)
+        l.textColor = DesignTokens.Color.accent
         return l
     }
 
@@ -194,24 +199,20 @@ final class AddStationSheetViewController: UIViewController {
     private func updateKindSelection() {
         for btn in kindButtons {
             let kind = stationKinds[btn.tag]
-            btn.configuration = nil
             if kind == selectedKind {
-                btn.setTitleColor(.systemBackground, for: .normal)
-                btn.backgroundColor = .label
-                btn.layer.cornerRadius = 8
+                btn.setTitleColor(.black, for: .normal)
+                btn.backgroundColor = DesignTokens.Color.accent
             } else {
-                btn.setTitleColor(.label, for: .normal)
-                btn.backgroundColor = .clear
+                btn.setTitleColor(.white, for: .normal)
+                btn.backgroundColor = DesignTokens.Color.surface
             }
         }
     }
 
-    // MARK: - Actions
-
     @objc private func kindSelected(_ sender: UIButton) {
         selectedKind = stationKinds[sender.tag]
-        let defaultTarget = selectedKind.defaultTarget
-        switch defaultTarget {
+        let d = selectedKind.defaultTarget
+        switch d {
         case .distance(let m): targetType = .distance; targetValue = m
         case .reps(let c): targetType = .reps; targetValue = Double(c)
         case .duration(let s): targetType = .duration; targetValue = s
@@ -241,22 +242,11 @@ final class AddStationSheetViewController: UIViewController {
         case .duration: target = .duration(seconds: val)
         case .none: target = .none
         }
-
-        var wKg: Double?
-        var wNote: String?
+        var wKg: Double?; var wNote: String?
         if weightSwitch.isOn {
             wKg = Double(weightField.text ?? "")
             wNote = weightNoteField.text?.isEmpty == true ? nil : weightNoteField.text
         }
-
-        let segment = WorkoutSegment.station(selectedKind, target: target, weightKg: wKg, weightNote: wNote)
-        delegate?.addStation(segment, mode: mode)
-    }
-}
-
-extension AddStationMode {
-    var isEdit: Bool {
-        if case .edit = self { return true }
-        return false
+        delegate?.addStation(.station(selectedKind, target: target, weightKg: wKg, weightNote: wNote), mode: mode)
     }
 }

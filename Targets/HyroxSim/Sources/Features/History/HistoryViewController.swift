@@ -31,7 +31,8 @@ final class HistoryViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "History"
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = DesignTokens.Color.background
+        applyDarkNavBarAppearance()
         setupTableView()
         setupEmptyLabel()
     }
@@ -43,11 +44,11 @@ final class HistoryViewController: UIViewController {
         updateEmptyState()
     }
 
-    // MARK: - Setup
-
     private func setupTableView() {
-        tableView = UITableView(frame: .zero, style: .insetGrouped)
+        tableView = UITableView(frame: .zero, style: .plain)
         tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.backgroundColor = DesignTokens.Color.background
+        tableView.separatorColor = UIColor.white.withAlphaComponent(0.08)
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "WorkoutCell")
@@ -65,15 +66,15 @@ final class HistoryViewController: UIViewController {
         emptyLabel.text = "No workouts yet.\nComplete your first HYROX!"
         emptyLabel.textAlignment = .center
         emptyLabel.numberOfLines = 0
-        emptyLabel.font = .preferredFont(forTextStyle: .body)
-        emptyLabel.textColor = .secondaryLabel
+        emptyLabel.font = .systemFont(ofSize: 15, weight: .medium)
+        emptyLabel.textColor = DesignTokens.Color.textTertiary
         emptyLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(emptyLabel)
 
         NSLayoutConstraint.activate([
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            emptyLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: DesignTokens.Spacing.xl)
+            emptyLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 40)
         ])
     }
 
@@ -82,8 +83,6 @@ final class HistoryViewController: UIViewController {
         tableView.isHidden = viewModel.workouts.isEmpty
     }
 }
-
-// MARK: - UITableViewDataSource
 
 extension HistoryViewController: UITableViewDataSource {
 
@@ -94,19 +93,29 @@ extension HistoryViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "WorkoutCell", for: indexPath)
         let workout = viewModel.workouts[indexPath.row]
+        cell.backgroundColor = DesignTokens.Color.background
+        cell.selectedBackgroundView = {
+            let v = UIView()
+            v.backgroundColor = DesignTokens.Color.surface
+            return v
+        }()
 
         var config = UIListContentConfiguration.subtitleCell()
-        config.text = workout.templateName
-        config.textProperties.font = .preferredFont(forTextStyle: .headline)
+        config.text = workout.division?.shortName ?? workout.templateName
+        config.textProperties.font = .systemFont(ofSize: 16, weight: .bold)
+        config.textProperties.color = .white
 
         let duration = DurationFormatter.hms(workout.totalDuration)
         let date = RelativeDateFormatter.short(workout.finishedAt)
-        config.secondaryText = "\(duration) · \(date)"
-        config.secondaryTextProperties.font = DesignTokens.Font.smallNumber
-        config.secondaryTextProperties.color = .secondaryLabel
+        config.secondaryText = "\(duration)  ·  \(date)"
+        config.secondaryTextProperties.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+        config.secondaryTextProperties.color = DesignTokens.Color.textSecondary
 
         cell.contentConfiguration = config
-        cell.accessoryType = .disclosureIndicator
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = DesignTokens.Color.textTertiary
+        cell.accessoryView = chevron
         return cell
     }
 
@@ -119,13 +128,10 @@ extension HistoryViewController: UITableViewDataSource {
     }
 }
 
-// MARK: - UITableViewDelegate
-
 extension HistoryViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let workout = viewModel.workouts[indexPath.row]
-        delegate?.historyDidSelect(workout)
+        delegate?.historyDidSelect(viewModel.workouts[indexPath.row])
     }
 }
