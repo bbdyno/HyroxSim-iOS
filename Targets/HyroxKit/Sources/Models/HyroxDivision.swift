@@ -1,3 +1,10 @@
+//
+//  HyroxDivision.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// HYROX competition divisions

@@ -1,3 +1,10 @@
+//
+//  HeartRateZone.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Heart rate training zones based on percentage of max heart rate.

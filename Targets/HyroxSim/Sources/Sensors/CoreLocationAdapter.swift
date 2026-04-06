@@ -1,3 +1,10 @@
+//
+//  CoreLocationAdapter.swift
+//  HyroxSim
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import CoreLocation
 import HyroxKit
 

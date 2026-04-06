@@ -1,3 +1,10 @@
+//
+//  HyroxDivisionSpec.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Specification for a single station in a HYROX division

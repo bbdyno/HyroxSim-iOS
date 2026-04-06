@@ -1,3 +1,10 @@
+//
+//  StationKind.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Represents the kind of exercise station in a HYROX workout.

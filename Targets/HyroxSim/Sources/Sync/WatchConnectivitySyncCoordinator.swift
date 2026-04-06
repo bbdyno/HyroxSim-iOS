@@ -1,3 +1,10 @@
+//
+//  WatchConnectivitySyncCoordinator.swift
+//  HyroxSim
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import WatchConnectivity
 import HyroxKit
 

@@ -1,3 +1,10 @@
+//
+//  SyncMessage.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Types of sync messages between iPhone and Apple Watch

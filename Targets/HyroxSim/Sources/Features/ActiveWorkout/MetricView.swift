@@ -1,3 +1,10 @@
+//
+//  MetricView.swift
+//  HyroxSim
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import UIKit
 
 /// Reusable view displaying a large value with a small caption below.

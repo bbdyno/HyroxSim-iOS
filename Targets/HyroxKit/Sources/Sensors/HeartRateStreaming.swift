@@ -1,3 +1,10 @@
+//
+//  HeartRateStreaming.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Abstraction over a heart rate provider.

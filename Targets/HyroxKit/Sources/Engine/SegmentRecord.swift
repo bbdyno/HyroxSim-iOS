@@ -1,3 +1,10 @@
+//
+//  SegmentRecord.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Result produced when a segment is completed by the engine.

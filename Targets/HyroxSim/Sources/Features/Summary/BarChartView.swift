@@ -1,3 +1,10 @@
+//
+//  BarChartView.swift
+//  HyroxSim
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import UIKit
 
 /// Simple horizontal bar chart view.

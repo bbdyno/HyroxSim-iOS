@@ -1,3 +1,10 @@
+//
+//  HyroxPresets.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Built-in HYROX workout presets for all official divisions

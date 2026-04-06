@@ -1,3 +1,10 @@
+//
+//  HomeView.swift
+//  HyroxSimWatch
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import SwiftUI
 import HyroxKit
 

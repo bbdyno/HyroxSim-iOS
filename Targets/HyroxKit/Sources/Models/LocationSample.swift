@@ -1,3 +1,10 @@
+//
+//  LocationSample.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// A single GPS location measurement.

@@ -1,3 +1,10 @@
+//
+//  StationTarget.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Represents the target/goal for a station exercise.

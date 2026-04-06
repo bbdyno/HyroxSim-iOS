@@ -1,3 +1,10 @@
+//
+//  SegmentMeasurements.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Raw measurement data collected during a single segment.

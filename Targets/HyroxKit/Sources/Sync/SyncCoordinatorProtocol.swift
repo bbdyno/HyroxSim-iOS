@@ -1,3 +1,10 @@
+//
+//  SyncCoordinatorProtocol.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Abstraction over WatchConnectivity sync.

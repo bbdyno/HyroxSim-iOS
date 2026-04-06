@@ -1,3 +1,10 @@
+//
+//  WorkoutTemplateMapper.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Converts between `WorkoutTemplate` (domain) and `StoredTemplate` (SwiftData).

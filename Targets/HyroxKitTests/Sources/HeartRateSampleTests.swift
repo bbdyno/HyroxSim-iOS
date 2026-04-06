@@ -1,3 +1,10 @@
+//
+//  HeartRateSampleTests.swift
+//  HyroxKitTests
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import XCTest
 @testable import HyroxKit
 

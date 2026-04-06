@@ -1,3 +1,10 @@
+//
+//  SensorError.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Errors thrown by sensor adapters

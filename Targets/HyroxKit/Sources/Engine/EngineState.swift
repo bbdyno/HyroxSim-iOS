@@ -1,3 +1,10 @@
+//
+//  EngineState.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Represents the current state of a workout engine

@@ -1,3 +1,10 @@
+//
+//  SensorAuthorizationStatus.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// Platform-agnostic authorization status for a sensor.

@@ -1,3 +1,10 @@
+//
+//  WorkoutEngine.swift
+//  HyroxKit
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import Foundation
 
 /// A pure state machine that manages workout progression.

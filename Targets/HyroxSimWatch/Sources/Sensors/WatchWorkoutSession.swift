@@ -1,3 +1,10 @@
+//
+//  WatchWorkoutSession.swift
+//  HyroxSimWatch
+//
+//  Created by bbdyno on 4/7/26.
+//
+
 import HealthKit
 import HyroxKit
 
