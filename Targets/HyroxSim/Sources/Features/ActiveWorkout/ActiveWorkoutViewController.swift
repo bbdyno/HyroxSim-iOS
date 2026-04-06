@@ -20,7 +20,6 @@ final class ActiveWorkoutViewController: UIViewController {
     private let segmentMetric = MetricView()
     private let totalMetric = MetricView()
     private let paceMetric = MetricView()
-    private let distanceMetric = MetricView()
     private let stationNameMetric = MetricView()
     private let stationTargetMetric = MetricView()
     private let heartMetric = MetricView()
@@ -88,11 +87,6 @@ final class ActiveWorkoutViewController: UIViewController {
         totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .medium)
         totalMetric.valueLabel.textColor = UIColor.white.withAlphaComponent(0.6)
 
-        // Row 2a: Pace + Distance
-        let row2Run = UIStackView(arrangedSubviews: [paceMetric, distanceMetric])
-        row2Run.distribution = .fillEqually
-        row2Run.spacing = 16
-
         // Row 2b: Station
         let row2Station = UIStackView(arrangedSubviews: [stationNameMetric, stationTargetMetric])
         row2Station.distribution = .fillEqually
@@ -103,7 +97,7 @@ final class ActiveWorkoutViewController: UIViewController {
             gpsStatusView,
             headerLabel, subHeaderLabel,
             segmentMetric, totalMetric,
-            row2Run, row2Station,
+            paceMetric, row2Station,
             heartMetric
         ])
         mainStack.axis = .vertical
@@ -243,13 +237,12 @@ final class ActiveWorkoutViewController: UIViewController {
         switch viewModel.accentKind {
         case .run, .roxZone:
             paceMetric.setValue(viewModel.paceText, caption: "PACE")
-            distanceMetric.setValue(viewModel.distanceText, caption: "KM")
-            paceMetric.superview?.isHidden = false
+            paceMetric.isHidden = false
             stationNameMetric.superview?.isHidden = true
         case .station:
             stationNameMetric.setValue(viewModel.stationNameText ?? "—", caption: "STATION")
             stationTargetMetric.setValue(viewModel.stationTargetText ?? "—", caption: "TARGET")
-            paceMetric.superview?.isHidden = true
+            paceMetric.isHidden = true
             stationNameMetric.superview?.isHidden = false
         }
 

@@ -128,7 +128,6 @@ final class WorkoutSummaryViewController: UIViewController {
         addSummaryRow("Roxzone Time", viewModel.totalRoxZoneTimeText, highlighted: true)
         addSummaryRow("Run Total", viewModel.totalRunTimeText, highlighted: true)
         addSpacer(4)
-        addSummaryRow("Distance", viewModel.distanceText, highlighted: false)
         addSummaryRow("Avg Pace", viewModel.averagePaceText, highlighted: false)
         addSummaryRow("Avg HR", viewModel.averageHeartRateText, highlighted: false)
         addSummaryRow("Max HR", viewModel.maxHeartRateText, highlighted: false)

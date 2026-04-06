@@ -25,7 +25,6 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     private let segmentMetric = MetricView()
     private let totalMetric = MetricView()
     private let paceMetric = MetricView()
-    private let distanceMetric = MetricView()
     private let stationNameMetric = MetricView()
     private let stationTargetMetric = MetricView()
     private let heartMetric = MetricView()
@@ -81,9 +80,8 @@ final class LiveWorkoutMirrorViewController: UIViewController {
             stationTargetMetric.setValue(state.stationTargetText ?? "—", caption: "TARGET")
         } else {
             paceMetric.setValue(state.paceText, caption: "PACE")
-            distanceMetric.setValue(state.distanceText, caption: "KM")
         }
-        paceMetric.superview?.isHidden = isStation
+        paceMetric.isHidden = isStation
         stationNameMetric.superview?.isHidden = !isStation
 
         heartMetric.setValue("\(state.heartRateText) ♥", caption: "HEART")
@@ -152,16 +150,13 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .medium)
         totalMetric.valueLabel.textColor = UIColor.white.withAlphaComponent(0.6)
 
-        let row2Run = UIStackView(arrangedSubviews: [paceMetric, distanceMetric])
-        row2Run.distribution = .fillEqually; row2Run.spacing = 16
-
         let row2Station = UIStackView(arrangedSubviews: [stationNameMetric, stationTargetMetric])
         row2Station.distribution = .fillEqually; row2Station.spacing = 16
 
         let mainStack = UIStackView(arrangedSubviews: [
             watchBadge, gpsLabel, headerLabel, subHeaderLabel,
             segmentMetric, totalMetric,
-            row2Run, row2Station, heartMetric
+            paceMetric, row2Station, heartMetric
         ])
         mainStack.axis = .vertical
         mainStack.alignment = .fill

@@ -140,20 +140,11 @@ struct ActiveWorkoutView: View {
     private var middleBlock: some View {
         switch model.accentKind {
         case .run, .roxZone:
-            HStack(spacing: 16) {
-                VStack(spacing: 0) {
-                    Text(model.paceText)
-                        .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
-                        .foregroundStyle(.white)
-                    Text("PACE").font(.system(size: 8, weight: .bold)).foregroundStyle(.gray)
-                }
-                VStack(spacing: 0) {
-                    Text(model.distanceText)
-                        .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
-                        .foregroundStyle(.white)
-                        .minimumScaleFactor(0.7).lineLimit(1)
-                    Text("DIST").font(.system(size: 8, weight: .bold)).foregroundStyle(.gray)
-                }
+            VStack(spacing: 0) {
+                Text(model.paceText)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white)
+                Text("PACE").font(.system(size: 8, weight: .bold)).foregroundStyle(.gray)
             }
         case .station:
             VStack(spacing: 1) {

@@ -27,7 +27,6 @@ struct SummaryView: View {
 
                 Rectangle().fill(accent.opacity(0.3)).frame(height: 0.5).padding(.vertical, 4)
 
-                metricRow("Distance", DistanceFormatter.short(workout.totalDistanceMeters))
                 metricRow("Avg HR", workout.averageHeartRate.map(String.init) ?? "—")
                 metricRow("Max HR", workout.maxHeartRate.map(String.init) ?? "—")
 
