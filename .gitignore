@@ -1,0 +1,19 @@
+# Xcode
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+*.xcresult
+build/
+
+# Tuist
+Derived/
+.build/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# SPM
+.swiftpm/
