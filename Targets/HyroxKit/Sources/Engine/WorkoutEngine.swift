@@ -122,7 +122,9 @@ public final class WorkoutEngine {
             startedAt: segmentStartedAt,
             endedAt: now,
             pausedDuration: currentSegmentPausedDuration,
-            measurements: liveMeasurements
+            measurements: liveMeasurements,
+            stationDisplayName: segment.stationKind?.displayName,
+            plannedDistanceMeters: segment.distanceMeters
         )
         records.append(record)
 
@@ -213,7 +215,9 @@ public final class WorkoutEngine {
                 startedAt: segmentStartedAt,
                 endedAt: now,
                 pausedDuration: currentSegmentPausedDuration,
-                measurements: liveMeasurements
+                measurements: liveMeasurements,
+                stationDisplayName: segment.stationKind?.displayName,
+                plannedDistanceMeters: segment.distanceMeters
             )
             records.append(record)
             currentSegmentPausedDuration = 0
@@ -231,7 +235,9 @@ public final class WorkoutEngine {
                 startedAt: effectiveStartedAt,
                 endedAt: now,
                 pausedDuration: 0,
-                measurements: liveMeasurements
+                measurements: liveMeasurements,
+                stationDisplayName: segment.stationKind?.displayName,
+                plannedDistanceMeters: segment.distanceMeters
             )
             records.append(record)
             currentSegmentPausedDuration = 0

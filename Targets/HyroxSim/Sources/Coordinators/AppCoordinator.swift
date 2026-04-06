@@ -76,14 +76,7 @@ extension AppCoordinator: HomeViewControllerDelegate {
     }
 
     func homeDidSelectRecent(_ workout: CompletedWorkout) {
-        // TODO: Summary detail view
-        let alert = UIAlertController(
-            title: workout.templateName,
-            message: "Detail view coming soon",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        navigationController.present(alert, animated: true)
+        showSummary(for: workout, fromHistory: true)
     }
 }
 
@@ -92,13 +85,7 @@ extension AppCoordinator: HomeViewControllerDelegate {
 extension AppCoordinator: HistoryViewControllerDelegate {
 
     func historyDidSelect(_ workout: CompletedWorkout) {
-        let alert = UIAlertController(
-            title: workout.templateName,
-            message: DurationFormatter.hms(workout.totalDuration),
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        navigationController.present(alert, animated: true)
+        showSummary(for: workout, fromHistory: true)
     }
 }
 
@@ -173,15 +160,44 @@ extension AppCoordinator {
     private func dismissWorkout(showingSummaryFor workout: CompletedWorkout?) {
         navigationController.dismiss(animated: true) { [self] in
             if let workout {
-                // TODO: 10 단계 — Summary screen
-                let alert = UIAlertController(
-                    title: "Workout Complete!",
-                    message: "Total: \(DurationFormatter.hms(workout.totalDuration))\nSegments: \(workout.segments.count)",
-                    preferredStyle: .alert
-                )
-                alert.addAction(UIAlertAction(title: "OK", style: .default))
-                navigationController.present(alert, animated: true)
+                showSummary(for: workout, fromHistory: false)
             }
+        }
+    }
+
+    func showSummary(for workout: CompletedWorkout, fromHistory: Bool) {
+        let vm = WorkoutSummaryViewModel(workout: workout)
+        let vc = WorkoutSummaryViewController(viewModel: vm)
+        vc.delegate = self
+        if fromHistory {
+            navigationController.pushViewController(vc, animated: true)
+        } else {
+            // After workout: present modally (no "back" destination — builder was dismissed)
+            let nav = UINavigationController(rootViewController: vc)
+            navigationController.present(nav, animated: true)
+        }
+    }
+}
+
+// MARK: - WorkoutSummaryViewControllerDelegate
+
+extension AppCoordinator: WorkoutSummaryViewControllerDelegate {
+
+    func summaryDidTapDone() {
+        if navigationController.presentedViewController != nil {
+            navigationController.dismiss(animated: true)
+        } else {
+            navigationController.popViewController(animated: true)
+        }
+    }
+
+    func summaryDidTapShare(_ workout: CompletedWorkout) {
+        let vm = WorkoutSummaryViewModel(workout: workout)
+        let avc = UIActivityViewController(activityItems: [vm.shareText], applicationActivities: nil)
+        if let presented = navigationController.presentedViewController {
+            presented.present(avc, animated: true)
+        } else {
+            navigationController.present(avc, animated: true)
         }
     }
 }

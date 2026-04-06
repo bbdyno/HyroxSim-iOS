@@ -1,7 +1,7 @@
 import Foundation
 
 /// Result produced when a segment is completed by the engine.
-/// Contains timing data and raw measurements (GPS + heart rate).
+/// Contains timing data, raw measurements (GPS + heart rate), and display metadata.
 public struct SegmentRecord: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     /// Corresponds to `WorkoutSegment.id` in the template
@@ -15,6 +15,11 @@ public struct SegmentRecord: Identifiable, Hashable, Sendable, Codable {
     public let pausedDuration: TimeInterval
     /// Raw measurement data collected during this segment
     public var measurements: SegmentMeasurements
+
+    /// Display name for station segments (e.g., "SkiErg"). Nil for run/roxZone.
+    public let stationDisplayName: String?
+    /// Planned distance from the template (run/roxZone). Separate from measured GPS distance.
+    public let plannedDistanceMeters: Double?
 
     /// Total wall-clock duration (includes paused time)
     public var duration: TimeInterval { endedAt.timeIntervalSince(startedAt) }
@@ -40,7 +45,9 @@ public struct SegmentRecord: Identifiable, Hashable, Sendable, Codable {
         startedAt: Date,
         endedAt: Date,
         pausedDuration: TimeInterval = 0,
-        measurements: SegmentMeasurements = SegmentMeasurements()
+        measurements: SegmentMeasurements = SegmentMeasurements(),
+        stationDisplayName: String? = nil,
+        plannedDistanceMeters: Double? = nil
     ) {
         self.id = id
         self.segmentId = segmentId
@@ -50,5 +57,7 @@ public struct SegmentRecord: Identifiable, Hashable, Sendable, Codable {
         self.endedAt = endedAt
         self.pausedDuration = pausedDuration
         self.measurements = measurements
+        self.stationDisplayName = stationDisplayName
+        self.plannedDistanceMeters = plannedDistanceMeters
     }
 }
