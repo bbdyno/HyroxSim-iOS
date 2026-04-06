@@ -10,76 +10,77 @@ import HyroxKit
 
 struct SummaryView: View {
     let workout: CompletedWorkout
-    @Environment(\.dismiss) private var dismiss
+    let onDone: () -> Void
+
+    private let accent = Color(red: 1.0, green: 0.84, blue: 0.0)
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 Text(DurationFormatter.hms(workout.totalDuration))
-                    .font(.system(size: 32, weight: .bold, design: .rounded).monospacedDigit())
+                    .font(.system(size: 28, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(accent)
 
-                Text(workout.division?.displayName ?? workout.templateName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(workout.division?.shortName ?? workout.templateName)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
 
-                Divider()
+                Rectangle().fill(accent.opacity(0.3)).frame(height: 0.5).padding(.vertical, 4)
 
                 metricRow("Distance", DistanceFormatter.short(workout.totalDistanceMeters))
                 metricRow("Avg HR", workout.averageHeartRate.map(String.init) ?? "—")
                 metricRow("Max HR", workout.maxHeartRate.map(String.init) ?? "—")
-                metricRow("Segments", "\(workout.segments.count)")
 
-                Divider()
+                Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5).padding(.vertical, 4)
 
                 ForEach(Array(workout.segments.enumerated()), id: \.element.id) { index, record in
-                    HStack {
-                        Circle()
-                            .fill(accentColor(for: record.type))
-                            .frame(width: 6, height: 6)
-                        Text("\(index + 1).")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text(label(for: record))
-                            .font(.caption)
+                    HStack(spacing: 4) {
+                        if record.type == .station {
+                            let stIdx = workout.segments[0...index].filter { $0.type == .station }.count
+                            Text(String(format: "%02d", stIdx))
+                                .font(.system(size: 8, weight: .black))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 3)
+                                .padding(.vertical, 1)
+                                .background(accent)
+                                .cornerRadius(2)
+                        }
+                        Text(segmentLabel(for: record))
+                            .font(.system(size: 11, weight: record.type == .station ? .bold : .regular))
+                            .foregroundStyle(record.type == .roxZone ? .gray.opacity(0.5) : .white)
                         Spacer()
                         Text(DurationFormatter.ms(record.activeDuration))
-                            .font(.caption.monospacedDigit())
+                            .font(.system(size: 11, design: .rounded).monospacedDigit())
+                            .foregroundStyle(record.type == .roxZone ? .gray.opacity(0.5) : .white)
                     }
                 }
 
-                Button("Done") {
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.top, 8)
+                Button("Done") { onDone() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(accent)
+                    .foregroundStyle(.black)
+                    .padding(.top, 8)
             }
-            .padding()
+            .padding(.horizontal, 8)
         }
+        .background(Color.black)
         .navigationTitle("Complete")
         .navigationBarBackButtonHidden(true)
     }
 
     private func metricRow(_ label: String, _ value: String) -> some View {
         HStack {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(.gray)
             Spacer()
-            Text(value).font(.caption.monospacedDigit())
+            Text(value).font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit()).foregroundStyle(.white)
         }
     }
 
-    private func label(for record: SegmentRecord) -> String {
+    private func segmentLabel(for record: SegmentRecord) -> String {
         switch record.type {
-        case .run: return "Run"
+        case .run: return "Running"
         case .roxZone: return "Rox Zone"
         case .station: return record.stationDisplayName ?? "Station"
-        }
-    }
-
-    private func accentColor(for type: SegmentType) -> Color {
-        switch type {
-        case .run: return .blue
-        case .roxZone: return .orange
-        case .station: return .purple
         }
     }
 }

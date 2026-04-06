@@ -14,11 +14,13 @@ struct ActiveWorkoutView: View {
     @State private var showEndConfirm = false
     @State private var completedWorkout: CompletedWorkout?
     @State private var showSummary = false
+    @Binding var navigationPath: NavigationPath
 
-    init(template: WorkoutTemplate, persistence: PersistenceController) {
+    init(template: WorkoutTemplate, persistence: PersistenceController, navigationPath: Binding<NavigationPath>) {
         _model = State(initialValue: WatchActiveWorkoutModel(
             template: template, persistence: persistence
         ))
+        _navigationPath = navigationPath
     }
 
     var body: some View {
@@ -114,7 +116,10 @@ struct ActiveWorkoutView: View {
         }
         .navigationDestination(isPresented: $showSummary) {
             if let workout = completedWorkout {
-                SummaryView(workout: workout)
+                SummaryView(workout: workout, onDone: {
+                    // 홈으로 직접 복귀 — NavigationPath를 비움
+                    navigationPath = NavigationPath()
+                })
             }
         }
     }

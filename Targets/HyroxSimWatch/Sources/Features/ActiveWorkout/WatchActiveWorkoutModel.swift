@@ -46,7 +46,7 @@ final class WatchActiveWorkoutModel {
     private let syncCoordinator: (any SyncCoordinator)?
     private let maxHeartRate: Int
 
-    private var displayTimer: Timer?
+    private var displayTask: Task<Void, Never>?
     private var locationTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
 
@@ -225,9 +225,14 @@ final class WatchActiveWorkoutModel {
         sync.sendLiveState(state)
     }
 
+    /// watchOS에서 Timer.scheduledTimer는 운동 중 안정적으로 fire되지 않음.
+    /// Task.sleep 기반 루프로 교체하여 확실한 실시간 갱신 보장.
     private func startDisplayTimer() {
-        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+        displayTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                await MainActor.run { self?.refresh() }
+            }
         }
     }
 
@@ -247,8 +252,8 @@ final class WatchActiveWorkoutModel {
     }
 
     private func cleanup() {
-        displayTimer?.invalidate()
-        displayTimer = nil
+        displayTask?.cancel()
+        displayTask = nil
         locationTask?.cancel()
         heartRateTask?.cancel()
         locationAdapter.stop()
