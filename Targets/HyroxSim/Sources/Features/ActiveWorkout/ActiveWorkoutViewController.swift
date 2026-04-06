@@ -215,12 +215,8 @@ final class ActiveWorkoutViewController: UIViewController {
     }
 
     @objc private func endTapped() {
-        let alert = DarkAlertController(title: "End workout?", message: "Your progress will be saved.")
-        alert.addAction(.init(title: "Cancel", style: .cancel, handler: nil))
-        alert.addAction(.init(title: "End", style: .destructive, handler: { [weak self] in
-            self?.viewModel.endWorkout()
-        }))
-        present(alert, animated: true)
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        viewModel.endWorkout()
     }
 
     // MARK: - UI Timer

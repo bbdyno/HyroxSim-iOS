@@ -11,7 +11,6 @@ import HyroxKit
 
 struct ActiveWorkoutView: View {
     @State private var model: WatchActiveWorkoutModel
-    @State private var showEndConfirm = false
     @State private var completedWorkout: CompletedWorkout?
     @State private var showSummary = false
     @Binding var navigationPath: NavigationPath
@@ -38,10 +37,6 @@ struct ActiveWorkoutView: View {
             Task { await model.start() }
         }
         .navigationBarBackButtonHidden(true)
-        .alert("End workout?", isPresented: $showEndConfirm) {
-            Button("Cancel", role: .cancel) {}
-            Button("End", role: .destructive) { model.endWorkout() }
-        }
         .navigationDestination(isPresented: $showSummary) {
             if let workout = completedWorkout {
                 SummaryView(workout: workout, onDone: {
@@ -118,7 +113,10 @@ struct ActiveWorkoutView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(model.isLastSegment ? .yellow : accentColor)
 
-                Button { showEndConfirm = true } label: {
+                Button {
+                    WKInterfaceDevice.current().play(.stop)
+                    model.endWorkout()
+                } label: {
                     Image(systemName: "stop.fill")
                         .font(.system(size: 14))
                 }
