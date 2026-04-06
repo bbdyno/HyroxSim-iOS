@@ -182,8 +182,9 @@ final class WatchActiveWorkoutModel {
         case .station:
             let stIdx = engine.template.segments[..<(index + 1)].filter { $0.type == .station }.count
             let stTotal = engine.template.segments.filter { $0.type == .station }.count
+            let name = current.stationKind?.displayName ?? "Station"
             segmentLabel = "STATION \(stIdx) / \(stTotal)"
-            segmentSubLabel = nil
+            segmentSubLabel = name
             accentKind = .station
             stationNameText = current.stationKind?.displayName
             stationTargetText = current.stationTarget?.formatted

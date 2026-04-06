@@ -175,8 +175,9 @@ public final class ActiveWorkoutViewModel {
         case .station:
             let stationIndex = countOfType(.station, upTo: index + 1)
             let stationTotal = countOfType(.station, upTo: total)
+            let name = current.stationKind?.displayName ?? "Station"
             segmentLabel = "STATION \(stationIndex) / \(stationTotal)"
-            segmentSubLabel = nil
+            segmentSubLabel = name
             accentKind = .station
             stationNameText = current.stationKind?.displayName
             stationTargetText = current.stationTarget?.formatted
