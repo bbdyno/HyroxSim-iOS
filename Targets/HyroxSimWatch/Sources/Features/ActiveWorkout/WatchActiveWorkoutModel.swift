@@ -78,8 +78,26 @@ final class WatchActiveWorkoutModel {
             locationTask = engine.attachLocationStream(locationAdapter)
             startDisplayTimer()
             refresh()
+
+            // 폰에 운동 시작 알림 + 원격 명령 수신 설정
+            if let sync = syncCoordinator as? WatchConnectivitySyncCoordinator {
+                sync.sendWorkoutStarted(template: engine.template)
+                sync.onReceiveCommand = { [weak self] cmd in
+                    self?.handleRemoteCommand(cmd)
+                }
+            }
         } catch {
             errorHandler?(error)
+        }
+    }
+
+    /// 폰에서 보낸 원격 명령 처리
+    private func handleRemoteCommand(_ cmd: WorkoutCommand) {
+        switch cmd {
+        case .advance: advance()
+        case .pause: if !isPaused { togglePause() }
+        case .resume: if isPaused { togglePause() }
+        case .end: endWorkout()
         }
     }
 
@@ -184,6 +202,27 @@ final class WatchActiveWorkoutModel {
 
         isFinished = engine.isFinished
         isLastSegment = engine.isLastSegment
+
+        // 폰에 실시간 상태 전송
+        broadcastLiveState()
+    }
+
+    private func broadcastLiveState() {
+        guard let sync = syncCoordinator as? WatchConnectivitySyncCoordinator else { return }
+        let state = LiveWorkoutState(
+            segmentLabel: segmentLabel, segmentSubLabel: segmentSubLabel,
+            segmentElapsedText: segmentElapsedText, totalElapsedText: totalElapsedText,
+            paceText: paceText, distanceText: distanceText,
+            heartRateText: heartRateText, heartRateZoneRaw: heartRateZone?.rawValue,
+            stationNameText: stationNameText, stationTargetText: stationTargetText,
+            accentKindRaw: { switch accentKind { case .run: "run"; case .roxZone: "roxZone"; case .station: "station" } }(),
+            isPaused: isPaused, isFinished: isFinished, isLastSegment: isLastSegment,
+            gpsStrong: gpsStrong, gpsActive: gpsActive,
+            templateName: engine.template.name,
+            totalSegmentCount: engine.template.segments.count,
+            currentSegmentIndex: engine.currentSegmentIndex ?? 0
+        )
+        sync.sendLiveState(state)
     }
 
     private func startDisplayTimer() {
@@ -199,6 +238,7 @@ final class WatchActiveWorkoutModel {
             let completed = try engine.makeCompletedWorkout()
             try persistence.saveCompletedWorkout(completed)
             try? syncCoordinator?.sendCompletedWorkout(completed)
+            (syncCoordinator as? WatchConnectivitySyncCoordinator)?.sendWorkoutFinished()
             isFinished = true
             finishHandler?(completed)
         } catch {

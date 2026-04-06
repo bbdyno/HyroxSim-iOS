@@ -54,6 +54,35 @@ public final class AppCoordinator {
         syncCoordinator.onReceiveTemplateDeleted = { [weak self] _ in
             self?.refreshHomeIfVisible()
         }
+
+        // 워치 실시간 운동 연동
+        syncCoordinator.onWorkoutStarted = { [weak self] template in
+            self?.showLiveMirror(template: template)
+        }
+        syncCoordinator.onLiveStateReceived = { [weak self] state in
+            self?.liveMirrorVC?.updateState(state)
+        }
+        syncCoordinator.onWorkoutFinished = { [weak self] in
+            self?.dismissLiveMirror()
+        }
+    }
+
+    // MARK: - 워치 실시간 미러
+
+    private var liveMirrorVC: LiveWorkoutMirrorViewController?
+
+    private func showLiveMirror(template: WorkoutTemplate) {
+        guard liveMirrorVC == nil else { return }
+        let vc = LiveWorkoutMirrorViewController()
+        vc.delegate = self
+        liveMirrorVC = vc
+        navigationController.present(vc, animated: true)
+    }
+
+    private func dismissLiveMirror() {
+        liveMirrorVC = nil
+        navigationController.dismiss(animated: true)
+        refreshHomeIfVisible()
     }
 
     private func refreshHomeIfVisible() {
@@ -261,5 +290,18 @@ extension AppCoordinator: TemplateDetailViewControllerDelegate {
     func templateDetailDidTapStart(_ template: WorkoutTemplate) {
         navigationController.popViewController(animated: false)
         startWorkout(template: template)
+    }
+}
+
+// MARK: - LiveWorkoutMirrorDelegate
+
+extension AppCoordinator: LiveWorkoutMirrorDelegate {
+
+    func mirrorDidClose() {
+        dismissLiveMirror()
+    }
+
+    func mirrorSendCommand(_ command: WorkoutCommand) {
+        syncCoordinator.sendCommand(command)
     }
 }

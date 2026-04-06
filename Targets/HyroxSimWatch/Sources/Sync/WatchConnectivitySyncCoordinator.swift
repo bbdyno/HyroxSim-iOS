@@ -27,6 +27,9 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         super.init()
     }
 
+    /// 폰에서 보낸 원격 명령 수신 콜백
+    public var onReceiveCommand: ((WorkoutCommand) -> Void)?
+
     public var isSupported: Bool { WCSession.isSupported() }
     public var isPaired: Bool { true } // Always true from watch perspective
     public var isReachable: Bool { session.isReachable }
@@ -55,6 +58,29 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         let dict = try SyncEnvelopeCoder.toDictionary(envelope)
         session.transferUserInfo(dict)
     }
+
+    // MARK: - 실시간 운동 전송
+
+    /// 폰에 운동 시작을 알림 (템플릿 정보 포함)
+    public func sendWorkoutStarted(template: WorkoutTemplate) {
+        guard session.isReachable else { return }
+        guard let data = try? JSONEncoder().encode(template) else { return }
+        let msg: [String: Any] = [LiveSyncKeys.workoutStarted: true, LiveSyncKeys.templateData: data]
+        session.sendMessage(msg, replyHandler: nil, errorHandler: nil)
+    }
+
+    /// 실시간 상태 전송 (매 초)
+    public func sendLiveState(_ state: LiveWorkoutState) {
+        guard session.isReachable else { return }
+        guard let data = try? JSONEncoder().encode(state) else { return }
+        session.sendMessage([LiveSyncKeys.liveState: data], replyHandler: nil, errorHandler: nil)
+    }
+
+    /// 운동 종료 알림
+    public func sendWorkoutFinished() {
+        guard session.isReachable else { return }
+        session.sendMessage([LiveSyncKeys.workoutFinished: true], replyHandler: nil, errorHandler: nil)
+    }
 }
 
 // MARK: - WCSessionDelegate
@@ -62,6 +88,16 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
 extension WatchConnectivitySyncCoordinator: WCSessionDelegate {
 
     nonisolated public func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {}
+
+    /// 폰에서 보낸 실시간 메시지 수신 (원격 명령)
+    nonisolated public func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        if let cmdRaw = message[LiveSyncKeys.command] as? String,
+           let cmd = WorkoutCommand(rawValue: cmdRaw) {
+            Task { @MainActor [weak self] in
+                self?.onReceiveCommand?(cmd)
+            }
+        }
+    }
 
     nonisolated public func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         Task { @MainActor [weak self] in

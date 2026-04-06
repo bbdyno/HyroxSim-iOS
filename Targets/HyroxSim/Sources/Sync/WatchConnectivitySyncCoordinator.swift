@@ -20,6 +20,13 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
     public var onReceiveCompletedWorkout: ((CompletedWorkout) -> Void)?
     public var onReceiveTemplateDeleted: ((UUID) -> Void)?
 
+    /// 워치에서 운동 시작됨 (템플릿 포함)
+    public var onWorkoutStarted: ((WorkoutTemplate) -> Void)?
+    /// 워치에서 실시간 상태 수신
+    public var onLiveStateReceived: ((LiveWorkoutState) -> Void)?
+    /// 워치에서 운동 종료됨
+    public var onWorkoutFinished: (() -> Void)?
+
     public init(persistence: PersistenceController) {
         self.persistence = persistence
         self.session = WCSession.default
@@ -57,6 +64,12 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         let dict = try SyncEnvelopeCoder.toDictionary(envelope)
         session.transferUserInfo(dict)
     }
+
+    /// 워치에 원격 명령 전송
+    public func sendCommand(_ command: WorkoutCommand) {
+        guard session.isReachable else { return }
+        session.sendMessage([LiveSyncKeys.command: command.rawValue], replyHandler: nil, errorHandler: nil)
+    }
 }
 
 // MARK: - WCSessionDelegate
@@ -67,6 +80,13 @@ extension WatchConnectivitySyncCoordinator: WCSessionDelegate {
     nonisolated public func sessionDidBecomeInactive(_ session: WCSession) {}
     nonisolated public func sessionDidDeactivate(_ session: WCSession) {
         WCSession.default.activate()
+    }
+
+    /// 워치에서 보낸 실시간 메시지 수신
+    nonisolated public func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        Task { @MainActor [weak self] in
+            self?.handleLiveMessage(message)
+        }
     }
 
     nonisolated public func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
@@ -107,6 +127,28 @@ extension WatchConnectivitySyncCoordinator {
             }
         } catch {
             print("[Sync] Receive dict failed: \(error)")
+        }
+    }
+
+    @MainActor
+    private func handleLiveMessage(_ msg: [String: Any]) {
+        // 운동 시작 알림
+        if msg[LiveSyncKeys.workoutStarted] as? Bool == true,
+           let data = msg[LiveSyncKeys.templateData] as? Data,
+           let template = try? JSONDecoder().decode(WorkoutTemplate.self, from: data) {
+            onWorkoutStarted?(template)
+            return
+        }
+        // 실시간 상태
+        if let data = msg[LiveSyncKeys.liveState] as? Data,
+           let state = try? JSONDecoder().decode(LiveWorkoutState.self, from: data) {
+            onLiveStateReceived?(state)
+            return
+        }
+        // 운동 종료
+        if msg[LiveSyncKeys.workoutFinished] as? Bool == true {
+            onWorkoutFinished?()
+            return
         }
     }
 
