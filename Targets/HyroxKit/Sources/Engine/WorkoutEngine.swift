@@ -19,6 +19,10 @@ public final class WorkoutEngine {
     /// Accumulated paused duration for the current segment
     private var currentSegmentPausedDuration: TimeInterval = 0
 
+    /// Measurement buffer for the current in-progress segment.
+    /// Flushed into the SegmentRecord on `advance` or `finish`.
+    private var liveMeasurements = SegmentMeasurements()
+
     // MARK: - Init
 
     public init(template: WorkoutTemplate) {
@@ -100,6 +104,7 @@ public final class WorkoutEngine {
             throw EngineError.emptyTemplate
         }
         currentSegmentPausedDuration = 0
+        liveMeasurements = SegmentMeasurements()
         state = .running(currentIndex: 0, segmentStartedAt: now, workoutStartedAt: now)
     }
 
@@ -116,23 +121,27 @@ public final class WorkoutEngine {
             type: segment.type,
             startedAt: segmentStartedAt,
             endedAt: now,
-            pausedDuration: currentSegmentPausedDuration
+            pausedDuration: currentSegmentPausedDuration,
+            measurements: liveMeasurements
         )
         records.append(record)
 
         let nextIndex = index + 1
         if nextIndex < template.segments.count {
             currentSegmentPausedDuration = 0
+            liveMeasurements = SegmentMeasurements()
             state = .running(currentIndex: nextIndex, segmentStartedAt: now, workoutStartedAt: workoutStartedAt)
         } else {
             // Last segment completed — finish the workout
             currentSegmentPausedDuration = 0
+            liveMeasurements = SegmentMeasurements()
             state = .finished(workoutStartedAt: workoutStartedAt, finishedAt: now)
         }
     }
 
     /// Undo the last completed segment. Valid from `running` or `finished`.
     /// Reverts the index; does not rewind wall-clock time.
+    /// Note: measurement data from the undone period is discarded (not recoverable).
     public func undo(at now: Date) throws {
         switch state {
         case .running(_, _, let workoutStartedAt):
@@ -140,6 +149,7 @@ public final class WorkoutEngine {
                 throw EngineError.nothingToUndo
             }
             currentSegmentPausedDuration = 0
+            liveMeasurements = SegmentMeasurements()
             state = .running(
                 currentIndex: lastRecord.index,
                 segmentStartedAt: lastRecord.startedAt,
@@ -151,6 +161,7 @@ public final class WorkoutEngine {
                 throw EngineError.nothingToUndo
             }
             currentSegmentPausedDuration = 0
+            liveMeasurements = SegmentMeasurements()
             state = .running(
                 currentIndex: lastRecord.index,
                 segmentStartedAt: lastRecord.startedAt,
@@ -201,15 +212,16 @@ public final class WorkoutEngine {
                 type: segment.type,
                 startedAt: segmentStartedAt,
                 endedAt: now,
-                pausedDuration: currentSegmentPausedDuration
+                pausedDuration: currentSegmentPausedDuration,
+                measurements: liveMeasurements
             )
             records.append(record)
             currentSegmentPausedDuration = 0
+            liveMeasurements = SegmentMeasurements()
             state = .finished(workoutStartedAt: workoutStartedAt, finishedAt: now)
 
         case .paused(let index, let segElapsed, let totElapsed):
             let segment = template.segments[index]
-            // Paused segment ends at the moment pause was initiated (segElapsed frozen)
             let effectiveStartedAt = now.addingTimeInterval(-segElapsed)
             let workoutStartedAt = now.addingTimeInterval(-totElapsed)
             let record = SegmentRecord(
@@ -218,15 +230,53 @@ public final class WorkoutEngine {
                 type: segment.type,
                 startedAt: effectiveStartedAt,
                 endedAt: now,
-                pausedDuration: 0
+                pausedDuration: 0,
+                measurements: liveMeasurements
             )
             records.append(record)
             currentSegmentPausedDuration = 0
+            liveMeasurements = SegmentMeasurements()
             state = .finished(workoutStartedAt: workoutStartedAt, finishedAt: now)
 
         default:
             throw EngineError.invalidTransition(from: stateLabel, action: "finish")
         }
+    }
+
+    // MARK: - Sample Ingestion
+
+    /// Adds a location sample to the current in-progress segment.
+    /// Silently ignored if not in `running` state, or if the current segment
+    /// does not track location (e.g., station segments).
+    public func ingest(locationSample: LocationSample) {
+        guard case .running = state,
+              let segment = currentSegment,
+              segment.type.tracksLocation else { return }
+        liveMeasurements.locationSamples.append(locationSample)
+    }
+
+    /// Adds a heart rate sample to the current in-progress segment.
+    /// Silently ignored if not in `running` state.
+    public func ingest(heartRateSample: HeartRateSample) {
+        guard case .running = state else { return }
+        liveMeasurements.heartRateSamples.append(heartRateSample)
+    }
+
+    // MARK: - CompletedWorkout
+
+    /// Creates a `CompletedWorkout` from the engine's finished state.
+    /// - Throws: `EngineError.invalidTransition` if the engine is not finished.
+    public func makeCompletedWorkout() throws -> CompletedWorkout {
+        guard case .finished(let workoutStartedAt, let finishedAt) = state else {
+            throw EngineError.invalidTransition(from: stateLabel, action: "makeCompletedWorkout")
+        }
+        return CompletedWorkout(
+            templateName: template.name,
+            division: template.division,
+            startedAt: workoutStartedAt,
+            finishedAt: finishedAt,
+            segments: records
+        )
     }
 
     // MARK: - Private
