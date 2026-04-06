@@ -42,7 +42,8 @@ let project = Project(
                 "NSMotionUsageDescription": "운동 분석을 위해 모션 데이터를 사용합니다.",
                 "NSHealthShareUsageDescription": "심박수 등 운동 데이터를 읽어옵니다.",
                 "NSHealthUpdateUsageDescription": "운동 결과를 건강 앱에 저장합니다.",
-                "UIBackgroundModes": ["location", "audio"]
+                "UIBackgroundModes": ["location", "audio"],
+                "NSSupportsLiveActivities": true
             ]),
             sources: ["Targets/HyroxSim/Sources/**"],
             resources: [
@@ -50,7 +51,8 @@ let project = Project(
             ],
             entitlements: "Targets/HyroxSim/HyroxSim.entitlements",
             dependencies: [
-                .target(name: "HyroxKit")
+                .target(name: "HyroxKit"),
+                .target(name: "HyroxSimWidgets")
             ]
         ),
 
@@ -88,6 +90,24 @@ let project = Project(
             deploymentTargets: .multiplatform(iOS: "17.0", watchOS: "10.0"),
             infoPlist: .default,
             sources: ["Targets/HyroxKit/Sources/**"]
+        ),
+
+        // MARK: - HyroxSimWidgets (Live Activity + Dynamic Island)
+        .target(
+            name: "HyroxSimWidgets",
+            destinations: .iOS,
+            product: .appExtension,
+            bundleId: "com.bbdyno.app.HyroxSim.widgets",
+            deploymentTargets: .iOS("17.0"),
+            infoPlist: .extendingDefault(with: [
+                "NSExtension": [
+                    "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"
+                ]
+            ]),
+            sources: ["Targets/HyroxSimWidgets/Sources/**"],
+            dependencies: [
+                .target(name: "HyroxKit")
+            ]
         ),
 
         // MARK: - HyroxSimTests (iOS Unit Tests)

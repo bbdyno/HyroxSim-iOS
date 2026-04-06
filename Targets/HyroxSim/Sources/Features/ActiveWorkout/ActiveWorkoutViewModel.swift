@@ -5,6 +5,7 @@
 //  Created by bbdyno on 4/7/26.
 //
 
+import ActivityKit
 import Foundation
 import Observation
 import HyroxKit
@@ -53,6 +54,7 @@ public final class ActiveWorkoutViewModel {
     private var locationTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
     private var lastKnownBpm: Int?
+    private var liveActivity: Activity<WorkoutActivityAttributes>?
 
     // MARK: - Callbacks
     public var errorHandler: ((Error) -> Void)?
@@ -83,6 +85,7 @@ public final class ActiveWorkoutViewModel {
             locationTask = engine.attachLocationStream(locationStream)
             heartRateTask = engine.attachHeartRateStream(heartRateStream)
             startDisplayTimer()
+            startLiveActivity()
             refresh()
         } catch {
             errorHandler?(error)
@@ -212,6 +215,8 @@ public final class ActiveWorkoutViewModel {
 
         isFinished = engine.isFinished
         isLastSegment = engine.isLastSegment
+
+        updateLiveActivity()
     }
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {
@@ -247,11 +252,53 @@ public final class ActiveWorkoutViewModel {
 
     private func cleanup() {
         stopDisplayTimer()
+        endLiveActivity()
         locationTask?.cancel()
         heartRateTask?.cancel()
         locationTask = nil
         heartRateTask = nil
         locationStream.stop()
         heartRateStream.stop()
+    }
+
+    // MARK: - Live Activity
+
+    private func startLiveActivity() {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let attributes = WorkoutActivityAttributes(
+            templateName: engine.template.name,
+            totalSegments: engine.template.segments.count
+        )
+        let state = makeActivityState()
+        let content = ActivityContent(state: state, staleDate: nil)
+        liveActivity = try? Activity.request(attributes: attributes, content: content, pushType: nil)
+    }
+
+    private func updateLiveActivity() {
+        guard let liveActivity else { return }
+        let state = makeActivityState()
+        let content = ActivityContent(state: state, staleDate: nil)
+        Task { await liveActivity.update(content) }
+    }
+
+    private func endLiveActivity() {
+        guard let liveActivity else { return }
+        let state = makeActivityState()
+        let content = ActivityContent(state: state, staleDate: nil)
+        Task { await liveActivity.end(content, dismissalPolicy: .after(.now + 5)) }
+        self.liveActivity = nil
+    }
+
+    private func makeActivityState() -> WorkoutActivityAttributes.ContentState {
+        WorkoutActivityAttributes.ContentState(
+            segmentLabel: segmentLabel,
+            segmentSubLabel: segmentSubLabel,
+            segmentElapsed: segmentElapsedText,
+            totalElapsed: totalElapsedText,
+            heartRate: heartRateText,
+            accentKind: { switch accentKind { case .run: "run"; case .roxZone: "roxZone"; case .station: "station" } }(),
+            isPaused: isPaused,
+            isLastSegment: isLastSegment
+        )
     }
 }
