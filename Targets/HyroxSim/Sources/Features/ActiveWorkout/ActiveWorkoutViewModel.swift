@@ -27,6 +27,7 @@ public final class ActiveWorkoutViewModel {
     public private(set) var accentKind: AccentKind = .run
     public private(set) var isPaused: Bool = false
     public private(set) var isFinished: Bool = false
+    public private(set) var isLastSegment: Bool = false
 
     public enum AccentKind { case run, roxZone, station }
 
@@ -182,6 +183,7 @@ public final class ActiveWorkoutViewModel {
         }
 
         isFinished = engine.isFinished
+        isLastSegment = engine.isLastSegment
     }
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {

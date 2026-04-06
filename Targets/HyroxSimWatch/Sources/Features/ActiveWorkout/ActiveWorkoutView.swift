@@ -22,33 +22,82 @@ struct ActiveWorkoutView: View {
     }
 
     var body: some View {
-        ZStack {
-            backgroundColor.ignoresSafeArea()
+        VStack(spacing: 4) {
+            // Header — segment label with accent color
+            Text(model.segmentLabel)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(accentColor)
 
-            VStack(spacing: 6) {
-                header
-                Spacer()
-                timeBlock
-                middleBlock
-                heartBlock
-                Spacer()
-                bottomButtons
+            if let sub = model.segmentSubLabel {
+                Text(sub)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.gray)
             }
-            .padding(.horizontal, 8)
+
+            // Segment time — large
+            Text(model.segmentElapsedText)
+                .font(.system(size: 40, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(.white)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+
+            // Total time — smaller
+            Text(model.totalElapsedText)
+                .font(.system(size: 14, weight: .medium, design: .rounded).monospacedDigit())
+                .foregroundStyle(.gray)
+
+            // Middle data row
+            middleBlock
+                .padding(.vertical, 2)
+
+            // Heart rate
+            HStack(spacing: 3) {
+                Text(model.heartRateText)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(heartColor)
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(heartColor)
+            }
+
+            Spacer(minLength: 2)
+
+            // Buttons — compact
+            HStack(spacing: 8) {
+                Button { model.togglePause() } label: {
+                    Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
+                        .font(.system(size: 14))
+                }
+                .buttonStyle(.bordered)
+                .tint(.gray)
+
+                Button {
+                    WKInterfaceDevice.current().play(.success)
+                    model.advance()
+                } label: {
+                    Text(model.isLastSegment ? "FINISH" : "NEXT")
+                        .font(.system(size: 13, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(model.isLastSegment ? .yellow : accentColor)
+
+                Button { showEndConfirm = true } label: {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 14))
+                }
+                .buttonStyle(.bordered)
+                .tint(.red)
+            }
         }
-        .contentShape(Rectangle())
-        .onLongPressGesture(minimumDuration: 0.3) {
-            WKInterfaceDevice.current().play(.success)
-            model.advance()
-        }
+        .padding(.horizontal, 4)
+        .background(Color.black)
         .onAppear {
             model.finishHandler = { workout in
                 completedWorkout = workout
                 showSummary = true
             }
-            model.errorHandler = { err in
-                print("Workout error: \(err)")
-            }
+            model.errorHandler = { err in print("Workout error: \(err)") }
             Task { await model.start() }
         }
         .navigationBarBackButtonHidden(true)
@@ -63,37 +112,11 @@ struct ActiveWorkoutView: View {
         }
     }
 
-    private var backgroundColor: Color {
+    private var accentColor: Color {
         switch model.accentKind {
-        case .run: return .blue.opacity(0.85)
-        case .roxZone: return .orange.opacity(0.85)
-        case .station: return .purple.opacity(0.85)
-        }
-    }
-
-    @ViewBuilder
-    private var header: some View {
-        VStack(spacing: 0) {
-            Text(model.segmentLabel)
-                .font(.caption.bold())
-                .foregroundStyle(.white)
-            if let sub = model.segmentSubLabel {
-                Text(sub)
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var timeBlock: some View {
-        VStack(spacing: 2) {
-            Text(model.segmentElapsedText)
-                .font(.system(size: 36, weight: .semibold, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white)
-            Text(model.totalElapsedText)
-                .font(.system(size: 16, weight: .medium, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.8))
+        case .run: return .blue
+        case .roxZone: return .orange
+        case .station: return .yellow
         }
     }
 
@@ -101,30 +124,35 @@ struct ActiveWorkoutView: View {
     private var middleBlock: some View {
         switch model.accentKind {
         case .run, .roxZone:
-            HStack(spacing: 12) {
-                metricColumn(value: model.paceText, label: "PACE")
-                metricColumn(value: model.distanceText, label: "KM")
+            HStack(spacing: 16) {
+                VStack(spacing: 0) {
+                    Text(model.paceText)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.white)
+                    Text("PACE")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.gray)
+                }
+                VStack(spacing: 0) {
+                    Text(model.distanceText)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                    Text("DIST")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.gray)
+                }
             }
         case .station:
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 Text(model.stationNameText ?? "—")
-                    .font(.caption.bold())
-                    .foregroundStyle(.white)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.yellow)
                 Text(model.stationTargetText ?? "")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.gray)
             }
-        }
-    }
-
-    @ViewBuilder
-    private var heartBlock: some View {
-        HStack(spacing: 4) {
-            Text(model.heartRateText)
-                .font(.system(size: 18, weight: .semibold, design: .rounded).monospacedDigit())
-                .foregroundStyle(heartColor)
-            Image(systemName: "heart.fill")
-                .foregroundStyle(heartColor)
         }
     }
 
@@ -136,51 +164,6 @@ struct ActiveWorkoutView: View {
         case .z4: return .orange
         case .z5: return .red
         case .none: return .white
-        }
-    }
-
-    @ViewBuilder
-    private var bottomButtons: some View {
-        VStack(spacing: 6) {
-            // Prominent NEXT button
-            Button {
-                WKInterfaceDevice.current().play(.success)
-                model.advance()
-            } label: {
-                Text("NEXT ▶")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-            }
-            .buttonStyle(.bordered)
-            .tint(.white.opacity(0.3))
-
-            // Small control buttons
-            HStack(spacing: 12) {
-                Button { model.togglePause() } label: {
-                    Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
-                }
-                .buttonStyle(.bordered)
-                .tint(.white)
-
-                Button { showEndConfirm = true } label: {
-                    Image(systemName: "stop.fill")
-                }
-                .buttonStyle(.bordered)
-                .tint(.white)
-            }
-        }
-    }
-
-    private func metricColumn(value: String, label: String) -> some View {
-        VStack(spacing: 0) {
-            Text(value)
-                .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white)
-            Text(label)
-                .font(.system(size: 9))
-                .foregroundStyle(.white.opacity(0.7))
         }
     }
 }

@@ -9,7 +9,9 @@ import UIKit
 
 extension UIViewController {
 
-    /// Apply consistent dark nav bar appearance across all screens
+    /// Apply dark nav bar appearance at the navigationItem level.
+    /// For the main navigation controller, set appearance directly on the nav bar in AppCoordinator.
+    /// For modally presented nav controllers, call this or configureDarkModalNav.
     func applyDarkNavBarAppearance() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
@@ -29,6 +31,22 @@ extension UIViewController {
         navigationController?.toolbar.standardAppearance = tbAppearance
         navigationController?.toolbar.scrollEdgeAppearance = tbAppearance
         navigationController?.toolbar.tintColor = DesignTokens.Color.accent
+    }
+}
+
+extension UINavigationController {
+
+    /// Configure a modal navigation controller with dark theme
+    func applyDarkTheme() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = DesignTokens.Color.background
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+        navigationBar.standardAppearance = appearance
+        navigationBar.scrollEdgeAppearance = appearance
+        navigationBar.compactAppearance = appearance
+        navigationBar.tintColor = DesignTokens.Color.accent
     }
 }
 

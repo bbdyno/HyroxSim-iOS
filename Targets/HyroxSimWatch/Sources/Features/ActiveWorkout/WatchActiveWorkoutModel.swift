@@ -30,6 +30,7 @@ final class WatchActiveWorkoutModel {
     private(set) var accentKind: AccentKind = .run
     private(set) var isPaused: Bool = false
     private(set) var isFinished: Bool = false
+    private(set) var isLastSegment: Bool = false
 
     enum AccentKind { case run, roxZone, station }
 
@@ -170,6 +171,7 @@ final class WatchActiveWorkoutModel {
         }
 
         isFinished = engine.isFinished
+        isLastSegment = engine.isLastSegment
     }
 
     private func startDisplayTimer() {

@@ -42,10 +42,8 @@ final class HomeViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
-        navigationController?.navigationBar.prefersLargeTitles = true
+        view.backgroundColor = DesignTokens.Color.background
         title = "HYROX"
-        configureNavBar()
         setupScrollView()
         buildContent()
         NotificationCenter.default.addObserver(self, selector: #selector(handleSyncUpdate), name: .syncDataUpdated, object: nil)
@@ -62,21 +60,6 @@ final class HomeViewController: UIViewController {
         viewModel.load()
         carouselCollectionView?.reloadData()
         rebuildRecentCard()
-    }
-
-    // MARK: - Nav Bar
-
-    private func configureNavBar() {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .black
-        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
-        appearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor.white,
-            .font: UIFont.systemFont(ofSize: 34, weight: .black)
-        ]
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
     }
 
     // MARK: - Scroll View

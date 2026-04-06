@@ -280,6 +280,13 @@ final class ActiveWorkoutViewController: UIViewController {
             for: .normal
         )
 
+        // NEXT → FINISH on last segment
+        let btnTitle = viewModel.isLastSegment ? "FINISH ✓" : "NEXT ▶"
+        nextButton.setTitle(btnTitle, for: .normal)
+        nextButton.backgroundColor = viewModel.isLastSegment
+            ? DesignTokens.Color.accent.withAlphaComponent(0.4)
+            : UIColor.white.withAlphaComponent(0.25)
+
         if viewModel.isFinished {
             stopUITimer()
         }

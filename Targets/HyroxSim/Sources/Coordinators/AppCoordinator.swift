@@ -21,6 +21,20 @@ public final class AppCoordinator {
         self.navigationController = UINavigationController()
         self.persistence = try PersistenceController()
         self.syncCoordinator = WatchConnectivitySyncCoordinator(persistence: persistence)
+
+        // Global dark nav bar appearance
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithOpaqueBackground()
+        navAppearance.backgroundColor = DesignTokens.Color.background
+        navAppearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        navAppearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor.white,
+            .font: UIFont.systemFont(ofSize: 34, weight: .black)
+        ]
+        navigationController.navigationBar.standardAppearance = navAppearance
+        navigationController.navigationBar.scrollEdgeAppearance = navAppearance
+        navigationController.navigationBar.compactAppearance = navAppearance
+        navigationController.navigationBar.tintColor = DesignTokens.Color.accent
         navigationController.navigationBar.prefersLargeTitles = true
     }
 
@@ -76,6 +90,7 @@ public final class AppCoordinator {
         let vc = BuilderEntrySheetViewController()
         vc.delegate = self
         let nav = UINavigationController(rootViewController: vc)
+        nav.applyDarkTheme()
         if let sheet = nav.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
         }
@@ -87,6 +102,7 @@ public final class AppCoordinator {
         let vc = WorkoutBuilderViewController(viewModel: vm)
         vc.delegate = self
         let nav = UINavigationController(rootViewController: vc)
+        nav.applyDarkTheme()
         nav.modalPresentationStyle = .formSheet
         navigationController.present(nav, animated: true)
     }
@@ -209,6 +225,7 @@ extension AppCoordinator {
         } else {
             // After workout: present modally (no "back" destination — builder was dismissed)
             let nav = UINavigationController(rootViewController: vc)
+            nav.applyDarkTheme()
             navigationController.present(nav, animated: true)
         }
     }
