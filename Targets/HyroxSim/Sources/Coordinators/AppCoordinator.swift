@@ -63,14 +63,7 @@ public final class AppCoordinator {
 extension AppCoordinator: HomeViewControllerDelegate {
 
     func homeDidSelectTemplate(_ template: WorkoutTemplate) {
-        // TODO: 09 단계 — 실제 운동 시작
-        let alert = UIAlertController(
-            title: template.name,
-            message: "Workout will start here (coming soon)",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        navigationController.present(alert, animated: true)
+        startWorkout(template: template)
     }
 
     func homeDidTapNewWorkout() {
@@ -135,20 +128,60 @@ extension AppCoordinator: WorkoutBuilderViewControllerDelegate {
     }
 
     func builderDidRequestStart(template: WorkoutTemplate) {
-        navigationController.dismiss(animated: true) {
-            // TODO: 09 단계 — 운동 시작
-            let alert = UIAlertController(
-                title: "Start Workout",
-                message: "\(template.name)\nComing in next stage",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            self.navigationController.present(alert, animated: true)
+        navigationController.dismiss(animated: true) { [self] in
+            startWorkout(template: template)
         }
     }
 
     func builderDidSaveTemplate(_ template: WorkoutTemplate) {
         navigationController.dismiss(animated: true)
-        // Home's viewWillAppear will reload data automatically
+    }
+}
+
+// MARK: - Workout Lifecycle
+
+extension AppCoordinator {
+
+    func startWorkout(template: WorkoutTemplate) {
+        let location = CoreLocationAdapter()
+        let heartRate = HealthKitHeartRateAdapter()
+        let vm = ActiveWorkoutViewModel(
+            template: template,
+            locationStream: location,
+            heartRateStream: heartRate,
+            persistence: persistence,
+            maxHeartRate: 190 // TODO: user settings
+        )
+        let vc = ActiveWorkoutViewController(viewModel: vm)
+
+        vm.errorHandler = { [weak self] error in
+            let alert = UIAlertController(title: "Error", message: "\(error)", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            self?.navigationController.presentedViewController?.present(alert, animated: true)
+        }
+        vm.finishHandler = { [weak self] completed in
+            self?.dismissWorkout(showingSummaryFor: completed)
+        }
+        vm.cancelHandler = { [weak self] in
+            self?.dismissWorkout(showingSummaryFor: nil)
+        }
+
+        vc.modalPresentationStyle = .fullScreen
+        navigationController.present(vc, animated: true)
+    }
+
+    private func dismissWorkout(showingSummaryFor workout: CompletedWorkout?) {
+        navigationController.dismiss(animated: true) { [self] in
+            if let workout {
+                // TODO: 10 단계 — Summary screen
+                let alert = UIAlertController(
+                    title: "Workout Complete!",
+                    message: "Total: \(DurationFormatter.hms(workout.totalDuration))\nSegments: \(workout.segments.count)",
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                navigationController.present(alert, animated: true)
+            }
+        }
     }
 }

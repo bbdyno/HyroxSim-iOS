@@ -1,0 +1,271 @@
+import UIKit
+import HyroxKit
+
+final class ActiveWorkoutViewController: UIViewController {
+
+    private let viewModel: ActiveWorkoutViewModel
+    private var uiTimer: Timer?
+
+    // MARK: - Metrics
+    private let headerLabel = UILabel()
+    private let subHeaderLabel = UILabel()
+    private let segmentMetric = MetricView()
+    private let totalMetric = MetricView()
+    private let paceMetric = MetricView()
+    private let distanceMetric = MetricView()
+    private let stationNameMetric = MetricView()
+    private let stationTargetMetric = MetricView()
+    private let heartMetric = MetricView()
+
+    // MARK: - Buttons
+    private let pauseButton = UIButton(type: .system)
+    private let undoButton = UIButton(type: .system)
+    private let endButton = UIButton(type: .system)
+
+    // MARK: - Overlay
+    private let pauseOverlay = UIView()
+
+    init(viewModel: ActiveWorkoutViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+        modalPresentationStyle = .fullScreen
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupUI()
+        setupGestures()
+        setupButtons()
+        Task { await viewModel.start() }
+        startUITimer()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        UIApplication.shared.isIdleTimerDisabled = true
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        UIApplication.shared.isIdleTimerDisabled = false
+        stopUITimer()
+    }
+
+    override var prefersStatusBarHidden: Bool { true }
+
+    // MARK: - Setup
+
+    private func setupUI() {
+        view.backgroundColor = DesignTokens.Color.runAccent
+
+        // Header
+        headerLabel.font = .systemFont(ofSize: 24, weight: .bold)
+        headerLabel.textColor = .white
+        headerLabel.textAlignment = .center
+
+        subHeaderLabel.font = .systemFont(ofSize: 18, weight: .medium)
+        subHeaderLabel.textColor = UIColor.white.withAlphaComponent(0.8)
+        subHeaderLabel.textAlignment = .center
+        subHeaderLabel.isHidden = true
+
+        // Row 1: Segment + Total
+        let row1 = UIStackView(arrangedSubviews: [segmentMetric, totalMetric])
+        row1.distribution = .fillEqually
+        row1.spacing = DesignTokens.Spacing.m
+
+        // Row 2a: Pace + Distance (run/roxZone)
+        let row2Run = UIStackView(arrangedSubviews: [paceMetric, distanceMetric])
+        row2Run.distribution = .fillEqually
+        row2Run.spacing = DesignTokens.Spacing.m
+
+        // Row 2b: Station name + target (station)
+        let row2Station = UIStackView(arrangedSubviews: [stationNameMetric, stationTargetMetric])
+        row2Station.distribution = .fillEqually
+        row2Station.spacing = DesignTokens.Spacing.m
+
+        // Main stack
+        let mainStack = UIStackView(arrangedSubviews: [
+            headerLabel, subHeaderLabel, row1, row2Run, row2Station, heartMetric
+        ])
+        mainStack.axis = .vertical
+        mainStack.alignment = .fill
+        mainStack.spacing = DesignTokens.Spacing.l
+        mainStack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(mainStack)
+
+        NSLayoutConstraint.activate([
+            mainStack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -30),
+            mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignTokens.Spacing.l),
+            mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignTokens.Spacing.l)
+        ])
+
+        // Pause overlay
+        pauseOverlay.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        pauseOverlay.isHidden = true
+        pauseOverlay.isUserInteractionEnabled = false
+        pauseOverlay.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(pauseOverlay)
+        NSLayoutConstraint.activate([
+            pauseOverlay.topAnchor.constraint(equalTo: view.topAnchor),
+            pauseOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            pauseOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            pauseOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+
+    private func setupButtons() {
+        let buttonSize: CGFloat = 50
+        let margin: CGFloat = DesignTokens.Spacing.l
+
+        for btn in [pauseButton, undoButton, endButton] {
+            btn.tintColor = .white
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            btn.layer.cornerRadius = buttonSize / 2
+            btn.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+            view.addSubview(btn)
+            NSLayoutConstraint.activate([
+                btn.widthAnchor.constraint(equalToConstant: buttonSize),
+                btn.heightAnchor.constraint(equalToConstant: buttonSize)
+            ])
+        }
+
+        pauseButton.setImage(UIImage(systemName: "pause.fill"), for: .normal)
+        pauseButton.addTarget(self, action: #selector(pauseTapped), for: .touchUpInside)
+        NSLayoutConstraint.activate([
+            pauseButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
+            pauseButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -margin)
+        ])
+
+        endButton.setImage(UIImage(systemName: "stop.fill"), for: .normal)
+        endButton.addTarget(self, action: #selector(endTapped), for: .touchUpInside)
+        NSLayoutConstraint.activate([
+            endButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
+            endButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -margin)
+        ])
+
+        undoButton.setImage(UIImage(systemName: "arrow.uturn.backward"), for: .normal)
+        undoButton.addTarget(self, action: #selector(undoTapped), for: .touchUpInside)
+        NSLayoutConstraint.activate([
+            undoButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
+            undoButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: margin)
+        ])
+    }
+
+    private func setupGestures() {
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPress.minimumPressDuration = 0.3
+        view.addGestureRecognizer(longPress)
+    }
+
+    // MARK: - Actions
+
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        // Ignore if touch is on a button
+        let location = gesture.location(in: view)
+        for btn in [pauseButton, undoButton, endButton] {
+            if btn.frame.insetBy(dx: -10, dy: -10).contains(location) { return }
+        }
+
+        switch gesture.state {
+        case .began:
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        case .ended:
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            viewModel.advance()
+        default: break
+        }
+    }
+
+    @objc private func pauseTapped() {
+        viewModel.togglePause()
+    }
+
+    @objc private func undoTapped() {
+        let alert = UIAlertController(title: "Go back to previous segment?", message: nil, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Undo", style: .destructive) { [weak self] _ in
+            self?.viewModel.undo()
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    @objc private func endTapped() {
+        let alert = UIAlertController(title: "End workout?", message: "Your progress will be saved.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "End", style: .destructive) { [weak self] _ in
+            self?.viewModel.endWorkout()
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    // MARK: - UI Timer
+
+    private func startUITimer() {
+        uiTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+            self?.applyState()
+        }
+    }
+
+    private func stopUITimer() {
+        uiTimer?.invalidate()
+        uiTimer = nil
+    }
+
+    private func applyState() {
+        headerLabel.text = viewModel.segmentLabel
+        subHeaderLabel.text = viewModel.segmentSubLabel
+        subHeaderLabel.isHidden = viewModel.segmentSubLabel == nil
+
+        segmentMetric.setValue(viewModel.segmentElapsedText, caption: "SEGMENT")
+        totalMetric.setValue(viewModel.totalElapsedText, caption: "TOTAL")
+
+        switch viewModel.accentKind {
+        case .run, .roxZone:
+            paceMetric.setValue(viewModel.paceText, caption: "PACE")
+            distanceMetric.setValue(viewModel.distanceText, caption: "KM")
+            paceMetric.superview?.isHidden = false
+            stationNameMetric.superview?.isHidden = true
+        case .station:
+            stationNameMetric.setValue(viewModel.stationNameText ?? "—", caption: "STATION")
+            stationTargetMetric.setValue(viewModel.stationTargetText ?? "—", caption: "TARGET")
+            paceMetric.superview?.isHidden = true
+            stationNameMetric.superview?.isHidden = false
+        }
+
+        heartMetric.setValue("\(viewModel.heartRateText) ♥", caption: "HEART")
+        heartMetric.setValueColor(colorFor(zone: viewModel.heartRateZone))
+
+        view.backgroundColor = backgroundColor(for: viewModel.accentKind)
+        pauseOverlay.isHidden = !viewModel.isPaused
+        pauseButton.setImage(
+            UIImage(systemName: viewModel.isPaused ? "play.fill" : "pause.fill"),
+            for: .normal
+        )
+
+        if viewModel.isFinished {
+            stopUITimer()
+        }
+    }
+
+    private func backgroundColor(for accent: ActiveWorkoutViewModel.AccentKind) -> UIColor {
+        switch accent {
+        case .run: return DesignTokens.Color.runAccent
+        case .roxZone: return DesignTokens.Color.roxZoneAccent
+        case .station: return DesignTokens.Color.stationAccent
+        }
+    }
+
+    private func colorFor(zone: HeartRateZone?) -> UIColor {
+        guard let zone else { return .white }
+        switch zone {
+        case .z1: return .lightGray
+        case .z2: return .systemBlue
+        case .z3: return .systemGreen
+        case .z4: return .systemOrange
+        case .z5: return .systemRed
+        }
+    }
+}

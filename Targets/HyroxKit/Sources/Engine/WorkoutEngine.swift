@@ -262,6 +262,14 @@ public final class WorkoutEngine {
         liveMeasurements.heartRateSamples.append(heartRateSample)
     }
 
+    // MARK: - Live Measurements
+
+    /// Read-only snapshot of the current in-progress segment's measurements.
+    /// Returns an empty value if not in a running state.
+    public var liveMeasurementsSnapshot: SegmentMeasurements {
+        liveMeasurements
+    }
+
     // MARK: - CompletedWorkout
 
     /// Creates a `CompletedWorkout` from the engine's finished state.
