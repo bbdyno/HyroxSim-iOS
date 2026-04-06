@@ -40,21 +40,25 @@ public enum HyroxPresets {
     // MARK: - Builder
 
     /// Builds a standard HYROX workout template for a division.
-    /// Structure: 8 rounds of (Run 1 km → ROX Zone → Station) = 24 segments.
+    /// Structure per round: Run → RoxZone(enter) → Station → RoxZone(exit).
     /// Last station (Wall Balls) has no trailing ROX Zone — it's the finish.
+    /// Total: 8 × 4 - 1 = 31 segments.
     private static func buildTemplate(division: HyroxDivision) -> WorkoutTemplate {
         let specs = HyroxDivisionSpec.stations(for: division)
         var segments: [WorkoutSegment] = []
 
-        for spec in specs {
+        for (index, spec) in specs.enumerated() {
             segments.append(.run())
-            segments.append(.roxZone())
+            segments.append(.roxZone()) // Enter ROX Zone (run → station)
             segments.append(.station(
                 spec.kind,
                 target: spec.target,
                 weightKg: spec.weightKg,
                 weightNote: spec.weightNote
             ))
+            if index < specs.count - 1 {
+                segments.append(.roxZone()) // Exit ROX Zone (station → next run)
+            }
         }
 
         return WorkoutTemplate(

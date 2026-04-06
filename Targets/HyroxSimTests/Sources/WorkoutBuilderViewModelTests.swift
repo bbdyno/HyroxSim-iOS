@@ -24,7 +24,7 @@ final class WorkoutBuilderViewModelTests: XCTestCase {
     func testPresetInit() throws {
         let preset = HyroxPresets.menOpenSingle
         let vm = WorkoutBuilderViewModel(startingFrom: preset, persistence: try makePersistence())
-        XCTAssertEqual(vm.segments.count, 24)
+        XCTAssertEqual(vm.segments.count, 31)
         XCTAssertEqual(vm.division, .menOpenSingle)
 
         // Segments should have new UUIDs (cloned)

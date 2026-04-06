@@ -342,14 +342,14 @@ final class WorkoutEngineTests: XCTestCase {
         let engine = WorkoutEngine(template: template)
         try engine.start(at: t0)
 
-        for i in 0..<24 {
+        for i in 0..<31 {
             let time = t(Double((i + 1) * 60)) // 1 min per segment
             try engine.advance(at: time)
         }
 
         XCTAssertTrue(engine.isFinished)
-        XCTAssertEqual(engine.records.count, 24)
-        XCTAssertEqual(engine.totalElapsed(at: t(9999)), 24 * 60, accuracy: 0.001)
+        XCTAssertEqual(engine.records.count, 31)
+        XCTAssertEqual(engine.totalElapsed(at: t(9999)), 31 * 60, accuracy: 0.001)
 
         // Last record should be a Wall Balls station
         XCTAssertEqual(engine.records.last?.type, .station)

@@ -7,9 +7,9 @@ final class HyroxPresetsTests: XCTestCase {
         XCTAssertEqual(HyroxPresets.all.count, 9)
     }
 
-    func testEachPresetHas24Segments() {
+    func testEachPresetHas31Segments() {
         for preset in HyroxPresets.all {
-            XCTAssertEqual(preset.segments.count, 24, "\(preset.name) should have 24 segments")
+            XCTAssertEqual(preset.segments.count, 31, "\(preset.name) should have 31 segments")
         }
     }
 
