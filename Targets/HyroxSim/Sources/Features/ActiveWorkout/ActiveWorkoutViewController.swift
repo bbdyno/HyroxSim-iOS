@@ -28,7 +28,6 @@ final class ActiveWorkoutViewController: UIViewController {
     // MARK: - Buttons
     private let nextButton = UIButton(type: .system)
     private let pauseButton = UIButton(type: .system)
-    private let undoButton = UIButton(type: .system)
     private let endButton = UIButton(type: .system)
 
     // MARK: - Overlay
@@ -156,7 +155,7 @@ final class ActiveWorkoutViewController: UIViewController {
         ])
 
         // Small corner buttons
-        for btn in [pauseButton, undoButton, endButton] {
+        for btn in [pauseButton, endButton] {
             btn.tintColor = .white
             btn.translatesAutoresizingMaskIntoConstraints = false
             btn.layer.cornerRadius = smallSize / 2
@@ -181,13 +180,6 @@ final class ActiveWorkoutViewController: UIViewController {
             endButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
             endButton.bottomAnchor.constraint(equalTo: nextButton.topAnchor, constant: -DesignTokens.Spacing.m)
         ])
-
-        undoButton.setImage(UIImage(systemName: "arrow.uturn.backward"), for: .normal)
-        undoButton.addTarget(self, action: #selector(undoTapped), for: .touchUpInside)
-        NSLayoutConstraint.activate([
-            undoButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            undoButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: margin)
-        ])
     }
 
     private func setupGestures() {
@@ -205,7 +197,7 @@ final class ActiveWorkoutViewController: UIViewController {
 
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         let location = gesture.location(in: view)
-        for btn in [nextButton, pauseButton, undoButton, endButton] {
+        for btn in [nextButton, pauseButton, endButton] {
             if btn.frame.insetBy(dx: -10, dy: -10).contains(location) { return }
         }
         switch gesture.state {
@@ -220,15 +212,6 @@ final class ActiveWorkoutViewController: UIViewController {
 
     @objc private func pauseTapped() {
         viewModel.togglePause()
-    }
-
-    @objc private func undoTapped() {
-        let alert = DarkAlertController(title: "Go back to previous segment?", message: nil)
-        alert.addAction(.init(title: "Cancel", style: .cancel, handler: nil))
-        alert.addAction(.init(title: "Undo", style: .destructive, handler: { [weak self] in
-            self?.viewModel.undo()
-        }))
-        present(alert, animated: true)
     }
 
     @objc private func endTapped() {
