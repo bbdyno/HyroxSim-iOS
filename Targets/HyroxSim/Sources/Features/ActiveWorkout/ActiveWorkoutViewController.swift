@@ -16,6 +16,7 @@ final class ActiveWorkoutViewController: UIViewController {
     // MARK: - Metrics
     private let headerLabel = UILabel()
     private let subHeaderLabel = UILabel()
+    private let gpsStatusView = UIStackView()
     private let segmentMetric = MetricView()
     private let totalMetric = MetricView()
     private let paceMetric = MetricView()
@@ -79,6 +80,9 @@ final class ActiveWorkoutViewController: UIViewController {
         subHeaderLabel.textAlignment = .center
         subHeaderLabel.isHidden = true
 
+        // GPS status bar (icon + 3 signal bars + label)
+        setupGPSStatusView()
+
         // Segment time (biggest)
         segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 64, weight: .bold)
         // Total time (smaller below)
@@ -97,6 +101,7 @@ final class ActiveWorkoutViewController: UIViewController {
 
         // Main vertical layout
         let mainStack = UIStackView(arrangedSubviews: [
+            gpsStatusView,
             headerLabel, subHeaderLabel,
             segmentMetric, totalMetric,
             row2Run, row2Station,
@@ -287,6 +292,8 @@ final class ActiveWorkoutViewController: UIViewController {
             ? DesignTokens.Color.accent.withAlphaComponent(0.4)
             : UIColor.white.withAlphaComponent(0.25)
 
+        updateGPSStatus()
+
         if viewModel.isFinished {
             stopUITimer()
         }
@@ -308,6 +315,86 @@ final class ActiveWorkoutViewController: UIViewController {
         case .z3: return .systemGreen
         case .z4: return .systemOrange
         case .z5: return .systemRed
+        }
+    }
+
+    // MARK: - GPS Status
+
+    private let gpsIcon = UIImageView()
+    private let gpsBars: [UIView] = (0..<3).map { _ in UIView() }
+    private let gpsLabel = UILabel()
+
+    private func setupGPSStatusView() {
+        gpsStatusView.axis = .horizontal
+        gpsStatusView.alignment = .center
+        gpsStatusView.spacing = 4
+
+        gpsIcon.image = UIImage(systemName: "location.fill")
+        gpsIcon.tintColor = .gray
+        gpsIcon.contentMode = .scaleAspectFit
+        gpsIcon.translatesAutoresizingMaskIntoConstraints = false
+        gpsIcon.widthAnchor.constraint(equalToConstant: 12).isActive = true
+        gpsIcon.heightAnchor.constraint(equalToConstant: 12).isActive = true
+        gpsStatusView.addArrangedSubview(gpsIcon)
+
+        let barsStack = UIStackView()
+        barsStack.axis = .horizontal
+        barsStack.alignment = .bottom
+        barsStack.spacing = 2
+        for (i, bar) in gpsBars.enumerated() {
+            bar.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+            bar.layer.cornerRadius = 1.5
+            bar.translatesAutoresizingMaskIntoConstraints = false
+            bar.widthAnchor.constraint(equalToConstant: 4).isActive = true
+            bar.heightAnchor.constraint(equalToConstant: CGFloat(6 + i * 4)).isActive = true
+            barsStack.addArrangedSubview(bar)
+        }
+        gpsStatusView.addArrangedSubview(barsStack)
+
+        gpsLabel.font = .systemFont(ofSize: 10, weight: .medium)
+        gpsLabel.textColor = .gray
+        gpsStatusView.addArrangedSubview(gpsLabel)
+
+        // Push everything to the left
+        let spacer = UIView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        gpsStatusView.addArrangedSubview(spacer)
+
+        gpsStatusView.heightAnchor.constraint(equalToConstant: 16).isActive = true
+    }
+
+    private func updateGPSStatus() {
+        let status = viewModel.gpsStatus
+        switch status {
+        case .off:
+            gpsIcon.tintColor = UIColor.white.withAlphaComponent(0.2)
+            gpsLabel.text = "GPS OFF"
+            gpsLabel.textColor = UIColor.white.withAlphaComponent(0.2)
+            gpsBars.forEach { $0.backgroundColor = UIColor.white.withAlphaComponent(0.1) }
+        case .searching:
+            gpsIcon.tintColor = .gray
+            gpsLabel.text = "Searching..."
+            gpsLabel.textColor = .gray
+            gpsBars.forEach { $0.backgroundColor = UIColor.white.withAlphaComponent(0.15) }
+        case .weak:
+            gpsIcon.tintColor = .systemOrange
+            gpsLabel.text = "GPS Weak"
+            gpsLabel.textColor = .systemOrange
+            gpsBars[0].backgroundColor = .systemOrange
+            gpsBars[1].backgroundColor = UIColor.white.withAlphaComponent(0.15)
+            gpsBars[2].backgroundColor = UIColor.white.withAlphaComponent(0.15)
+        case .fair:
+            gpsIcon.tintColor = DesignTokens.Color.accent
+            gpsLabel.text = "GPS Fair"
+            gpsLabel.textColor = DesignTokens.Color.accent
+            gpsBars[0].backgroundColor = DesignTokens.Color.accent
+            gpsBars[1].backgroundColor = DesignTokens.Color.accent
+            gpsBars[2].backgroundColor = UIColor.white.withAlphaComponent(0.15)
+        case .strong:
+            gpsIcon.tintColor = .systemGreen
+            gpsLabel.text = "GPS Strong"
+            gpsLabel.textColor = .systemGreen
+            gpsBars.forEach { $0.backgroundColor = .systemGreen }
         }
     }
 }

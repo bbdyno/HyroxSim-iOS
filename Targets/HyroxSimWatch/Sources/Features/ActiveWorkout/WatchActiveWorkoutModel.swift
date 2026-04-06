@@ -31,8 +31,12 @@ final class WatchActiveWorkoutModel {
     private(set) var isPaused: Bool = false
     private(set) var isFinished: Bool = false
     private(set) var isLastSegment: Bool = false
+    private(set) var gpsStrong: Bool = false  // simple on/off for watch (compact)
+    private(set) var gpsActive: Bool = true
 
     enum AccentKind { case run, roxZone, station }
+
+    private var lastKnownBpm: Int?
 
     // MARK: - Dependencies
     private let engine: WorkoutEngine
@@ -162,12 +166,20 @@ final class WatchActiveWorkoutModel {
             distanceText = "—"
         }
 
-        if let lastHR = live.heartRateSamples.last {
-            heartRateText = "\(lastHR.bpm)"
-            heartRateZone = HeartRateZone.zone(forHeartRate: lastHR.bpm, maxHeartRate: maxHeartRate)
+        // HR persists across segments
+        if let lastHR = live.heartRateSamples.last { lastKnownBpm = lastHR.bpm }
+        if let bpm = lastKnownBpm {
+            heartRateText = "\(bpm)"
+            heartRateZone = HeartRateZone.zone(forHeartRate: bpm, maxHeartRate: maxHeartRate)
         } else {
             heartRateText = "—"
             heartRateZone = nil
+        }
+
+        // GPS status (simple for watch)
+        gpsActive = current.type != .station
+        if gpsActive, let lastLoc = live.locationSamples.last {
+            gpsStrong = lastLoc.horizontalAccuracy < 15
         }
 
         isFinished = engine.isFinished

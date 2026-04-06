@@ -28,8 +28,18 @@ public final class ActiveWorkoutViewModel {
     public private(set) var isPaused: Bool = false
     public private(set) var isFinished: Bool = false
     public private(set) var isLastSegment: Bool = false
+    public private(set) var gpsStatus: GPSStatus = .searching
 
     public enum AccentKind { case run, roxZone, station }
+
+    /// GPS signal quality based on horizontalAccuracy of most recent sample
+    public enum GPSStatus: Hashable {
+        case off          // station segment, GPS not tracked
+        case searching    // no samples yet
+        case weak         // accuracy > 20m
+        case fair         // accuracy 10-20m
+        case strong       // accuracy < 10m
+    }
 
     // MARK: - Dependencies
     private let engine: WorkoutEngine
@@ -42,6 +52,7 @@ public final class ActiveWorkoutViewModel {
     private var displayTimer: Timer?
     private var locationTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
+    private var lastKnownBpm: Int?
 
     // MARK: - Callbacks
     public var errorHandler: ((Error) -> Void)?
@@ -173,13 +184,29 @@ public final class ActiveWorkoutViewModel {
             distanceText = "—"
         }
 
-        // Heart rate from live measurements
+        // Heart rate — persist across segments (don't reset on advance)
+        // liveMeasurements buffer clears on advance, so we keep the last known value
         if let lastHR = live.heartRateSamples.last {
-            heartRateText = "\(lastHR.bpm)"
-            heartRateZone = HeartRateZone.zone(forHeartRate: lastHR.bpm, maxHeartRate: maxHeartRate)
+            lastKnownBpm = lastHR.bpm
+        }
+        if let bpm = lastKnownBpm {
+            heartRateText = "\(bpm)"
+            heartRateZone = HeartRateZone.zone(forHeartRate: bpm, maxHeartRate: maxHeartRate)
         } else {
             heartRateText = "—"
             heartRateZone = nil
+        }
+
+        // GPS status from latest location sample accuracy
+        if current.type == .station {
+            gpsStatus = .off
+        } else if let lastLoc = live.locationSamples.last {
+            let acc = lastLoc.horizontalAccuracy
+            if acc < 10 { gpsStatus = .strong }
+            else if acc < 20 { gpsStatus = .fair }
+            else { gpsStatus = .weak }
+        } else {
+            gpsStatus = .searching
         }
 
         isFinished = engine.isFinished

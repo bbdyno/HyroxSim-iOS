@@ -23,10 +23,17 @@ struct ActiveWorkoutView: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            // Header — segment label with accent color
-            Text(model.segmentLabel)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(accentColor)
+            // Header — segment label + GPS dot
+            HStack(spacing: 4) {
+                if model.gpsActive {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(model.gpsStrong ? .green : .orange)
+                }
+                Text(model.segmentLabel)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(accentColor)
+            }
 
             if let sub = model.segmentSubLabel {
                 Text(sub)
