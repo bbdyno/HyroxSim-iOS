@@ -98,12 +98,17 @@ extension HistoryViewController: UITableViewDataSource {
         return cell
     }
 
-    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            viewModel.delete(at: indexPath.row)
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let delete = UIContextualAction(style: .destructive, title: nil) { [weak self] _, _, done in
+            guard let self else { return }
+            self.viewModel.delete(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .automatic)
-            updateEmptyState()
+            self.updateEmptyState()
+            done(true)
         }
+        delete.image = UIImage(systemName: "trash.fill")
+        delete.backgroundColor = .systemRed
+        return UISwipeActionsConfiguration(actions: [delete])
     }
 }
 

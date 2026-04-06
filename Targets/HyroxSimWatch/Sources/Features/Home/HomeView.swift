@@ -38,6 +38,29 @@ struct HomeView: View {
                         }
                         .buttonStyle(.plain)
                     }
+
+                    // 히스토리 진입
+                    sectionHeader("")
+                    NavigationLink {
+                        WatchHistoryView(persistence: persistence)
+                    } label: {
+                        HStack {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 12))
+                                .foregroundStyle(accent)
+                            Text("History")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Color.white.opacity(0.3))
+                        }
+                        .padding(10)
+                        .background(Color.white.opacity(0.06))
+                        .cornerRadius(10)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 4)
             }
