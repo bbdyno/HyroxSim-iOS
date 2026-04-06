@@ -134,18 +134,35 @@ struct ActiveWorkoutView: View {
 
     @ViewBuilder
     private var bottomButtons: some View {
-        HStack(spacing: 12) {
-            Button { model.togglePause() } label: {
-                Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
+        VStack(spacing: 6) {
+            // Prominent NEXT button
+            Button {
+                WKInterfaceDevice.current().play(.success)
+                model.advance()
+            } label: {
+                Text("NEXT ▶")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
             }
             .buttonStyle(.bordered)
-            .tint(.white)
+            .tint(.white.opacity(0.3))
 
-            Button { showEndConfirm = true } label: {
-                Image(systemName: "stop.fill")
+            // Small control buttons
+            HStack(spacing: 12) {
+                Button { model.togglePause() } label: {
+                    Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
+                }
+                .buttonStyle(.bordered)
+                .tint(.white)
+
+                Button { showEndConfirm = true } label: {
+                    Image(systemName: "stop.fill")
+                }
+                .buttonStyle(.bordered)
+                .tint(.white)
             }
-            .buttonStyle(.bordered)
-            .tint(.white)
         }
     }
 

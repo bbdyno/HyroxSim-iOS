@@ -59,6 +59,12 @@ public final class AppCoordinator {
         return vc
     }
 
+    private func showTemplateDetail(_ template: WorkoutTemplate) {
+        let vc = TemplateDetailViewController(template: template)
+        vc.delegate = self
+        navigationController.pushViewController(vc, animated: true)
+    }
+
     private func presentBuilderEntry() {
         let vc = BuilderEntrySheetViewController()
         vc.delegate = self
@@ -84,7 +90,7 @@ public final class AppCoordinator {
 extension AppCoordinator: HomeViewControllerDelegate {
 
     func homeDidSelectTemplate(_ template: WorkoutTemplate) {
-        startWorkout(template: template)
+        showTemplateDetail(template)
     }
 
     func homeDidTapNewWorkout() {
@@ -221,5 +227,15 @@ extension AppCoordinator: WorkoutSummaryViewControllerDelegate {
         } else {
             navigationController.present(avc, animated: true)
         }
+    }
+}
+
+// MARK: - TemplateDetailViewControllerDelegate
+
+extension AppCoordinator: TemplateDetailViewControllerDelegate {
+
+    func templateDetailDidTapStart(_ template: WorkoutTemplate) {
+        navigationController.popViewController(animated: false)
+        startWorkout(template: template)
     }
 }

@@ -18,6 +18,7 @@ final class ActiveWorkoutViewController: UIViewController {
     private let heartMetric = MetricView()
 
     // MARK: - Buttons
+    private let nextButton = UIButton(type: .system)
     private let pauseButton = UIButton(type: .system)
     private let undoButton = UIButton(type: .system)
     private let endButton = UIButton(type: .system)
@@ -117,18 +118,37 @@ final class ActiveWorkoutViewController: UIViewController {
     }
 
     private func setupButtons() {
-        let buttonSize: CGFloat = 50
+        let smallSize: CGFloat = 50
         let margin: CGFloat = DesignTokens.Spacing.l
 
+        // NEXT button — large, prominent, center bottom
+        nextButton.translatesAutoresizingMaskIntoConstraints = false
+        nextButton.setTitle("NEXT ▶", for: .normal)
+        nextButton.titleLabel?.font = .systemFont(ofSize: 20, weight: .bold)
+        nextButton.setTitleColor(.white, for: .normal)
+        nextButton.backgroundColor = UIColor.white.withAlphaComponent(0.25)
+        nextButton.layer.cornerRadius = 28
+        nextButton.layer.borderWidth = 2
+        nextButton.layer.borderColor = UIColor.white.withAlphaComponent(0.6).cgColor
+        nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
+        view.addSubview(nextButton)
+        NSLayoutConstraint.activate([
+            nextButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            nextButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -margin),
+            nextButton.widthAnchor.constraint(equalToConstant: 180),
+            nextButton.heightAnchor.constraint(equalToConstant: 56)
+        ])
+
+        // Small corner buttons
         for btn in [pauseButton, undoButton, endButton] {
             btn.tintColor = .white
             btn.translatesAutoresizingMaskIntoConstraints = false
-            btn.layer.cornerRadius = buttonSize / 2
+            btn.layer.cornerRadius = smallSize / 2
             btn.backgroundColor = UIColor.black.withAlphaComponent(0.3)
             view.addSubview(btn)
             NSLayoutConstraint.activate([
-                btn.widthAnchor.constraint(equalToConstant: buttonSize),
-                btn.heightAnchor.constraint(equalToConstant: buttonSize)
+                btn.widthAnchor.constraint(equalToConstant: smallSize),
+                btn.heightAnchor.constraint(equalToConstant: smallSize)
             ])
         }
 
@@ -136,14 +156,14 @@ final class ActiveWorkoutViewController: UIViewController {
         pauseButton.addTarget(self, action: #selector(pauseTapped), for: .touchUpInside)
         NSLayoutConstraint.activate([
             pauseButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            pauseButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -margin)
+            pauseButton.bottomAnchor.constraint(equalTo: nextButton.topAnchor, constant: -DesignTokens.Spacing.m)
         ])
 
         endButton.setImage(UIImage(systemName: "stop.fill"), for: .normal)
         endButton.addTarget(self, action: #selector(endTapped), for: .touchUpInside)
         NSLayoutConstraint.activate([
             endButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
-            endButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -margin)
+            endButton.bottomAnchor.constraint(equalTo: nextButton.topAnchor, constant: -DesignTokens.Spacing.m)
         ])
 
         undoButton.setImage(UIImage(systemName: "arrow.uturn.backward"), for: .normal)
@@ -162,13 +182,16 @@ final class ActiveWorkoutViewController: UIViewController {
 
     // MARK: - Actions
 
+    @objc private func nextTapped() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        viewModel.advance()
+    }
+
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        // Ignore if touch is on a button
         let location = gesture.location(in: view)
-        for btn in [pauseButton, undoButton, endButton] {
+        for btn in [nextButton, pauseButton, undoButton, endButton] {
             if btn.frame.insetBy(dx: -10, dy: -10).contains(location) { return }
         }
-
         switch gesture.state {
         case .began:
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
