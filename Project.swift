@@ -11,7 +11,8 @@ let project = Project(
     name: "HyroxSim",
     settings: .settings(
         base: [
-            "SWIFT_VERSION": "5.9"
+            "SWIFT_VERSION": "5.9",
+            "DEVELOPMENT_TEAM": "M79H9K226Y"
         ]
     ),
     targets: [
@@ -53,7 +54,21 @@ let project = Project(
             dependencies: [
                 .target(name: "HyroxKit"),
                 .target(name: "HyroxSimWidgets")
-            ]
+            ],
+            settings: .settings(
+                base: [
+                    "CODE_SIGN_STYLE": "Manual",
+                    "CODE_SIGN_IDENTITY": "Apple Development"
+                ],
+                configurations: [
+                    .debug(name: .debug, settings: [
+                        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Provisioning"
+                    ]),
+                    .release(name: .release, settings: [
+                        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Provisioning"
+                    ])
+                ]
+            )
         ),
 
         // MARK: - HyroxSimWatch (watchOS App, SwiftUI)
@@ -107,7 +122,21 @@ let project = Project(
             sources: ["Targets/HyroxSimWidgets/Sources/**"],
             dependencies: [
                 .target(name: "HyroxKit")
-            ]
+            ],
+            settings: .settings(
+                base: [
+                    "CODE_SIGN_STYLE": "Manual",
+                    "CODE_SIGN_IDENTITY": "Apple Development"
+                ],
+                configurations: [
+                    .debug(name: .debug, settings: [
+                        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"
+                    ]),
+                    .release(name: .release, settings: [
+                        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"
+                    ])
+                ]
+            )
         ),
 
         // MARK: - HyroxSimTests (iOS Unit Tests)
