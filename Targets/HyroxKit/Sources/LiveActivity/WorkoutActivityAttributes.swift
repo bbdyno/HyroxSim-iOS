@@ -5,12 +5,14 @@
 //  Created by bbdyno on 4/7/26.
 //
 
+#if canImport(ActivityKit)
 import ActivityKit
+#endif
 import Foundation
 
 /// Live Activity / Dynamic Island 용 운동 상태.
 /// 앱과 위젯 확장이 공유하는 타입.
-public struct WorkoutActivityAttributes: ActivityAttributes {
+public struct WorkoutActivityAttributes {
 
     /// 운동 시작 시 고정되는 정보
     public let templateName: String
@@ -49,3 +51,7 @@ public struct WorkoutActivityAttributes: ActivityAttributes {
         }
     }
 }
+
+#if canImport(ActivityKit)
+extension WorkoutActivityAttributes: ActivityAttributes {}
+#endif
