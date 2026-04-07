@@ -29,6 +29,7 @@ struct HyroxSimWatchApp: App {
                     if let p {
                         let s = WatchConnectivitySyncCoordinator(persistence: p)
                         s.activate()
+                        s.syncAllCompletedWorkouts()
                         syncCoordinator = s
                     }
                 }

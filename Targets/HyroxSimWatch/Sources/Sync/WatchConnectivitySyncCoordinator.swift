@@ -59,6 +59,15 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         session.transferUserInfo(dict)
     }
 
+    /// 워치에 저장된 모든 완료 워크아웃을 폰으로 전송 (기존 히스토리 동기화)
+    /// upsert이므로 중복 전송해도 안전
+    public func syncAllCompletedWorkouts() {
+        guard let workouts = try? persistence.fetchAllCompletedWorkouts() else { return }
+        for workout in workouts {
+            try? sendCompletedWorkout(workout)
+        }
+    }
+
     // MARK: - 실시간 운동 전송
 
     /// 폰에 운동 시작을 알림 (템플릿 정보 포함)
