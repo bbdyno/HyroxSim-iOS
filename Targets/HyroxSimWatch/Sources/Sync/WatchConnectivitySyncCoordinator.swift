@@ -96,7 +96,12 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
 
 extension WatchConnectivitySyncCoordinator: WCSessionDelegate {
 
-    nonisolated public func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {}
+    nonisolated public func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
+        guard state == .activated else { return }
+        Task { @MainActor [weak self] in
+            self?.syncAllCompletedWorkouts()
+        }
+    }
 
     /// 폰에서 보낸 실시간 메시지 수신 (원격 명령)
     nonisolated public func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
