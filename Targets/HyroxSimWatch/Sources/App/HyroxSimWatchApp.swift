@@ -17,7 +17,7 @@ struct HyroxSimWatchApp: App {
         WindowGroup {
             Group {
                 if let persistence {
-                    HomeView(persistence: persistence)
+                    HomeView(persistence: persistence, syncCoordinator: syncCoordinator)
                 } else {
                     ProgressView()
                 }

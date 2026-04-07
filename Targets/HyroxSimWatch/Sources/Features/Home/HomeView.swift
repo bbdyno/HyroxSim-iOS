@@ -12,6 +12,7 @@ import HyroxKit
 /// NavigationPath를 관리하여 운동 완료 시 홈으로 직접 복귀.
 struct HomeView: View {
     let persistence: PersistenceController
+    let syncCoordinator: WatchConnectivitySyncCoordinator?
     @State private var customTemplates: [WorkoutTemplate] = []
     @State private var navigationPath = NavigationPath()
 
@@ -67,7 +68,7 @@ struct HomeView: View {
             .background(Color.black)
             .navigationTitle("HYROX")
             .navigationDestination(for: WorkoutTemplate.self) { template in
-                ConfirmStartView(template: template, persistence: persistence, navigationPath: $navigationPath)
+                ConfirmStartView(template: template, persistence: persistence, syncCoordinator: syncCoordinator, navigationPath: $navigationPath)
             }
             .onAppear {
                 customTemplates = (try? persistence.fetchAllTemplates()) ?? []

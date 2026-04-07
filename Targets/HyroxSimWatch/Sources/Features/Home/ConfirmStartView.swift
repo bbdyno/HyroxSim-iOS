@@ -11,6 +11,7 @@ import HyroxKit
 struct ConfirmStartView: View {
     let template: WorkoutTemplate
     let persistence: PersistenceController
+    let syncCoordinator: WatchConnectivitySyncCoordinator?
     @Binding var navigationPath: NavigationPath
     @State private var showActive = false
 
@@ -43,7 +44,7 @@ struct ConfirmStartView: View {
         .padding()
         .background(Color.black)
         .navigationDestination(isPresented: $showActive) {
-            ActiveWorkoutView(template: template, persistence: persistence, navigationPath: $navigationPath)
+            ActiveWorkoutView(template: template, persistence: persistence, syncCoordinator: syncCoordinator, navigationPath: $navigationPath)
                 .navigationBarBackButtonHidden(true)
         }
     }
