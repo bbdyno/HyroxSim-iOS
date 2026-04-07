@@ -285,8 +285,17 @@ public final class ActiveWorkoutViewModel {
         guard let liveActivity else { return }
         let state = makeActivityState()
         let content = ActivityContent(state: state, staleDate: nil)
-        Task { await liveActivity.end(content, dismissalPolicy: .after(.now + 5)) }
+        Task { await liveActivity.end(content, dismissalPolicy: .immediate) }
         self.liveActivity = nil
+    }
+
+    /// 앱 시작 시 이전 세션에서 남은 Live Activity 정리
+    public static func endStaleActivities() {
+        Task {
+            for activity in Activity<WorkoutActivityAttributes>.activities {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
+        }
     }
 
     private func makeActivityState() -> WorkoutActivityAttributes.ContentState {

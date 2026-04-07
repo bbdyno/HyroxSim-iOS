@@ -44,6 +44,7 @@ public final class AppCoordinator {
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
 
+        ActiveWorkoutViewModel.endStaleActivities()
         syncCoordinator.activate()
         syncCoordinator.onReceiveCompletedWorkout = { [weak self] _ in
             self?.refreshHomeIfVisible()
