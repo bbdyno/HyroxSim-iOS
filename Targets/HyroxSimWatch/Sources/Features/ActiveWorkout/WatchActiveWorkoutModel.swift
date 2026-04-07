@@ -49,6 +49,7 @@ final class WatchActiveWorkoutModel {
     private var displayTask: Task<Void, Never>?
     private var locationTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
+    private var segmentStartHKDistance: Double = 0
 
     var finishHandler: ((CompletedWorkout) -> Void)?
     var errorHandler: ((Error) -> Void)?
@@ -83,6 +84,7 @@ final class WatchActiveWorkoutModel {
             try await locationAdapter.start()
             heartRateTask = engine.attachHeartRateStream(workoutSession)
             locationTask = engine.attachLocationStream(locationAdapter)
+            segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
             startDisplayTimer()
             refresh()
 
@@ -111,6 +113,7 @@ final class WatchActiveWorkoutModel {
     func advance() {
         do {
             try engine.advance(at: Date())
+            segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
             refresh()
             if engine.isFinished {
                 Task { await finishAndSave() }
@@ -154,6 +157,17 @@ final class WatchActiveWorkoutModel {
         let live = engine.liveMeasurementsSnapshot
         let segElapsed = engine.segmentElapsed(at: now)
 
+        // GPS 거리 부족 시 HKWorkoutBuilder 거리로 폴백
+        let gpsPace = live.averagePaceSecondsPerKm(activeDuration: segElapsed)
+        let hkSegmentDist = workoutSession.cumulativeDistanceMeters - segmentStartHKDistance
+        let effectivePace: Double? = {
+            if let gps = gpsPace { return gps }
+            let km = hkSegmentDist / 1000.0
+            guard km > 0.001 else { return nil }
+            return segElapsed / km
+        }()
+        let effectiveDistance = live.distanceMeters > 1 ? live.distanceMeters : hkSegmentDist
+
         switch current.type {
         case .run:
             let runIdx = engine.template.segments[..<(index + 1)].filter { $0.type == .run }.count
@@ -161,8 +175,8 @@ final class WatchActiveWorkoutModel {
             segmentLabel = "RUN \(runIdx) / \(runTotal)"
             segmentSubLabel = nil
             accentKind = .run
-            distanceText = DistanceFormatter.short(live.distanceMeters)
-            paceText = DurationFormatter.pace(live.averagePaceSecondsPerKm(activeDuration: segElapsed))
+            distanceText = DistanceFormatter.short(effectiveDistance)
+            paceText = DurationFormatter.pace(effectivePace)
             stationNameText = nil
             stationTargetText = nil
 
@@ -174,8 +188,8 @@ final class WatchActiveWorkoutModel {
                 segmentSubLabel = nil
             }
             accentKind = .roxZone
-            distanceText = DistanceFormatter.short(live.distanceMeters)
-            paceText = DurationFormatter.pace(live.averagePaceSecondsPerKm(activeDuration: segElapsed))
+            distanceText = DistanceFormatter.short(effectiveDistance)
+            paceText = DurationFormatter.pace(effectivePace)
             stationNameText = nil
             stationTargetText = nil
 

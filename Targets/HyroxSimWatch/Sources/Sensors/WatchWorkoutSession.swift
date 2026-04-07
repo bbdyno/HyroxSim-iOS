@@ -28,6 +28,7 @@ public final class WatchWorkoutSession: NSObject, @preconcurrency HeartRateStrea
     public let samples: AsyncStream<HeartRateSample>
 
     public private(set) var authorizationStatus: SensorAuthorizationStatus = .notDetermined
+    public private(set) var cumulativeDistanceMeters: Double = 0
     private var isStarted = false
 
     public override init() {
@@ -156,17 +157,24 @@ extension WatchWorkoutSession: HKLiveWorkoutBuilderDelegate {
         didCollectDataOf collectedTypes: Set<HKSampleType>
     ) {
         let heartRateType = HKQuantityType(.heartRate)
-        guard collectedTypes.contains(heartRateType) else { return }
-
-        let statistics = workoutBuilder.statistics(for: heartRateType)
-        guard let mostRecentQuantity = statistics?.mostRecentQuantity() else { return }
-
-        let bpmUnit = HKUnit.count().unitDivided(by: .minute())
-        let bpm = Int(mostRecentQuantity.doubleValue(for: bpmUnit))
-        let sample = HeartRateSample(timestamp: Date(), bpm: bpm)
+        let distanceType = HKQuantityType(.distanceWalkingRunning)
 
         Task { @MainActor [weak self] in
-            self?.hrContinuation?.yield(sample)
+            if collectedTypes.contains(heartRateType) {
+                let statistics = workoutBuilder.statistics(for: heartRateType)
+                if let mostRecentQuantity = statistics?.mostRecentQuantity() {
+                    let bpmUnit = HKUnit.count().unitDivided(by: .minute())
+                    let bpm = Int(mostRecentQuantity.doubleValue(for: bpmUnit))
+                    self?.hrContinuation?.yield(HeartRateSample(timestamp: Date(), bpm: bpm))
+                }
+            }
+
+            if collectedTypes.contains(distanceType) {
+                let statistics = workoutBuilder.statistics(for: distanceType)
+                if let sumQuantity = statistics?.sumQuantity() {
+                    self?.cumulativeDistanceMeters = sumQuantity.doubleValue(for: .meter())
+                }
+            }
         }
     }
 }
