@@ -396,6 +396,13 @@ h3 {
   word-break: break-word;
 }
 
+.contact-submeta {
+  color: rgba(244, 244, 241, 0.72);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
 .feature-card-accent {
   background:
     linear-gradient(180deg, rgba(245, 207, 22, 0.08), transparent 120px),
