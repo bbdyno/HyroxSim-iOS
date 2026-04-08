@@ -5,6 +5,13 @@
 HYROX 경기 시뮬레이션 앱. iOS (UIKit) + watchOS (SwiftUI) + 공유 프레임워크 (HyroxKit).
 Tuist 4.x로 프로젝트 관리.
 
+## 세션 Handoff
+
+- 최신 handoff: `.codex/handoffs/latest.md`
+- 날짜별 스냅샷: `.codex/handoffs/YYYY-MM-DD.md`
+- 새 세션은 초기 분석 전에 최신 handoff를 먼저 읽고 이어서 작업
+- handoff에는 절대경로 대신 repo-relative path를 기록하고, simulator ID 같은 머신 의존 값은 재탐색 명령만 남김
+
 ## 빌드
 
 ```bash
