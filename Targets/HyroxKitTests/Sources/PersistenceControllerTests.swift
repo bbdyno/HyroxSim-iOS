@@ -37,14 +37,16 @@ final class PersistenceControllerTests: XCTestCase {
                     heartRateSamples: [
                         HeartRateSample(timestamp: start.addingTimeInterval(10), bpm: 150)
                     ]
-                )
+                ),
+                plannedDistanceMeters: 1000
             ),
             SegmentRecord(
                 segmentId: UUID(),
                 index: 1,
                 type: .station,
                 startedAt: start.addingTimeInterval(300),
-                endedAt: finish
+                endedAt: finish,
+                stationDisplayName: "SkiErg"
             )
         ]
         return CompletedWorkout(
@@ -83,6 +85,8 @@ final class PersistenceControllerTests: XCTestCase {
         XCTAssertEqual(fetched.segments[0].type, .run)
         XCTAssertEqual(fetched.segments[1].type, .station)
         XCTAssertEqual(fetched.segments[0].duration, 300, accuracy: 0.001)
+        XCTAssertEqual(fetched.segments[0].plannedDistanceMeters, 1000)
+        XCTAssertEqual(fetched.segments[1].stationDisplayName, "SkiErg")
     }
 
     // MARK: - Measurements Round-trip

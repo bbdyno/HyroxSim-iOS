@@ -35,7 +35,8 @@ final class MappersTests: XCTestCase {
                         heartRateSamples: [
                             HeartRateSample(timestamp: t0.addingTimeInterval(10), bpm: 155)
                         ]
-                    )
+                    ),
+                    plannedDistanceMeters: 1000
                 ),
                 SegmentRecord(
                     segmentId: UUID(),
@@ -49,7 +50,8 @@ final class MappersTests: XCTestCase {
                     index: 2,
                     type: .station,
                     startedAt: t0.addingTimeInterval(330),
-                    endedAt: t0.addingTimeInterval(600)
+                    endedAt: t0.addingTimeInterval(600),
+                    stationDisplayName: "SkiErg"
                 )
             ]
         )
@@ -65,8 +67,10 @@ final class MappersTests: XCTestCase {
         XCTAssertEqual(restored.segments[0].pausedDuration, 10, accuracy: 0.001)
         XCTAssertEqual(restored.segments[0].measurements.locationSamples.count, 1)
         XCTAssertEqual(restored.segments[0].measurements.heartRateSamples[0].bpm, 155)
+        XCTAssertEqual(restored.segments[0].plannedDistanceMeters, 1000)
         XCTAssertEqual(restored.segments[1].type, .roxZone)
         XCTAssertEqual(restored.segments[2].type, .station)
+        XCTAssertEqual(restored.segments[2].stationDisplayName, "SkiErg")
     }
 
     func testEmptySegmentsWorkoutRoundTrip() throws {

@@ -88,4 +88,34 @@ public struct CompletedWorkout: Identifiable, Hashable, Sendable, Codable {
         guard km > 0.001 else { return nil }
         return totalActive / km
     }
+
+    /// Resolves a station label for display. Old persisted workouts may be
+    /// missing `stationDisplayName`, so standard HYROX divisions fall back to
+    /// the official station order.
+    public func resolvedStationDisplayName(for record: SegmentRecord) -> String? {
+        guard record.type == .station else { return nil }
+        if let stationDisplayName = record.stationDisplayName, !stationDisplayName.isEmpty {
+            return stationDisplayName
+        }
+        guard let division, let stationOrdinal = stationOrdinal(for: record) else { return nil }
+        let stations = HyroxDivisionSpec.stations(for: division)
+        guard stations.indices.contains(stationOrdinal) else { return nil }
+        return stations[stationOrdinal].kind.displayName
+    }
+
+    private func stationOrdinal(for record: SegmentRecord) -> Int? {
+        var stationOrdinal = 0
+        for segment in segments {
+            guard segment.type == .station else { continue }
+            let isSameRecord =
+                segment.id == record.id ||
+                (segment.segmentId == record.segmentId && segment.index == record.index) ||
+                segment.index == record.index
+            if isSameRecord {
+                return stationOrdinal
+            }
+            stationOrdinal += 1
+        }
+        return nil
+    }
 }

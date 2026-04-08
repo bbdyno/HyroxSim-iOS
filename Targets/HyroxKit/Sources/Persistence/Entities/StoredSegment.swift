@@ -23,6 +23,8 @@ public final class StoredSegment {
     public var startedAt: Date
     public var endedAt: Date
     public var pausedDuration: TimeInterval
+    public var stationDisplayName: String?
+    public var plannedDistanceMeters: Double?
 
     /// `SegmentMeasurements` serialized as JSON Data
     public var measurementsData: Data
@@ -37,6 +39,8 @@ public final class StoredSegment {
         startedAt: Date,
         endedAt: Date,
         pausedDuration: TimeInterval,
+        stationDisplayName: String? = nil,
+        plannedDistanceMeters: Double? = nil,
         measurementsData: Data,
         workout: StoredWorkout? = nil
     ) {
@@ -47,6 +51,8 @@ public final class StoredSegment {
         self.startedAt = startedAt
         self.endedAt = endedAt
         self.pausedDuration = pausedDuration
+        self.stationDisplayName = stationDisplayName
+        self.plannedDistanceMeters = plannedDistanceMeters
         self.measurementsData = measurementsData
         self.workout = workout
     }

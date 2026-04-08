@@ -81,7 +81,7 @@ struct SummaryView: View {
         switch record.type {
         case .run: return "Running"
         case .roxZone: return "Rox Zone"
-        case .station: return record.stationDisplayName ?? "Station"
+        case .station: return workout.resolvedStationDisplayName(for: record) ?? "Station"
         }
     }
 }

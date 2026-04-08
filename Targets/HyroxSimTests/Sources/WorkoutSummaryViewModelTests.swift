@@ -87,6 +87,43 @@ final class WorkoutSummaryViewModelTests: XCTestCase {
         XCTAssertEqual(vm.breakdownItems[2].title, "SkiErg")
     }
 
+    func testStationNameFallsBackFromDivisionOrder() {
+        let start = t0
+        let workout = CompletedWorkout(
+            templateName: "Men's Open — Singles",
+            division: .menOpenSingle,
+            startedAt: start,
+            finishedAt: start.addingTimeInterval(630),
+            segments: [
+                SegmentRecord(
+                    segmentId: UUID(),
+                    index: 0,
+                    type: .run,
+                    startedAt: start,
+                    endedAt: start.addingTimeInterval(360)
+                ),
+                SegmentRecord(
+                    segmentId: UUID(),
+                    index: 1,
+                    type: .roxZone,
+                    startedAt: start.addingTimeInterval(360),
+                    endedAt: start.addingTimeInterval(390)
+                ),
+                SegmentRecord(
+                    segmentId: UUID(),
+                    index: 2,
+                    type: .station,
+                    startedAt: start.addingTimeInterval(390),
+                    endedAt: start.addingTimeInterval(630)
+                )
+            ]
+        )
+
+        let vm = WorkoutSummaryViewModel(workout: workout)
+        XCTAssertEqual(vm.stationItems[0].name, "SkiErg")
+        XCTAssertEqual(vm.breakdownItems[2].title, "SkiErg")
+    }
+
     func testShareText() {
         let vm = WorkoutSummaryViewModel(workout: makeSampleWorkout())
         XCTAssertTrue(vm.shareText.contains("Men's Open — Singles"))

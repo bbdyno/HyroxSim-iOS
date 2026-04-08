@@ -111,7 +111,7 @@ final class WorkoutSummaryViewController: UIViewController {
                 addSegmentRow(badge: nil, name: "Rox Zone", time: DurationFormatter.hms(record.activeDuration), isBold: false, dimmed: true)
             case .station:
                 stationIndex += 1
-                let displayName = record.stationDisplayName ?? "Station"
+                let displayName = viewModel.workout.resolvedStationDisplayName(for: record) ?? "Station"
                 addSegmentRow(
                     badge: String(format: "%02d", stationIndex),
                     name: displayName,

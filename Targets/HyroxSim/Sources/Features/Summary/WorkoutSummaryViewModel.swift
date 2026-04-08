@@ -98,7 +98,7 @@ public final class WorkoutSummaryViewModel {
         workout.stationSegments.enumerated().map { (i, record) in
             StationItem(
                 index: i + 1,
-                name: record.stationDisplayName ?? "Station",
+                name: workout.resolvedStationDisplayName(for: record) ?? "Station",
                 durationText: DurationFormatter.ms(record.activeDuration),
                 durationSeconds: record.activeDuration
             )
@@ -162,7 +162,7 @@ public final class WorkoutSummaryViewModel {
                 detail = nil
                 accent = .roxZone
             case .station:
-                title = record.stationDisplayName ?? "Station"
+                title = workout.resolvedStationDisplayName(for: record) ?? "Station"
                 detail = nil
                 accent = .station
             }
