@@ -18,9 +18,13 @@ final class AppServices {
     private var isStarted = false
 
     init() throws {
-        self.persistence = try PersistenceController()
+        let screenshotMode = PhoneScreenshotSeeder.isEnabled
+        self.persistence = try PersistenceController(inMemory: screenshotMode)
         self.syncCoordinator = WatchConnectivitySyncCoordinator(persistence: persistence)
         self.workoutMirrorController = WorkoutMirrorController()
+        if screenshotMode {
+            PhoneScreenshotSeeder.seed(into: persistence)
+        }
     }
 
     func start() {

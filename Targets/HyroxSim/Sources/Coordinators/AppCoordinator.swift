@@ -119,6 +119,7 @@ public final class AppCoordinator {
         }
 
         applyUITestScenarioIfNeeded()
+        applyScreenshotScenarioIfNeeded()
     }
 
     // MARK: - 워치 실시간 미러
@@ -212,6 +213,24 @@ public final class AppCoordinator {
         }
     }
 
+    private func applyScreenshotScenarioIfNeeded() {
+        guard let scenario = PhoneScreenshotScenario.current else { return }
+
+        switch scenario {
+        case .home:
+            return
+        case .builder:
+            presentBuilder(startingFrom: ScreenshotFixtures.customTemplate, animated: false)
+        case .history:
+            navigationController.pushViewController(makeHistoryViewController(), animated: false)
+        case .summary:
+            showSummary(for: ScreenshotFixtures.summaryWorkout, fromHistory: true, animated: false)
+        case .mirror:
+            showLiveMirror(template: ScreenshotFixtures.liveMirrorTemplate)
+            liveMirrorVC?.updateState(ScreenshotFixtures.liveMirrorState)
+        }
+    }
+
     // MARK: - Factory
 
     private func makeHomeViewController() -> UIViewController {
@@ -245,14 +264,14 @@ public final class AppCoordinator {
         navigationController.present(nav, animated: true)
     }
 
-    private func presentBuilder(startingFrom template: WorkoutTemplate?) {
+    private func presentBuilder(startingFrom template: WorkoutTemplate?, animated: Bool = true) {
         let vm = WorkoutBuilderViewModel(startingFrom: template, persistence: persistence)
         let vc = WorkoutBuilderViewController(viewModel: vm)
         vc.delegate = self
         let nav = UINavigationController(rootViewController: vc)
         nav.applyDarkTheme()
         nav.modalPresentationStyle = .formSheet
-        navigationController.present(nav, animated: true)
+        navigationController.present(nav, animated: animated)
     }
 }
 
@@ -365,17 +384,17 @@ extension AppCoordinator {
         }
     }
 
-    func showSummary(for workout: CompletedWorkout, fromHistory: Bool) {
+    func showSummary(for workout: CompletedWorkout, fromHistory: Bool, animated: Bool = true) {
         let vm = WorkoutSummaryViewModel(workout: workout)
         let vc = WorkoutSummaryViewController(viewModel: vm)
         vc.delegate = self
         if fromHistory {
-            navigationController.pushViewController(vc, animated: true)
+            navigationController.pushViewController(vc, animated: animated)
         } else {
             // After workout: present modally (no "back" destination — builder was dismissed)
             let nav = UINavigationController(rootViewController: vc)
             nav.applyDarkTheme()
-            navigationController.present(nav, animated: true)
+            navigationController.present(nav, animated: animated)
         }
     }
 }

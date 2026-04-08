@@ -21,7 +21,15 @@ struct HyroxSimWatchApp: App {
         WindowGroup {
             Group {
                 if let persistence {
-                    if let template = automationTemplate {
+                    if screenshotScenario == .summary {
+                        NavigationStack {
+                            SummaryView(workout: ScreenshotFixtures.watchSummaryWorkout)
+                        }
+                    } else if screenshotScenario == .active {
+                        NavigationStack {
+                            WatchScreenshotActiveWorkoutView()
+                        }
+                    } else if let template = automationTemplate {
                         NavigationStack(path: $automationNavigationPath) {
                             ActiveWorkoutView(
                                 template: template,
@@ -46,8 +54,11 @@ struct HyroxSimWatchApp: App {
             }
             .onAppear {
                 if persistence == nil {
-                    let p = try? PersistenceController()
+                    let p = try? PersistenceController(inMemory: WatchScreenshotSeeder.isEnabled)
                     persistence = p
+                    if let p, WatchScreenshotSeeder.isEnabled {
+                        WatchScreenshotSeeder.seed(into: p)
+                    }
                     if let p {
                         let s = WatchConnectivitySyncCoordinator(persistence: p)
                         s.activate()
@@ -59,15 +70,16 @@ struct HyroxSimWatchApp: App {
         }
     }
 
+    private var screenshotScenario: WatchScreenshotScenario? {
+        WatchScreenshotScenario.current
+    }
+
     private var automationTemplate: WorkoutTemplate? {
         guard ProcessInfo.processInfo.arguments.contains("UITestAutoStartWatchWorkout") else {
             return nil
         }
 
-        return WorkoutTemplate(
-            name: "Simulator Mirror Workout",
-            segments: [.run(distanceMeters: 1000)]
-        )
+        return ScreenshotFixtures.liveMirrorTemplate
     }
 
     private func setupLiveSync(_ sync: WatchConnectivitySyncCoordinator) {
