@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import HyroxKit
+import HyroxCore
 
 /// Custom card for HYROX division presets. Black + yellow accent aesthetic.
 final class PresetCardCell: UICollectionViewCell {

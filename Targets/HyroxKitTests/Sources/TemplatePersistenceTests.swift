@@ -6,7 +6,8 @@
 //
 
 import XCTest
-@testable import HyroxKit
+@testable import HyroxCore
+import HyroxPersistenceApple
 
 @MainActor
 final class TemplatePersistenceTests: XCTestCase {

@@ -4,6 +4,7 @@
 
 ## 현재 상태
 
+- `HyroxKit` 단일 프레임워크를 `HyroxCore / HyroxPersistenceApple / HyroxLiveActivityApple`로 분리 완료
 - 워치↔폰 양방향 workout mirroring 구현 완료
 - paired simulator 기준 real watch mirror E2E 검증 완료
 - 운동 결과/히스토리에서 station 이름이 `"Station"`으로만 보이던 문제 수정 완료
@@ -11,8 +12,23 @@
 
 ## 최근 커밋
 
+- `HEAD~0` 아직 미커밋: module split 작업 진행 중
 - `e6101d4` `Preserve station names in workout history`
 - `3e3da3f` `Add bidirectional watch workout mirroring`
+
+## 모듈 구조
+
+- `Targets/HyroxCore`
+  - Models / Engine / Formatters / Presets / Sensors protocol / Sync protocol+payload
+- `Targets/HyroxPersistenceApple`
+  - SwiftData entities / mappers / `PersistenceController`
+- `Targets/HyroxLiveActivityApple`
+  - `WorkoutActivityAttributes`
+
+주의:
+
+- 앱/워치 공용 도메인 코드는 이제 `HyroxCore` 기준으로 볼 것
+- Apple 전용 코드는 persistence/live activity 모듈로 분리됨
 
 ## 핵심 변경
 
@@ -102,4 +118,6 @@
 ## 메모
 
 - 커밋 규칙은 `CLAUDE.md` 기준
+- author / committer는 항상 `bbdyno <della.kimko@gmail.com>`
+- 새 파일 헤더의 `Created by`도 항상 `bbdyno`로 유지하고 `Codex` 표기는 남기지 않음
 - 이 handoff는 다른 맥북에서도 그대로 쓰기 위해 repo-relative path만 사용

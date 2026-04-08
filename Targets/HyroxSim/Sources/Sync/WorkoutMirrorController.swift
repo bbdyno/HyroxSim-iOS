@@ -2,12 +2,13 @@
 //  WorkoutMirrorController.swift
 //  HyroxSim
 //
-//  Created by Codex on 4/8/26.
+//  Created by bbdyno on 4/8/26.
 //
 
 import ActivityKit
 import HealthKit
-import HyroxKit
+import HyroxCore
+import HyroxLiveActivityApple
 
 /// Receives HealthKit mirrored workout sessions created on Apple Watch and
 /// keeps the iPhone UI/live activity in sync with the watch-hosted workout.

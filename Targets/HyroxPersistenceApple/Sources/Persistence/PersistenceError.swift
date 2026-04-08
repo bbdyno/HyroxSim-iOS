@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import HyroxCore
 
 /// Errors thrown by the persistence layer
 public enum PersistenceError: Error, Hashable, Sendable {

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import HyroxKit
+@testable import HyroxCore
 
 /// Mock LocationStreaming for testing engine attachment.
 final class MockLocationStream: LocationStreaming, @unchecked Sendable {

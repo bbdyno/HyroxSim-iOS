@@ -2,11 +2,11 @@
 //  LiveSyncPacketTests.swift
 //  HyroxKitTests
 //
-//  Created by Codex on 4/8/26.
+//  Created by bbdyno on 4/8/26.
 //
 
 import XCTest
-@testable import HyroxKit
+@testable import HyroxCore
 
 final class LiveSyncPacketTests: XCTestCase {
 

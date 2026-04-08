@@ -7,7 +7,8 @@
 
 import SwiftUI
 import WatchKit
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 
 struct ActiveWorkoutView: View {
     @State private var model: WatchActiveWorkoutModel

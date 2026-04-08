@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import HyroxKit
+import HyroxCore
 
 final class MockLocationStream: LocationStreaming, @unchecked Sendable {
     private var continuation: AsyncStream<LocationSample>.Continuation?

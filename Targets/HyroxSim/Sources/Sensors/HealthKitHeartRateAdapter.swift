@@ -6,7 +6,7 @@
 //
 
 import HealthKit
-import HyroxKit
+import HyroxCore
 
 /// HealthKit heart rate adapter for iOS.
 /// Uses HKAnchoredObjectQuery to observe heart rate samples.

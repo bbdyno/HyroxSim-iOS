@@ -6,7 +6,8 @@
 //
 
 import WatchConnectivity
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 
 /// watchOS-side WatchConnectivity sync coordinator.
 /// 양방향 실시간 운동 동기화 + 템플릿/워크아웃 백그라운드 동기화.

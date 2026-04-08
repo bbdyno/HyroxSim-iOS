@@ -6,7 +6,8 @@
 //
 
 import SwiftUI
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 
 struct WatchHistoryView: View {
     let persistence: PersistenceController

@@ -7,7 +7,8 @@
 
 import Foundation
 import Observation
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 
 @Observable
 @MainActor

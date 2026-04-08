@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import HyroxKit
+@testable import HyroxCore
 
 @MainActor
 final class WorkoutEngineSensorAttachTests: XCTestCase {

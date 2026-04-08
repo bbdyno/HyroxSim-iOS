@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import HyroxCore
 import SwiftData
 
 /// Single entry point for persisting workouts and custom templates.

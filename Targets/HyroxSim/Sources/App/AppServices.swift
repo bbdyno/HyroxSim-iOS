@@ -2,11 +2,12 @@
 //  AppServices.swift
 //  HyroxSim
 //
-//  Created by Codex on 4/8/26.
+//  Created by bbdyno on 4/8/26.
 //
 
 import Foundation
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 
 @MainActor
 final class AppServices {

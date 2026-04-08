@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import HyroxKit
+@testable import HyroxCore
 
 final class HyroxKitTests: XCTestCase {
     func testVersion() throws {

@@ -7,7 +7,7 @@
 
 import SwiftUI
 import WatchKit
-import HyroxKit
+import HyroxCore
 
 /// 폰에서 시작된 운동을 워치에서 실시간으로 보여주는 컴패니언 뷰.
 /// ActiveWorkoutView와 유사한 레이아웃이지만, 워치 자체 엔진 없이 폰 상태만 표시.

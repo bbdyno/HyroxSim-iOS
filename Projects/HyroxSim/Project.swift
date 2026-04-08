@@ -2,21 +2,25 @@
 //  Project.swift
 //  HyroxSim
 //
-//  Created by bbdyno on 4/7/26.
+//  Created by bbdyno on 4/8/26.
 //
 
 import ProjectDescription
 
+let signingSettings: SettingsDictionary = [
+    "SWIFT_VERSION": "5.9",
+    "DEVELOPMENT_TEAM": "M79H9K226Y"
+]
+
+let iosCodeSigningBase: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Manual",
+    "CODE_SIGN_IDENTITY": "Apple Development"
+]
+
 let project = Project(
     name: "HyroxSim",
-    settings: .settings(
-        base: [
-            "SWIFT_VERSION": "5.9",
-            "DEVELOPMENT_TEAM": "M79H9K226Y"
-        ]
-    ),
+    settings: .settings(base: signingSettings),
     targets: [
-        // MARK: - HyroxSim (iOS App, UIKit)
         .target(
             name: "HyroxSim",
             destinations: .iOS,
@@ -46,21 +50,20 @@ let project = Project(
                 "UIBackgroundModes": ["location", "audio"],
                 "NSSupportsLiveActivities": true
             ]),
-            sources: ["Targets/HyroxSim/Sources/**"],
+            sources: ["../../Targets/HyroxSim/Sources/**"],
             resources: [
-                "Targets/HyroxSim/Resources/Assets.xcassets"
+                "../../Targets/HyroxSim/Resources/Assets.xcassets"
             ],
-            entitlements: "Targets/HyroxSim/HyroxSim.entitlements",
+            entitlements: "../../Targets/HyroxSim/HyroxSim.entitlements",
             dependencies: [
-                .target(name: "HyroxKit"),
+                .project(target: "HyroxCore", path: "../HyroxCore"),
+                .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple"),
+                .project(target: "HyroxLiveActivityApple", path: "../HyroxLiveActivityApple"),
                 .target(name: "HyroxSimWidgets"),
                 .target(name: "HyroxSimWatch")
             ],
             settings: .settings(
-                base: [
-                    "CODE_SIGN_STYLE": "Manual",
-                    "CODE_SIGN_IDENTITY": "Apple Development"
-                ],
+                base: iosCodeSigningBase,
                 configurations: [
                     .debug(name: .debug, settings: [
                         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Provisioning"
@@ -71,8 +74,6 @@ let project = Project(
                 ]
             )
         ),
-
-        // MARK: - HyroxSimWatch (watchOS App, SwiftUI)
         .target(
             name: "HyroxSimWatch",
             destinations: [.appleWatch],
@@ -87,28 +88,16 @@ let project = Project(
                 "WKBackgroundModes": ["workout-processing"],
                 "WKCompanionAppBundleIdentifier": "com.bbdyno.app.HyroxSim"
             ]),
-            sources: ["Targets/HyroxSimWatch/Sources/**"],
+            sources: ["../../Targets/HyroxSimWatch/Sources/**"],
             resources: [
-                "Targets/HyroxSimWatch/Resources/Assets.xcassets"
+                "../../Targets/HyroxSimWatch/Resources/Assets.xcassets"
             ],
-            entitlements: "Targets/HyroxSimWatch/HyroxSimWatch.entitlements",
+            entitlements: "../../Targets/HyroxSimWatch/HyroxSimWatch.entitlements",
             dependencies: [
-                .target(name: "HyroxKit")
+                .project(target: "HyroxCore", path: "../HyroxCore"),
+                .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple")
             ]
         ),
-
-        // MARK: - HyroxKit (Shared Framework, iOS + watchOS)
-        .target(
-            name: "HyroxKit",
-            destinations: [.iPhone, .iPad, .appleWatch],
-            product: .framework,
-            bundleId: "com.bbdyno.app.HyroxSim.kit",
-            deploymentTargets: .multiplatform(iOS: "17.0", watchOS: "10.0"),
-            infoPlist: .default,
-            sources: ["Targets/HyroxKit/Sources/**"]
-        ),
-
-        // MARK: - HyroxSimWidgets (Live Activity + Dynamic Island)
         .target(
             name: "HyroxSimWidgets",
             destinations: .iOS,
@@ -120,15 +109,12 @@ let project = Project(
                     "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"
                 ]
             ]),
-            sources: ["Targets/HyroxSimWidgets/Sources/**"],
+            sources: ["../../Targets/HyroxSimWidgets/Sources/**"],
             dependencies: [
-                .target(name: "HyroxKit")
+                .project(target: "HyroxLiveActivityApple", path: "../HyroxLiveActivityApple")
             ],
             settings: .settings(
-                base: [
-                    "CODE_SIGN_STYLE": "Manual",
-                    "CODE_SIGN_IDENTITY": "Apple Development"
-                ],
+                base: iosCodeSigningBase,
                 configurations: [
                     .debug(name: .debug, settings: [
                         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"
@@ -139,8 +125,6 @@ let project = Project(
                 ]
             )
         ),
-
-        // MARK: - HyroxSimTests (iOS Unit Tests)
         .target(
             name: "HyroxSimTests",
             destinations: .iOS,
@@ -148,13 +132,14 @@ let project = Project(
             bundleId: "com.bbdyno.app.HyroxSim.tests",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .default,
-            sources: ["Targets/HyroxSimTests/Sources/**"],
+            sources: ["../../Targets/HyroxSimTests/Sources/**"],
             dependencies: [
-                .target(name: "HyroxSim")
+                .target(name: "HyroxSim"),
+                .project(target: "HyroxCore", path: "../HyroxCore"),
+                .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple"),
+                .project(target: "HyroxLiveActivityApple", path: "../HyroxLiveActivityApple")
             ]
         ),
-
-        // MARK: - HyroxKitTests (Shared Framework Tests)
         .target(
             name: "HyroxKitTests",
             destinations: .iOS,
@@ -162,13 +147,13 @@ let project = Project(
             bundleId: "com.bbdyno.app.HyroxSim.kit.tests",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .default,
-            sources: ["Targets/HyroxKitTests/Sources/**"],
+            sources: ["../../Targets/HyroxKitTests/Sources/**"],
             dependencies: [
-                .target(name: "HyroxKit")
+                .project(target: "HyroxCore", path: "../HyroxCore"),
+                .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple"),
+                .project(target: "HyroxLiveActivityApple", path: "../HyroxLiveActivityApple")
             ]
         ),
-
-        // MARK: - HyroxSimUITests (iOS UI Tests)
         .target(
             name: "HyroxSimUITests",
             destinations: .iOS,
@@ -176,7 +161,7 @@ let project = Project(
             bundleId: "com.bbdyno.app.HyroxSim.uitests",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .default,
-            sources: ["Targets/HyroxSimUITests/Sources/**"],
+            sources: ["../../Targets/HyroxSimUITests/Sources/**"],
             dependencies: [
                 .target(name: "HyroxSim")
             ]

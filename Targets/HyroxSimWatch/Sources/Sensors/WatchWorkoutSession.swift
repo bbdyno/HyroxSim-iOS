@@ -6,7 +6,7 @@
 //
 
 import HealthKit
-import HyroxKit
+import HyroxCore
 
 /// watchOS workout session adapter.
 /// Manages HKWorkoutSession + HKLiveWorkoutBuilder and streams heart rate data.

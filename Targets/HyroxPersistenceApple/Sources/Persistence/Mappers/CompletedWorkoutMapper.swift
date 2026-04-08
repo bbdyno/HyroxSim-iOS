@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import HyroxCore
 
 /// Converts between `CompletedWorkout` (domain) and `StoredWorkout` (SwiftData).
 public enum CompletedWorkoutMapper {

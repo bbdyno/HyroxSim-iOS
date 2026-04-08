@@ -7,7 +7,9 @@ HYROX 시뮬레이션 앱 — iOS + Apple Watch 지원
 HYROX 경기를 시뮬레이션하고 운동을 추적하는 앱입니다.
 - **iOS 앱**: UIKit 기반, MVVM + Coordinator 아키텍처
 - **watchOS 앱**: SwiftUI 기반, iOS 앱과 페어링되는 companion app
-- **HyroxKit**: 도메인 모델과 엔진을 공유하는 멀티플랫폼 프레임워크
+- **HyroxCore**: 도메인 모델, 엔진, 포맷터, 센서/동기화 프로토콜
+- **HyroxPersistenceApple**: SwiftData 기반 persistence
+- **HyroxLiveActivityApple**: Live Activity / Dynamic Island 공유 타입
 
 ## 요구사항
 
@@ -45,14 +47,18 @@ HyroxSim/
 │   ├── HyroxSimWatch/         # watchOS 앱 (SwiftUI)
 │   │   ├── Sources/
 │   │   └── Resources/
-│   ├── HyroxKit/              # 공유 프레임워크
+│   ├── HyroxCore/             # 플랫폼 독립 코어
 │   │   └── Sources/
 │   │       ├── Models/        # Workout, Segment, Station 등
 │   │       ├── Engine/        # WorkoutEngine (상태머신)
 │   │       ├── Presets/       # 기본 HYROX 프리셋
-│   │       └── Utils/
+│   │       └── Sync/
+│   ├── HyroxPersistenceApple/ # SwiftData persistence
+│   │   └── Sources/
+│   ├── HyroxLiveActivityApple/# Live Activity 공유 타입
+│   │   └── Sources/
 │   ├── HyroxSimTests/         # iOS 앱 테스트
-│   └── HyroxKitTests/         # 공유 프레임워크 테스트
+│   └── HyroxKitTests/         # 공유 모듈 테스트
 ```
 
 ## 타겟
@@ -61,9 +67,12 @@ HyroxSim/
 |---|---|---|---|
 | HyroxSim | iOS | App | 메인 iOS 앱 (UIKit) |
 | HyroxSimWatch | watchOS | App | Apple Watch 앱 (SwiftUI) |
-| HyroxKit | iOS + watchOS | Framework | 도메인 모델/엔진 공유 |
+| HyroxCore | iOS + watchOS | Framework | 도메인 모델/엔진/포맷터/프로토콜 |
+| HyroxPersistenceApple | iOS + watchOS | Framework | SwiftData persistence |
+| HyroxLiveActivityApple | iOS | Framework | Live Activity 공유 타입 |
+| HyroxSimWidgets | iOS | App Extension | Live Activity + Dynamic Island |
 | HyroxSimTests | iOS | Unit Tests | iOS 앱 테스트 |
-| HyroxKitTests | iOS | Unit Tests | 공유 프레임워크 테스트 |
+| HyroxKitTests | iOS | Unit Tests | 공유 모듈 테스트 |
 
 ## 참고
 

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import HyroxKit
+@testable import HyroxCore
 
 @MainActor
 final class MockSyncCoordinator: SyncCoordinator {

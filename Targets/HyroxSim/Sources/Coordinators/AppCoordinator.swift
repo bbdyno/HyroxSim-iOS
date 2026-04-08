@@ -6,7 +6,8 @@
 //
 
 import UIKit
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 
 @MainActor
 public final class AppCoordinator {

@@ -7,7 +7,7 @@
 
 import Foundation
 import Observation
-import HyroxKit
+import HyroxCore
 
 /// 폰에서 시작된 운동을 워치에서 미러링하는 모델.
 /// 폰의 LiveWorkoutState를 수신하여 표시하고, 워치의 HR 센서를 폰에 릴레이한다.

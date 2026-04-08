@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import HyroxKit
+import HyroxCore
 
 /// 워치에서 진행 중인 운동을 폰에서 실시간으로 보여주는 미러 화면.
 /// 워치의 LiveWorkoutState를 받아 표시하고, 원격 명령을 보낼 수 있다.

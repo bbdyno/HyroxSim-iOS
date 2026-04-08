@@ -6,7 +6,7 @@
 //
 
 import CoreLocation
-import HyroxKit
+import HyroxCore
 
 /// CoreLocation adapter for watchOS.
 /// Converts CLLocation updates to HyroxKit's LocationSample and streams them.

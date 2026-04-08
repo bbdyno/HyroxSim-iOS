@@ -6,7 +6,8 @@
 //
 
 import XCTest
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 @testable import HyroxSim
 
 @MainActor

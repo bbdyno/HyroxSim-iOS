@@ -7,7 +7,8 @@
 
 import Foundation
 import Observation
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 
 /// Watch-specific workout model. Similar to iOS ActiveWorkoutViewModel but uses
 /// WatchWorkoutSession (HKWorkoutSession host) for heart rate and CoreLocationAdapter for GPS.

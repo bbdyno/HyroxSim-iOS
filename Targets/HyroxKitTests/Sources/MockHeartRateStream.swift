@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import HyroxKit
+@testable import HyroxCore
 
 /// Mock HeartRateStreaming for testing engine attachment.
 final class MockHeartRateStream: HeartRateStreaming, @unchecked Sendable {

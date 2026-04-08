@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import HyroxKit
+import HyroxCore
 
 enum AddStationMode {
     case create

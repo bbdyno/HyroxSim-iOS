@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 
-HYROX 경기 시뮬레이션 앱. iOS (UIKit) + watchOS (SwiftUI) + 공유 프레임워크 (HyroxKit).
+HYROX 경기 시뮬레이션 앱. iOS (UIKit) + watchOS (SwiftUI) + 공유 모듈(`HyroxCore`, `HyroxPersistenceApple`, `HyroxLiveActivityApple`).
 Tuist 4.x로 프로젝트 관리.
 
 ## 세션 Handoff
@@ -32,16 +32,20 @@ xcodebuild build -workspace HyroxSim.xcworkspace -scheme HyroxSimWatch \
 |---|---|---|---|
 | HyroxSim | iOS | App (UIKit) | 메인 iOS 앱, MVVM + Coordinator |
 | HyroxSimWatch | watchOS | App (SwiftUI) | Apple Watch 앱 |
-| HyroxKit | iOS + watchOS | Framework | 도메인 모델, 엔진, Persistence, 포맷터, 센서 프로토콜 |
+| HyroxCore | iOS + watchOS | Framework | 도메인 모델, 엔진, 포맷터, 센서/동기화 프로토콜 |
+| HyroxPersistenceApple | iOS + watchOS | Framework | SwiftData persistence |
+| HyroxLiveActivityApple | iOS | Framework | Live Activity / Dynamic Island 공유 타입 |
 | HyroxSimWidgets | iOS | App Extension | Live Activity + Dynamic Island |
 | HyroxSimTests | iOS | Unit Tests | iOS 앱 테스트 |
-| HyroxKitTests | iOS | Unit Tests | 공유 프레임워크 테스트 |
+| HyroxKitTests | iOS | Unit Tests | 공유 모듈 테스트 |
 
 ## Bundle ID
 
 - iOS: `com.bbdyno.app.HyroxSim`
 - watchOS: `com.bbdyno.app.HyroxSim.watchkitapp`
-- HyroxKit: `com.bbdyno.app.HyroxSim.kit`
+- HyroxCore: `com.bbdyno.app.HyroxSim.core`
+- HyroxPersistenceApple: `com.bbdyno.app.HyroxSim.persistence.apple`
+- HyroxLiveActivityApple: `com.bbdyno.app.HyroxSim.liveactivity.apple`
 - Widgets: `com.bbdyno.app.HyroxSim.widgets`
 - App Groups: `group.com.bbdyno.app.HyroxSim`
 
@@ -58,13 +62,16 @@ xcodebuild build -workspace HyroxSim.xcworkspace -scheme HyroxSimWatch \
 //
 ```
 
-- TargetName: HyroxKit / HyroxSim / HyroxSimWatch / HyroxKitTests / HyroxSimTests / HyroxSimWidgets
+- TargetName: HyroxCore / HyroxPersistenceApple / HyroxLiveActivityApple / HyroxSim / HyroxSimWatch / HyroxKitTests / HyroxSimTests / HyroxSimWidgets
 - 날짜: `M/D/YY` (예: `4/7/26`)
+- 새로 만들거나 수정하는 파일 헤더의 `Created by`는 항상 `bbdyno`
+- `Codex` 이름을 파일 헤더에 쓰지 않음
 - 기존 파일 헤더 수정하지 않음
 
 ## 커밋 규칙
 
 - **커밋 메시지: 한국어**로 작성
+- author / committer는 항상 `bbdyno <della.kimko@gmail.com>`
 - `Co-Authored-By: Claude` 붙이지 않음
 - 작업 단위별로 커밋 분리
 - 큰 작업은 단계별로 나눠서 커밋
@@ -90,13 +97,14 @@ xcodebuild build -workspace HyroxSim.xcworkspace -scheme HyroxSimWatch \
 - UIKit 화면: `applyDarkNavBarAppearance()` 또는 AppCoordinator 전역 설정
 - 모달 UINavigationController: `nav.applyDarkTheme()` 호출
 
-## HyroxKit 원칙
+## 모듈 원칙
 
-- **CoreLocation, HealthKit, WatchConnectivity import 금지** — 프로토콜만 노출
-- Foundation + SwiftData만 의존
+- **HyroxCore**: CoreLocation, HealthKit, WatchConnectivity import 금지 — 프로토콜만 노출
+- **HyroxPersistenceApple**: SwiftData만 담당
+- **HyroxLiveActivityApple**: ActivityKit 공유 타입만 담당
 - 도메인 모델은 값 타입 (struct), Codable + Hashable + Sendable
 - WorkoutEngine은 `@MainActor` class, 시간은 외부 주입 (`Date` 파라미터)
-- 센서/동기화 추상화: 프로토콜만 HyroxKit에, 구현은 앱 타겟에
+- 센서/동기화 추상화: 프로토콜만 HyroxCore에, 구현은 앱 타겟에
 
 ## HYROX 운동 구조
 

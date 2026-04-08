@@ -8,7 +8,9 @@
 import ActivityKit
 import Foundation
 import Observation
-import HyroxKit
+import HyroxCore
+import HyroxLiveActivityApple
+import HyroxPersistenceApple
 
 @Observable
 @MainActor

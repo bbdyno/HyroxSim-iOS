@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import HyroxCore
 import SwiftData
 
 /// SwiftData entity for persisting segment records within a workout.

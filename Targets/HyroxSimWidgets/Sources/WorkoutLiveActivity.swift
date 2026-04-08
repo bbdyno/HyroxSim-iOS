@@ -8,7 +8,7 @@
 import ActivityKit
 import SwiftUI
 import WidgetKit
-import HyroxKit
+import HyroxLiveActivityApple
 
 /// HYROX 운동 Live Activity — Dynamic Island + 잠금화면
 struct WorkoutLiveActivity: Widget {

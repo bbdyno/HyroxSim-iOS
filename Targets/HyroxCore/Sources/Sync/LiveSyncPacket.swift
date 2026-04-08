@@ -2,7 +2,7 @@
 //  LiveSyncPacket.swift
 //  HyroxKit
 //
-//  Created by Codex on 4/8/26.
+//  Created by bbdyno on 4/8/26.
 //
 
 import Foundation

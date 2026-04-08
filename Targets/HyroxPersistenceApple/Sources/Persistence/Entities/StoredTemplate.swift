@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import HyroxCore
 import SwiftData
 
 /// SwiftData entity for persisting user-created custom workout templates.

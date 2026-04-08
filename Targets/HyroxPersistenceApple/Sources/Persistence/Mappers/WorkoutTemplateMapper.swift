@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import HyroxCore
 
 /// Converts between `WorkoutTemplate` (domain) and `StoredTemplate` (SwiftData).
 /// Only custom (user-created) templates are persisted. Built-in presets live in code.

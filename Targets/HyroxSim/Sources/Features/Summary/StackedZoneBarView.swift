@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import HyroxKit
+import HyroxCore
 
 /// Horizontal stacked bar showing HR zone distribution.
 final class StackedZoneBarView: UIView {

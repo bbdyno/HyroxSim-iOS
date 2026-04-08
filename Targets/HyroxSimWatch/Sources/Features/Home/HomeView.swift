@@ -6,7 +6,8 @@
 //
 
 import SwiftUI
-import HyroxKit
+import HyroxCore
+import HyroxPersistenceApple
 
 /// watchOS 홈 화면 — 블랙+옐로우 테마.
 /// NavigationPath를 관리하여 운동 완료 시 홈으로 직접 복귀.
