@@ -15,12 +15,14 @@ public final class AppCoordinator {
     private let navigationController: UINavigationController
     let persistence: PersistenceController
     private let syncCoordinator: WatchConnectivitySyncCoordinator
+    private let workoutMirrorController: WorkoutMirrorController
 
-    public init(window: UIWindow) throws {
+    init(window: UIWindow, services: AppServices) {
         self.window = window
         self.navigationController = UINavigationController()
-        self.persistence = try PersistenceController()
-        self.syncCoordinator = WatchConnectivitySyncCoordinator(persistence: persistence)
+        self.persistence = services.persistence
+        self.syncCoordinator = services.syncCoordinator
+        self.workoutMirrorController = services.workoutMirrorController
 
         // Global dark nav bar appearance
         let navAppearance = UINavigationBarAppearance()
@@ -44,8 +46,6 @@ public final class AppCoordinator {
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
 
-        ActiveWorkoutViewModel.endStaleActivities()
-        syncCoordinator.activate()
         syncCoordinator.onReceiveCompletedWorkout = { [weak self] _ in
             self?.refreshHomeIfVisible()
         }
@@ -56,16 +56,68 @@ public final class AppCoordinator {
             self?.refreshHomeIfVisible()
         }
 
-        // 워치 실시간 운동 연동
-        syncCoordinator.onWorkoutStarted = { [weak self] template in
+        // 워치 운동 미러링 - HealthKit mirrored session 경로
+        workoutMirrorController.onWorkoutStarted = { [weak self] template, origin in
+            guard origin == .watch else { return }
+            self?.showLiveMirror(template: template)
+        }
+        workoutMirrorController.onLiveStateReceived = { [weak self] state in
+            guard state.origin == .watch else { return }
+            if self?.liveMirrorVC == nil {
+                let template = self?.workoutMirrorController.currentTemplate
+                    ?? Self.placeholderTemplate(for: state)
+                self?.showLiveMirror(template: template)
+            }
+            self?.liveMirrorVC?.updateState(state)
+        }
+        workoutMirrorController.onWorkoutFinished = { [weak self] origin in
+            guard origin == .watch else { return }
+            self?.dismissLiveMirror()
+        }
+        workoutMirrorController.onConnectionChanged = { [weak self] connected in
+            if connected {
+                self?.liveMirrorVC?.showReconnected()
+            } else {
+                self?.liveMirrorVC?.showDisconnected()
+            }
+        }
+
+        // WatchConnectivity fallback 경로
+        syncCoordinator.onWorkoutStarted = { [weak self] template, origin in
+            guard origin == .watch else { return } // 폰 자신이 시작한 운동은 미러 안 함
             self?.showLiveMirror(template: template)
         }
         syncCoordinator.onLiveStateReceived = { [weak self] state in
+            guard state.origin == .watch else { return }
+            if self?.liveMirrorVC == nil {
+                self?.showLiveMirror(template: Self.placeholderTemplate(for: state))
+            }
             self?.liveMirrorVC?.updateState(state)
         }
-        syncCoordinator.onWorkoutFinished = { [weak self] in
+        syncCoordinator.onWorkoutFinished = { [weak self] origin in
+            guard origin == .watch else { return }
             self?.dismissLiveMirror()
         }
+        syncCoordinator.onReachabilityChanged = { [weak self] reachable in
+            guard let self, !self.workoutMirrorController.hasActiveWorkout else { return }
+            if reachable {
+                self.liveMirrorVC?.showReconnected()
+            } else {
+                self.liveMirrorVC?.showDisconnected()
+            }
+        }
+
+        if let template = workoutMirrorController.currentTemplate {
+            showLiveMirror(template: template)
+            if let state = workoutMirrorController.currentState {
+                liveMirrorVC?.updateState(state)
+            }
+            if !workoutMirrorController.isConnected {
+                liveMirrorVC?.showDisconnected()
+            }
+        }
+
+        applyUITestScenarioIfNeeded()
     }
 
     // MARK: - 워치 실시간 미러
@@ -81,9 +133,31 @@ public final class AppCoordinator {
     }
 
     private func dismissLiveMirror() {
-        liveMirrorVC = nil
-        navigationController.dismiss(animated: true)
-        refreshHomeIfVisible()
+        guard let liveMirrorVC else {
+            navigationController.dismiss(animated: true)
+            refreshHomeIfVisible()
+            return
+        }
+
+        let finishDismissal = { [weak self] in
+            guard let self else { return }
+            self.liveMirrorVC = nil
+            self.refreshHomeIfVisible()
+        }
+
+        let dismissMirror = {
+            liveMirrorVC.dismiss(animated: true, completion: finishDismissal)
+        }
+
+        if let presented = liveMirrorVC.presentedViewController {
+            presented.dismiss(animated: false, completion: dismissMirror)
+        } else {
+            dismissMirror()
+        }
+    }
+
+    private static func placeholderTemplate(for state: LiveWorkoutState) -> WorkoutTemplate {
+        WorkoutTemplate(name: state.templateName, segments: [.run(distanceMeters: 1000)])
     }
 
     private func refreshHomeIfVisible() {
@@ -92,6 +166,49 @@ public final class AppCoordinator {
         // HomeViewController reloads in viewWillAppear, so next appearance is fine.
         // For immediate update, post a notification.
         NotificationCenter.default.post(name: .syncDataUpdated, object: nil)
+    }
+
+    private func applyUITestScenarioIfNeeded() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("UITestWatchMirror") else { return }
+
+        let template = WorkoutTemplate(
+            name: "UI Test Mirror",
+            segments: [
+                .run(distanceMeters: 1000),
+                .roxZone(),
+                .station(.skiErg, target: .distance(meters: 1000))
+            ]
+        )
+        let state = LiveWorkoutState(
+            segmentLabel: "RUN 1 / 1",
+            segmentSubLabel: nil,
+            segmentElapsedText: "01:23",
+            totalElapsedText: "0:12:34",
+            paceText: "4'12\" /km",
+            distanceText: "820 m",
+            heartRateText: "168",
+            heartRateZoneRaw: HeartRateZone.z4.rawValue,
+            stationNameText: nil,
+            stationTargetText: nil,
+            accentKindRaw: "run",
+            isPaused: false,
+            isFinished: false,
+            isLastSegment: false,
+            gpsStrong: true,
+            gpsActive: true,
+            templateName: template.name,
+            totalSegmentCount: template.segments.count,
+            currentSegmentIndex: 0,
+            origin: .watch
+        )
+
+        showLiveMirror(template: template)
+        liveMirrorVC?.updateState(state)
+
+        if arguments.contains("UITestWatchMirrorDisconnected") {
+            liveMirrorVC?.showDisconnected()
+        }
     }
 
     // MARK: - Factory
@@ -218,7 +335,8 @@ extension AppCoordinator {
             locationStream: location,
             heartRateStream: heartRate,
             persistence: persistence,
-            maxHeartRate: 190 // TODO: user settings
+            maxHeartRate: 190, // TODO: user settings
+            syncCoordinator: syncCoordinator
         )
         let vc = ActiveWorkoutViewController(viewModel: vm)
 
@@ -303,6 +421,9 @@ extension AppCoordinator: LiveWorkoutMirrorDelegate {
     }
 
     func mirrorSendCommand(_ command: WorkoutCommand) {
+        if workoutMirrorController.hasActiveWorkout {
+            workoutMirrorController.sendCommand(command)
+        }
         syncCoordinator.sendCommand(command)
     }
 }

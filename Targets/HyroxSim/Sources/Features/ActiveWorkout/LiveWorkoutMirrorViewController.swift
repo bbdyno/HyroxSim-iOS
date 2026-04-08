@@ -35,6 +35,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     private let watchBadge = UILabel()
 
     private var lastState: LiveWorkoutState?
+    private var isConnected = true
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -120,8 +121,18 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     }
 
     func showDisconnected() {
-        headerLabel.text = "WATCH DISCONNECTED"
-        headerLabel.textColor = .systemRed
+        isConnected = false
+        watchBadge.text = "⌚ WATCH DISCONNECTED"
+        watchBadge.textColor = .systemRed
+        setControlsEnabled(false)
+    }
+
+    func showReconnected() {
+        isConnected = true
+        watchBadge.text = "⌚ LIVE FROM APPLE WATCH"
+        watchBadge.textColor = DesignTokens.Color.accent
+        setControlsEnabled(true)
+        if let last = lastState { updateState(last) }
     }
 
     // MARK: - UI
@@ -132,19 +143,23 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         watchBadge.font = .systemFont(ofSize: 10, weight: .bold)
         watchBadge.textColor = DesignTokens.Color.accent
         watchBadge.textAlignment = .center
+        watchBadge.accessibilityIdentifier = "liveMirror.watchBadge"
 
         gpsLabel.font = .systemFont(ofSize: 10, weight: .medium)
         gpsLabel.textColor = .gray
         gpsLabel.textAlignment = .center
+        gpsLabel.accessibilityIdentifier = "liveMirror.gpsLabel"
 
         headerLabel.font = .systemFont(ofSize: 16, weight: .bold)
         headerLabel.textColor = DesignTokens.Color.accent
         headerLabel.textAlignment = .center
+        headerLabel.accessibilityIdentifier = "liveMirror.headerLabel"
 
         subHeaderLabel.font = .systemFont(ofSize: 14, weight: .medium)
         subHeaderLabel.textColor = UIColor.white.withAlphaComponent(0.6)
         subHeaderLabel.textAlignment = .center
         subHeaderLabel.isHidden = true
+        subHeaderLabel.accessibilityIdentifier = "liveMirror.subHeaderLabel"
 
         segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 64, weight: .bold)
         totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .medium)
@@ -181,6 +196,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         nextButton.layer.cornerRadius = 28
         nextButton.layer.borderWidth = 2
         nextButton.layer.borderColor = UIColor.white.withAlphaComponent(0.6).cgColor
+        nextButton.accessibilityIdentifier = "liveMirror.nextButton"
         nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
         view.addSubview(nextButton)
         NSLayoutConstraint.activate([
@@ -202,6 +218,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         }
 
         pauseButton.setImage(UIImage(systemName: "pause.fill"), for: .normal)
+        pauseButton.accessibilityIdentifier = "liveMirror.pauseButton"
         pauseButton.addTarget(self, action: #selector(pauseTapped), for: .touchUpInside)
         NSLayoutConstraint.activate([
             pauseButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
@@ -209,6 +226,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         ])
 
         endButton.setImage(UIImage(systemName: "stop.fill"), for: .normal)
+        endButton.accessibilityIdentifier = "liveMirror.endButton"
         endButton.addTarget(self, action: #selector(endTapped), for: .touchUpInside)
         NSLayoutConstraint.activate([
             endButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
@@ -243,5 +261,15 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         case .z4: return .systemOrange
         case .z5: return .systemRed
         }
+    }
+
+    private func setControlsEnabled(_ isEnabled: Bool) {
+        nextButton.isEnabled = isEnabled
+        pauseButton.isEnabled = isEnabled
+        endButton.isEnabled = isEnabled
+        let alpha: CGFloat = isEnabled ? 1 : 0.45
+        nextButton.alpha = alpha
+        pauseButton.alpha = alpha
+        endButton.alpha = alpha
     }
 }

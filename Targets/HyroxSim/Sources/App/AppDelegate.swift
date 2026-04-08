@@ -7,13 +7,25 @@
 
 import UIKit
 
+@MainActor
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
+
+    var services: AppServices?
+    var startupError: Error?
 
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        do {
+            let services = try AppServices()
+            services.start()
+            self.services = services
+        } catch {
+            startupError = error
+            assertionFailure("Failed to initialize app services: \(error)")
+        }
         return true
     }
 

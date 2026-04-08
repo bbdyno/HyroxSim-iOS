@@ -15,7 +15,7 @@ struct ActiveWorkoutView: View {
     @State private var showSummary = false
     @Binding var navigationPath: NavigationPath
 
-    init(template: WorkoutTemplate, persistence: PersistenceController, syncCoordinator: WatchConnectivitySyncCoordinator?, navigationPath: Binding<NavigationPath>) {
+    init(template: WorkoutTemplate, persistence: PersistenceController, syncCoordinator: (any SyncCoordinator)?, navigationPath: Binding<NavigationPath>) {
         _model = State(initialValue: WatchActiveWorkoutModel(
             template: template, persistence: persistence, syncCoordinator: syncCoordinator
         ))

@@ -7,6 +7,7 @@
 
 import UIKit
 
+@MainActor
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
@@ -22,11 +23,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.overrideUserInterfaceStyle = .dark
         self.window = window
 
-        do {
-            let coord = try AppCoordinator(window: window)
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+            let vc = UIViewController()
+            vc.view.backgroundColor = .systemBackground
+            window.rootViewController = vc
+            window.makeKeyAndVisible()
+            assertionFailure("Failed to resolve AppDelegate")
+            return
+        }
+
+        if let services = appDelegate.services {
+            let coord = AppCoordinator(window: window, services: services)
             self.coordinator = coord
             coord.start()
-        } catch {
+        } else {
+            let error = appDelegate.startupError ?? NSError(
+                domain: "HyroxSim.SceneDelegate",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "App services unavailable"]
+            )
             let vc = UIViewController()
             vc.view.backgroundColor = .systemBackground
             window.rootViewController = vc

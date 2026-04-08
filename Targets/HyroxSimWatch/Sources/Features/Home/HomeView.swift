@@ -12,7 +12,7 @@ import HyroxKit
 /// NavigationPath를 관리하여 운동 완료 시 홈으로 직접 복귀.
 struct HomeView: View {
     let persistence: PersistenceController
-    let syncCoordinator: WatchConnectivitySyncCoordinator?
+    let syncCoordinator: (any SyncCoordinator)?
     @State private var customTemplates: [WorkoutTemplate] = []
     @State private var navigationPath = NavigationPath()
 

@@ -53,7 +53,8 @@ let project = Project(
             entitlements: "Targets/HyroxSim/HyroxSim.entitlements",
             dependencies: [
                 .target(name: "HyroxKit"),
-                .target(name: "HyroxSimWidgets")
+                .target(name: "HyroxSimWidgets"),
+                .target(name: "HyroxSimWatch")
             ],
             settings: .settings(
                 base: [
@@ -165,6 +166,20 @@ let project = Project(
             dependencies: [
                 .target(name: "HyroxKit")
             ]
+        ),
+
+        // MARK: - HyroxSimUITests (iOS UI Tests)
+        .target(
+            name: "HyroxSimUITests",
+            destinations: .iOS,
+            product: .uiTests,
+            bundleId: "com.bbdyno.app.HyroxSim.uitests",
+            deploymentTargets: .iOS("17.0"),
+            infoPlist: .default,
+            sources: ["Targets/HyroxSimUITests/Sources/**"],
+            dependencies: [
+                .target(name: "HyroxSim")
+            ]
         )
     ],
     schemes: [
@@ -172,7 +187,7 @@ let project = Project(
             name: "HyroxSim",
             shared: true,
             buildAction: .buildAction(targets: ["HyroxSim"]),
-            testAction: .targets(["HyroxSimTests", "HyroxKitTests"], configuration: .debug),
+            testAction: .targets(["HyroxSimTests", "HyroxKitTests", "HyroxSimUITests"], configuration: .debug),
             runAction: .runAction(configuration: .debug, executable: "HyroxSim")
         ),
         .scheme(

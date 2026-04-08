@@ -15,7 +15,6 @@ import HyroxKit
 @Observable
 @MainActor
 final class WatchActiveWorkoutModel {
-
     // MARK: - UI State
     private(set) var segmentLabel: String = ""
     private(set) var segmentSubLabel: String?
@@ -49,7 +48,12 @@ final class WatchActiveWorkoutModel {
     private var displayTask: Task<Void, Never>?
     private var locationTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
+    private var sensorStartupTask: Task<Void, Never>?
+    private var mirroringTask: Task<Void, Never>?
     private var segmentStartHKDistance: Double = 0
+    private var isMirroringActive = false
+    private var lastRemoteCommand: (command: WorkoutCommand, at: Date)?
+    private var uiTestAutoEndDeadline: Date?
 
     var finishHandler: ((CompletedWorkout) -> Void)?
     var errorHandler: ((Error) -> Void)?
@@ -80,21 +84,15 @@ final class WatchActiveWorkoutModel {
     func start() async {
         do {
             try engine.start(at: Date())
-            try await workoutSession.start()
-            try await locationAdapter.start()
-            heartRateTask = engine.attachHeartRateStream(workoutSession)
-            locationTask = engine.attachLocationStream(locationAdapter)
-            segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
+            if uiTestAutoEndDeadline == nil,
+               ProcessInfo.processInfo.arguments.contains("UITestAutoEndWatchWorkout") {
+                uiTestAutoEndDeadline = Date().addingTimeInterval(6)
+            }
+            setupRemoteInputs()
+            await sendWorkoutStarted()
             startDisplayTimer()
             refresh()
-
-            // 폰에 운동 시작 알림 + 원격 명령 수신 설정
-            if let sync = syncCoordinator as? WatchConnectivitySyncCoordinator {
-                sync.sendWorkoutStarted(template: engine.template)
-                sync.onReceiveCommand = { [weak self] cmd in
-                    self?.handleRemoteCommand(cmd)
-                }
-            }
+            startSensors()
         } catch {
             errorHandler?(error)
         }
@@ -108,6 +106,17 @@ final class WatchActiveWorkoutModel {
         case .resume: if isPaused { togglePause() }
         case .end: endWorkout()
         }
+    }
+
+    private func handleRemoteCommandIfNeeded(_ cmd: WorkoutCommand) {
+        let now = Date()
+        if let lastRemoteCommand,
+           lastRemoteCommand.command == cmd,
+           now.timeIntervalSince(lastRemoteCommand.at) < 1 {
+            return
+        }
+        lastRemoteCommand = (cmd, now)
+        handleRemoteCommand(cmd)
     }
 
     func advance() {
@@ -146,6 +155,11 @@ final class WatchActiveWorkoutModel {
 
     private func refresh() {
         let now = Date()
+        if let deadline = uiTestAutoEndDeadline, now >= deadline, !isFinished {
+            uiTestAutoEndDeadline = nil
+            endWorkout()
+            return
+        }
         segmentElapsedText = DurationFormatter.ms(engine.segmentElapsed(at: now))
         totalElapsedText = DurationFormatter.hms(engine.totalElapsed(at: now))
 
@@ -230,21 +244,26 @@ final class WatchActiveWorkoutModel {
     }
 
     private func broadcastLiveState() {
-        guard let sync = syncCoordinator as? WatchConnectivitySyncCoordinator else { return }
+        let accentRaw: String = switch accentKind {
+        case .run: "run"
+        case .roxZone: "roxZone"
+        case .station: "station"
+        }
         let state = LiveWorkoutState(
             segmentLabel: segmentLabel, segmentSubLabel: segmentSubLabel,
             segmentElapsedText: segmentElapsedText, totalElapsedText: totalElapsedText,
             paceText: paceText, distanceText: distanceText,
             heartRateText: heartRateText, heartRateZoneRaw: heartRateZone?.rawValue,
             stationNameText: stationNameText, stationTargetText: stationTargetText,
-            accentKindRaw: { switch accentKind { case .run: "run"; case .roxZone: "roxZone"; case .station: "station" } }(),
+            accentKindRaw: accentRaw,
             isPaused: isPaused, isFinished: isFinished, isLastSegment: isLastSegment,
             gpsStrong: gpsStrong, gpsActive: gpsActive,
             templateName: engine.template.name,
             totalSegmentCount: engine.template.segments.count,
-            currentSegmentIndex: engine.currentSegmentIndex ?? 0
+            currentSegmentIndex: engine.currentSegmentIndex ?? 0,
+            origin: .watch
         )
-        sync.sendLiveState(state)
+        sendPacket(.liveState(state))
     }
 
     /// UI 갱신은 TimelineView가 담당. 이 타이머는 백그라운드 브로드캐스트 전용.
@@ -259,13 +278,23 @@ final class WatchActiveWorkoutModel {
     }
 
     private func finishAndSave() async {
+        syncCoordinator?.sendWorkoutFinished(origin: .watch)
+        if isMirroringActive {
+            Task { [workoutSession] in
+                do {
+                    let data = try LiveSyncPacketCoder.encode(.workoutFinished(origin: .watch))
+                    try await workoutSession.sendToRemoteWorkoutSession(data: data)
+                } catch {
+                    print("[WatchWorkout] Failed to send mirrored workoutFinished: \(error)")
+                }
+            }
+        }
         cleanup()
         workoutSession.stop()
         do {
             let completed = try engine.makeCompletedWorkout()
             try persistence.saveCompletedWorkout(completed)
             try? syncCoordinator?.sendCompletedWorkout(completed)
-            (syncCoordinator as? WatchConnectivitySyncCoordinator)?.sendWorkoutFinished()
             isFinished = true
             finishHandler?(completed)
         } catch {
@@ -276,8 +305,121 @@ final class WatchActiveWorkoutModel {
     private func cleanup() {
         displayTask?.cancel()
         displayTask = nil
+        sensorStartupTask?.cancel()
+        sensorStartupTask = nil
         locationTask?.cancel()
         heartRateTask?.cancel()
+        mirroringTask?.cancel()
+        mirroringTask = nil
+        uiTestAutoEndDeadline = nil
         locationAdapter.stop()
+        workoutSession.onRemoteDataReceived = nil
+        workoutSession.onRemoteDisconnect = nil
+        syncCoordinator?.onReceiveCommand = nil
+        isMirroringActive = false
+    }
+}
+
+// MARK: - Remote Sync
+
+private extension WatchActiveWorkoutModel {
+
+    func startSensors() {
+        sensorStartupTask?.cancel()
+        sensorStartupTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await workoutSession.start()
+                heartRateTask = engine.attachHeartRateStream(workoutSession)
+                segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
+                startMirroring()
+
+                try await locationAdapter.start()
+                locationTask = engine.attachLocationStream(locationAdapter)
+            } catch {
+                guard !Task.isCancelled else { return }
+                errorHandler?(error)
+            }
+        }
+    }
+
+    func startMirroring() {
+        mirroringTask?.cancel()
+        mirroringTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await workoutSession.startMirroringToCompanionDevice()
+                guard !Task.isCancelled else { return }
+                isMirroringActive = true
+                await sendPacketNow(.workoutStarted(template: engine.template, origin: .watch))
+                broadcastLiveState()
+            } catch {
+                guard !Task.isCancelled else { return }
+                isMirroringActive = false
+                print("[WatchWorkout] Failed to start mirroring: \(error)")
+            }
+        }
+    }
+
+    func setupRemoteInputs() {
+        workoutSession.onRemoteDataReceived = { [weak self] payloads in
+            self?.handleMirroredPayloads(payloads)
+        }
+        workoutSession.onRemoteDisconnect = { [weak self] error in
+            self?.isMirroringActive = false
+            if let error {
+                print("[WatchWorkout] Mirroring disconnected: \(error)")
+            }
+        }
+        syncCoordinator?.onReceiveCommand = { [weak self] command in
+            self?.handleRemoteCommandIfNeeded(command)
+        }
+    }
+
+    func handleMirroredPayloads(_ payloads: [Data]) {
+        for payload in payloads {
+            guard let packet = try? LiveSyncPacketCoder.decode(payload) else {
+                print("[WatchWorkout] Failed to decode mirrored payload")
+                continue
+            }
+            if case .command(let command) = packet {
+                handleRemoteCommandIfNeeded(command)
+            }
+        }
+    }
+
+    func sendWorkoutStarted() async {
+        let packet = LiveSyncPacket.workoutStarted(template: engine.template, origin: .watch)
+        await sendPacketNow(packet)
+    }
+
+    func sendPacket(_ packet: LiveSyncPacket) {
+        Task { await self.sendPacketNow(packet) }
+    }
+
+    func sendPacketNow(_ packet: LiveSyncPacket) async {
+        if isMirroringActive {
+            do {
+                let data = try LiveSyncPacketCoder.encode(packet)
+                try await workoutSession.sendToRemoteWorkoutSession(data: data)
+                return
+            } catch {
+                print("[WatchWorkout] Failed to send mirrored payload: \(error)")
+            }
+        }
+
+        guard let syncCoordinator else { return }
+        switch packet {
+        case .workoutStarted(let template, let origin):
+            syncCoordinator.sendWorkoutStarted(template: template, origin: origin)
+        case .liveState(let state):
+            syncCoordinator.sendLiveState(state)
+        case .workoutFinished(let origin):
+            syncCoordinator.sendWorkoutFinished(origin: origin)
+        case .command:
+            break
+        case .heartRateRelay(let relay):
+            syncCoordinator.sendHeartRateRelay(relay)
+        }
     }
 }

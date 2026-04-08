@@ -47,6 +47,7 @@ public final class ActiveWorkoutViewModel {
     private let locationStream: any LocationStreaming
     private let heartRateStream: any HeartRateStreaming
     private let persistence: PersistenceController
+    private let syncCoordinator: (any SyncCoordinator)?
     private let maxHeartRate: Int
 
     // MARK: - Internal
@@ -66,13 +67,15 @@ public final class ActiveWorkoutViewModel {
         locationStream: any LocationStreaming,
         heartRateStream: any HeartRateStreaming,
         persistence: PersistenceController,
-        maxHeartRate: Int = 190
+        maxHeartRate: Int = 190,
+        syncCoordinator: (any SyncCoordinator)? = nil
     ) {
         self.engine = WorkoutEngine(template: template)
         self.locationStream = locationStream
         self.heartRateStream = heartRateStream
         self.persistence = persistence
         self.maxHeartRate = maxHeartRate
+        self.syncCoordinator = syncCoordinator
     }
 
     // MARK: - Lifecycle
@@ -86,6 +89,8 @@ public final class ActiveWorkoutViewModel {
             heartRateTask = engine.attachHeartRateStream(heartRateStream)
             startDisplayTimer()
             startLiveActivity()
+            setupSyncCallbacks()
+            syncCoordinator?.sendWorkoutStarted(template: engine.template, origin: .phone)
             refresh()
         } catch {
             errorHandler?(error)
@@ -133,6 +138,56 @@ public final class ActiveWorkoutViewModel {
         cancelHandler?()
     }
 
+    // MARK: - Sync (워치 양방향 연동)
+
+    private func setupSyncCallbacks() {
+        syncCoordinator?.onReceiveCommand = { [weak self] cmd in
+            self?.handleRemoteCommand(cmd)
+        }
+        syncCoordinator?.onHeartRateRelayReceived = { [weak self] relay in
+            self?.handleHeartRateRelay(relay)
+        }
+    }
+
+    private func handleRemoteCommand(_ cmd: WorkoutCommand) {
+        switch cmd {
+        case .advance: advance()
+        case .pause: if !isPaused { togglePause() }
+        case .resume: if isPaused { togglePause() }
+        case .end: endWorkout()
+        }
+    }
+
+    private func handleHeartRateRelay(_ relay: HeartRateRelay) {
+        let sample = HeartRateSample(timestamp: relay.timestamp, bpm: relay.bpm)
+        engine.ingest(heartRateSample: sample)
+    }
+
+    private func broadcastLiveState() {
+        guard let syncCoordinator else { return }
+        let accentRaw: String = switch accentKind {
+        case .run: "run"
+        case .roxZone: "roxZone"
+        case .station: "station"
+        }
+        let gpsStrong = gpsStatus == .strong
+        let gpsActive = gpsStatus != .off
+        let state = LiveWorkoutState(
+            segmentLabel: segmentLabel, segmentSubLabel: segmentSubLabel,
+            segmentElapsedText: segmentElapsedText, totalElapsedText: totalElapsedText,
+            paceText: paceText, distanceText: distanceText,
+            heartRateText: heartRateText, heartRateZoneRaw: heartRateZone?.rawValue,
+            stationNameText: stationNameText, stationTargetText: stationTargetText,
+            accentKindRaw: accentRaw, isPaused: isPaused, isFinished: isFinished, isLastSegment: isLastSegment,
+            gpsStrong: gpsStrong, gpsActive: gpsActive,
+            templateName: engine.template.name,
+            totalSegmentCount: engine.template.segments.count,
+            currentSegmentIndex: engine.currentSegmentIndex ?? 0,
+            origin: .phone
+        )
+        syncCoordinator.sendLiveState(state)
+    }
+
     // MARK: - Refresh
 
     func refresh() {
@@ -178,9 +233,8 @@ public final class ActiveWorkoutViewModel {
         case .station:
             let stationIndex = countOfType(.station, upTo: index + 1)
             let stationTotal = countOfType(.station, upTo: total)
-            let name = current.stationKind?.displayName ?? "Station"
             segmentLabel = "STATION \(stationIndex) / \(stationTotal)"
-            segmentSubLabel = name
+            segmentSubLabel = current.stationKind?.displayName ?? "Station"
             accentKind = .station
             stationNameText = current.stationKind?.displayName
             stationTargetText = current.stationTarget?.formatted
@@ -217,6 +271,7 @@ public final class ActiveWorkoutViewModel {
         isLastSegment = engine.isLastSegment
 
         updateLiveActivity()
+        broadcastLiveState()
     }
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {
@@ -243,6 +298,7 @@ public final class ActiveWorkoutViewModel {
         do {
             let completed = try engine.makeCompletedWorkout()
             try persistence.saveCompletedWorkout(completed)
+            syncCoordinator?.sendWorkoutFinished(origin: .phone)
             isFinished = true
             finishHandler?(completed)
         } catch {
@@ -259,6 +315,8 @@ public final class ActiveWorkoutViewModel {
         heartRateTask = nil
         locationStream.stop()
         heartRateStream.stop()
+        syncCoordinator?.onReceiveCommand = nil
+        syncCoordinator?.onHeartRateRelayReceived = nil
     }
 
     // MARK: - Live Activity

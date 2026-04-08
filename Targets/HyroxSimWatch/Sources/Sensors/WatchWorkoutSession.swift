@@ -31,6 +31,9 @@ public final class WatchWorkoutSession: NSObject, @preconcurrency HeartRateStrea
     public private(set) var cumulativeDistanceMeters: Double = 0
     private var isStarted = false
 
+    var onRemoteDataReceived: (([Data]) -> Void)?
+    var onRemoteDisconnect: ((Error?) -> Void)?
+
     public override init() {
         var cont: AsyncStream<HeartRateSample>.Continuation!
         self.samples = AsyncStream(bufferingPolicy: .bufferingNewest(100)) { c in cont = c }
@@ -110,6 +113,20 @@ public final class WatchWorkoutSession: NSObject, @preconcurrency HeartRateStrea
         isStarted = false
     }
 
+    func startMirroringToCompanionDevice() async throws {
+        guard let session else {
+            throw SensorError.startFailed(reason: "Workout session unavailable")
+        }
+        try await session.startMirroringToCompanionDevice()
+    }
+
+    func sendToRemoteWorkoutSession(data: Data) async throws {
+        guard let session else {
+            throw SensorError.startFailed(reason: "Workout session unavailable")
+        }
+        try await session.sendToRemoteWorkoutSession(data: data)
+    }
+
     /// Pauses the HKWorkoutSession (separate from WorkoutEngine.pause).
     /// The caller is responsible for synchronizing these.
     public func pause() {
@@ -141,6 +158,24 @@ extension WatchWorkoutSession: HKWorkoutSessionDelegate {
         didFailWithError error: Error
     ) {
         // Non-fatal — session may recover.
+    }
+
+    nonisolated public func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didReceiveDataFromRemoteWorkoutSession data: [Data]
+    ) {
+        Task { @MainActor [weak self] in
+            self?.onRemoteDataReceived?(data)
+        }
+    }
+
+    nonisolated public func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didDisconnectFromRemoteDeviceWithError error: Error?
+    ) {
+        Task { @MainActor [weak self] in
+            self?.onRemoteDisconnect?(error)
+        }
     }
 }
 

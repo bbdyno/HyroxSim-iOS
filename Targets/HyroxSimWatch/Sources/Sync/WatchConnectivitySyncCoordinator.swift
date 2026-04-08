@@ -9,26 +9,30 @@ import WatchConnectivity
 import HyroxKit
 
 /// watchOS-side WatchConnectivity sync coordinator.
-/// Sends completed workouts to phone, receives custom templates from phone.
-/// Code overlap with iOS coordinator is intentional — could be shared in a future refactor.
+/// 양방향 실시간 운동 동기화 + 템플릿/워크아웃 백그라운드 동기화.
 @MainActor
 public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, @unchecked Sendable {
-
     private let session: WCSession
     private let persistence: PersistenceController
 
+    // MARK: - Background sync callbacks
     public var onReceiveTemplate: ((WorkoutTemplate) -> Void)?
     public var onReceiveCompletedWorkout: ((CompletedWorkout) -> Void)?
     public var onReceiveTemplateDeleted: ((UUID) -> Void)?
+
+    // MARK: - Live workout callbacks (양방향)
+    public var onWorkoutStarted: ((WorkoutTemplate, WorkoutOrigin) -> Void)?
+    public var onLiveStateReceived: ((LiveWorkoutState) -> Void)?
+    public var onWorkoutFinished: ((WorkoutOrigin) -> Void)?
+    public var onReceiveCommand: ((WorkoutCommand) -> Void)?
+    public var onHeartRateRelayReceived: ((HeartRateRelay) -> Void)?
+    public var onReachabilityChanged: ((Bool) -> Void)?
 
     public init(persistence: PersistenceController) {
         self.persistence = persistence
         self.session = WCSession.default
         super.init()
     }
-
-    /// 폰에서 보낸 원격 명령 수신 콜백
-    public var onReceiveCommand: ((WorkoutCommand) -> Void)?
 
     public var isSupported: Bool { WCSession.isSupported() }
     public var isPaired: Bool { true } // Always true from watch perspective
@@ -40,7 +44,7 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         session.activate()
     }
 
-    // MARK: - Send
+    // MARK: - Background sync (transferUserInfo / transferFile)
 
     /// Watch doesn't create templates — noop.
     public func sendTemplate(_ template: WorkoutTemplate) throws {}
@@ -60,7 +64,6 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
     }
 
     /// 워치에 저장된 모든 완료 워크아웃을 폰으로 전송 (기존 히스토리 동기화)
-    /// upsert이므로 중복 전송해도 안전
     public func syncAllCompletedWorkouts() {
         guard let workouts = try? persistence.fetchAllCompletedWorkouts() else { return }
         for workout in workouts {
@@ -68,27 +71,42 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         }
     }
 
-    // MARK: - 실시간 운동 전송
+    // MARK: - Live workout sync (sendMessage 양방향)
 
-    /// 폰에 운동 시작을 알림 (템플릿 정보 포함)
-    public func sendWorkoutStarted(template: WorkoutTemplate) {
+    public func sendWorkoutStarted(template: WorkoutTemplate, origin: WorkoutOrigin) {
         guard session.isReachable else { return }
         guard let data = try? JSONEncoder().encode(template) else { return }
-        let msg: [String: Any] = [LiveSyncKeys.workoutStarted: true, LiveSyncKeys.templateData: data]
+        let msg: [String: Any] = [
+            LiveSyncKeys.workoutStarted: true,
+            LiveSyncKeys.templateData: data,
+            LiveSyncKeys.workoutOrigin: origin.rawValue
+        ]
         session.sendMessage(msg, replyHandler: nil, errorHandler: nil)
     }
 
-    /// 실시간 상태 전송 (매 초)
     public func sendLiveState(_ state: LiveWorkoutState) {
         guard session.isReachable else { return }
         guard let data = try? JSONEncoder().encode(state) else { return }
         session.sendMessage([LiveSyncKeys.liveState: data], replyHandler: nil, errorHandler: nil)
     }
 
-    /// 운동 종료 알림
-    public func sendWorkoutFinished() {
+    public func sendWorkoutFinished(origin: WorkoutOrigin) {
         guard session.isReachable else { return }
-        session.sendMessage([LiveSyncKeys.workoutFinished: true], replyHandler: nil, errorHandler: nil)
+        session.sendMessage([
+            LiveSyncKeys.workoutFinished: true,
+            LiveSyncKeys.workoutOrigin: origin.rawValue
+        ], replyHandler: nil, errorHandler: nil)
+    }
+
+    public func sendCommand(_ command: WorkoutCommand) {
+        guard session.isReachable else { return }
+        session.sendMessage([LiveSyncKeys.command: command.rawValue], replyHandler: nil, errorHandler: nil)
+    }
+
+    public func sendHeartRateRelay(_ relay: HeartRateRelay) {
+        guard session.isReachable else { return }
+        guard let data = try? JSONEncoder().encode(relay) else { return }
+        session.sendMessage([LiveSyncKeys.heartRateRelay: data], replyHandler: nil, errorHandler: nil)
     }
 }
 
@@ -103,13 +121,16 @@ extension WatchConnectivitySyncCoordinator: WCSessionDelegate {
         }
     }
 
-    /// 폰에서 보낸 실시간 메시지 수신 (원격 명령)
+    nonisolated public func sessionReachabilityDidChange(_ session: WCSession) {
+        Task { @MainActor [weak self] in
+            self?.onReachabilityChanged?(session.isReachable)
+        }
+    }
+
+    /// 폰에서 보낸 실시간 메시지 수신 (양방향)
     nonisolated public func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        if let cmdRaw = message[LiveSyncKeys.command] as? String,
-           let cmd = WorkoutCommand(rawValue: cmdRaw) {
-            Task { @MainActor [weak self] in
-                self?.onReceiveCommand?(cmd)
-            }
+        Task { @MainActor [weak self] in
+            self?.handleLiveMessage(message)
         }
     }
 
@@ -120,9 +141,11 @@ extension WatchConnectivitySyncCoordinator: WCSessionDelegate {
     }
 
     nonisolated public func session(_ session: WCSession, didReceive file: WCSessionFile) {
-        let url = file.fileURL
+        // WCSession은 콜백 종료 후 임시 파일을 삭제하므로 동기적으로 읽어야 함
+        let data = try? Data(contentsOf: file.fileURL)
         Task { @MainActor [weak self] in
-            self?.handleFile(at: url)
+            guard let data else { return }
+            self?.handleFileData(data)
         }
     }
 }
@@ -155,9 +178,46 @@ extension WatchConnectivitySyncCoordinator {
     }
 
     @MainActor
-    private func handleFile(at url: URL) {
+    private func handleLiveMessage(_ msg: [String: Any]) {
+        let origin = parseOrigin(msg)
+
+        // 운동 시작 알림 (폰 → 워치)
+        if msg[LiveSyncKeys.workoutStarted] as? Bool == true,
+           let data = msg[LiveSyncKeys.templateData] as? Data,
+           let template = try? JSONDecoder().decode(WorkoutTemplate.self, from: data) {
+            onWorkoutStarted?(template, origin)
+            return
+        }
+        // 실시간 상태 (폰 → 워치)
+        if let data = msg[LiveSyncKeys.liveState] as? Data,
+           let state = try? JSONDecoder().decode(LiveWorkoutState.self, from: data) {
+            onLiveStateReceived?(state)
+            return
+        }
+        // 운동 종료 (폰 → 워치)
+        if msg[LiveSyncKeys.workoutFinished] as? Bool == true {
+            onWorkoutFinished?(origin)
+            return
+        }
+        // 원격 명령 (폰 → 워치)
+        if let cmdRaw = msg[LiveSyncKeys.command] as? String,
+           let cmd = WorkoutCommand(rawValue: cmdRaw) {
+            onReceiveCommand?(cmd)
+            return
+        }
+    }
+
+    private func parseOrigin(_ msg: [String: Any]) -> WorkoutOrigin {
+        if let raw = msg[LiveSyncKeys.workoutOrigin] as? String,
+           let origin = WorkoutOrigin(rawValue: raw) {
+            return origin
+        }
+        return .phone // 하위 호환: origin 없으면 폰 (워치 관점)
+    }
+
+    @MainActor
+    private func handleFileData(_ data: Data) {
         do {
-            let data = try Data(contentsOf: url)
             let envelope = try JSONDecoder().decode(SyncEnvelope.self, from: data)
             let workout = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
             try persistence.upsertCompletedWorkout(workout)

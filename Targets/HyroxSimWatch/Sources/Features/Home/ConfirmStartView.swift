@@ -11,7 +11,7 @@ import HyroxKit
 struct ConfirmStartView: View {
     let template: WorkoutTemplate
     let persistence: PersistenceController
-    let syncCoordinator: WatchConnectivitySyncCoordinator?
+    let syncCoordinator: (any SyncCoordinator)?
     @Binding var navigationPath: NavigationPath
     @State private var showActive = false
 

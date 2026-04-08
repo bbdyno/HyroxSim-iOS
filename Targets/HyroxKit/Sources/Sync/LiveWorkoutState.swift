@@ -7,8 +7,25 @@
 
 import Foundation
 
-/// 워치 → 폰으로 실시간 전송되는 운동 상태 스냅샷.
-/// 매 1초마다 WCSession.sendMessage로 전송.
+/// 운동이 시작된 기기
+public enum WorkoutOrigin: String, Codable, Sendable {
+    case phone
+    case watch
+}
+
+/// 워치 → 폰 HR 릴레이 (폰 운동 시 워치가 HR 센서 역할)
+public struct HeartRateRelay: Codable, Sendable {
+    public let bpm: Int
+    public let timestamp: Date
+
+    public init(bpm: Int, timestamp: Date = Date()) {
+        self.bpm = bpm
+        self.timestamp = timestamp
+    }
+}
+
+/// 양방향 실시간 전송되는 운동 상태 스냅샷.
+/// 매 0.5초마다 WCSession.sendMessage로 전송.
 public struct LiveWorkoutState: Codable, Sendable {
     // MARK: - 세그먼트 정보
     public let segmentLabel: String
@@ -40,6 +57,7 @@ public struct LiveWorkoutState: Codable, Sendable {
     public let templateName: String
     public let totalSegmentCount: Int
     public let currentSegmentIndex: Int
+    public let origin: WorkoutOrigin
 
     public init(
         segmentLabel: String, segmentSubLabel: String?,
@@ -49,7 +67,8 @@ public struct LiveWorkoutState: Codable, Sendable {
         stationNameText: String?, stationTargetText: String?,
         accentKindRaw: String, isPaused: Bool, isFinished: Bool, isLastSegment: Bool,
         gpsStrong: Bool, gpsActive: Bool,
-        templateName: String, totalSegmentCount: Int, currentSegmentIndex: Int
+        templateName: String, totalSegmentCount: Int, currentSegmentIndex: Int,
+        origin: WorkoutOrigin = .watch
     ) {
         self.segmentLabel = segmentLabel
         self.segmentSubLabel = segmentSubLabel
@@ -70,10 +89,11 @@ public struct LiveWorkoutState: Codable, Sendable {
         self.templateName = templateName
         self.totalSegmentCount = totalSegmentCount
         self.currentSegmentIndex = currentSegmentIndex
+        self.origin = origin
     }
 }
 
-/// 폰 → 워치로 보내는 원격 명령
+/// 양방향 원격 명령 (폰 ↔ 워치)
 public enum WorkoutCommand: String, Codable, Sendable {
     case advance
     case pause
@@ -88,4 +108,6 @@ public enum LiveSyncKeys {
     public static let workoutStarted = "workoutStarted"
     public static let workoutFinished = "workoutFinished"
     public static let templateData = "templateData"
+    public static let workoutOrigin = "workoutOrigin"
+    public static let heartRateRelay = "heartRateRelay"
 }
