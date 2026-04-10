@@ -94,36 +94,23 @@ struct ActiveWorkoutView: View {
 
             Spacer(minLength: 2)
 
-            // Buttons
-            HStack(spacing: 8) {
-                Button { model.togglePause() } label: {
-                    Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
-                        .font(.system(size: 14))
-                }
-                .buttonStyle(.bordered)
-                .tint(.gray)
-
-                Button {
-                    WKInterfaceDevice.current().play(.success)
+            WorkoutControlBar(
+                isPaused: model.isPaused,
+                isLastSegment: model.isLastSegment,
+                accentColor: accentColor,
+                onTogglePause: {
+                    WKInterfaceDevice.current().play(.click)
+                    model.togglePause()
+                },
+                onAdvance: {
+                    WKInterfaceDevice.current().play(model.isLastSegment ? .success : .directionUp)
                     model.advance()
-                } label: {
-                    Text(model.isLastSegment ? "FINISH" : "NEXT")
-                        .font(.system(size: 13, weight: .bold))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(model.isLastSegment ? .yellow : accentColor)
-
-                Button {
+                },
+                onEnd: {
                     WKInterfaceDevice.current().play(.stop)
                     model.endWorkout()
-                } label: {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 14))
                 }
-                .buttonStyle(.bordered)
-                .tint(.red)
-            }
+            )
         }
         .padding(.horizontal, 4)
         .background(Color.black)

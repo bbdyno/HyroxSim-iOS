@@ -5,6 +5,7 @@
 //  Created by bbdyno on 4/7/26.
 //
 
+import FirebaseCore
 import UIKit
 
 @MainActor
@@ -18,6 +19,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        FirebaseApp.configure()
+
         do {
             let services = try AppServices()
             services.start()

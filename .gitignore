@@ -17,3 +17,6 @@ Derived/
 
 # SPM
 .swiftpm/
+
+# Firebase
+.firebase/

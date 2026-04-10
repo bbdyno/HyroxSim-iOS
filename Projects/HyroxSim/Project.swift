@@ -7,15 +7,34 @@
 
 import ProjectDescription
 
+let appVersion = "1.0.0"
+let appBuildNumber = "2026.04.10.1"
+
 let signingSettings: SettingsDictionary = [
     "SWIFT_VERSION": "5.9",
     "DEVELOPMENT_TEAM": "M79H9K226Y"
+]
+
+let versionSettings: SettingsDictionary = [
+    "MARKETING_VERSION": .string(appVersion),
+    "CURRENT_PROJECT_VERSION": .string(appBuildNumber)
 ]
 
 let iosCodeSigningBase: SettingsDictionary = [
     "CODE_SIGN_STYLE": "Manual",
     "CODE_SIGN_IDENTITY": "Apple Development"
 ]
+
+let iosAppBaseSettings: SettingsDictionary = iosCodeSigningBase
+    .merging(versionSettings) { _, new in new }
+    .merging([
+        "OTHER_LDFLAGS": "$(inherited) -ObjC"
+    ]) { _, new in new }
+
+let watchAppBaseSettings: SettingsDictionary = versionSettings
+
+let widgetBaseSettings: SettingsDictionary = iosCodeSigningBase
+    .merging(versionSettings) { _, new in new }
 
 let project = Project(
     name: "HyroxSim",
@@ -52,10 +71,12 @@ let project = Project(
             ]),
             sources: ["../../Targets/HyroxSim/Sources/**"],
             resources: [
-                "../../Targets/HyroxSim/Resources/Assets.xcassets"
+                "../../Targets/HyroxSim/Resources/Assets.xcassets",
+                "../../Targets/HyroxSim/Resources/GoogleService-Info.plist"
             ],
             entitlements: "../../Targets/HyroxSim/HyroxSim.entitlements",
             dependencies: [
+                .external(name: "FirebaseCore"),
                 .project(target: "HyroxCore", path: "../HyroxCore"),
                 .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple"),
                 .project(target: "HyroxLiveActivityApple", path: "../HyroxLiveActivityApple"),
@@ -63,7 +84,7 @@ let project = Project(
                 .target(name: "HyroxSimWatch")
             ],
             settings: .settings(
-                base: iosCodeSigningBase,
+                base: iosAppBaseSettings,
                 configurations: [
                     .debug(name: .debug, settings: [
                         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Provisioning"
@@ -96,7 +117,8 @@ let project = Project(
             dependencies: [
                 .project(target: "HyroxCore", path: "../HyroxCore"),
                 .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple")
-            ]
+            ],
+            settings: .settings(base: watchAppBaseSettings)
         ),
         .target(
             name: "HyroxSimWidgets",
@@ -114,7 +136,7 @@ let project = Project(
                 .project(target: "HyroxLiveActivityApple", path: "../HyroxLiveActivityApple")
             ],
             settings: .settings(
-                base: iosCodeSigningBase,
+                base: widgetBaseSettings,
                 configurations: [
                     .debug(name: .debug, settings: [
                         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"

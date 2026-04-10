@@ -71,36 +71,23 @@ struct PhoneMirrorWorkoutView: View {
 
                 Spacer(minLength: 2)
 
-                // Buttons
-                HStack(spacing: 8) {
-                    Button { model.sendTogglePause() } label: {
-                        Image(systemName: model.isPaused ? "play.fill" : "pause.fill")
-                            .font(.system(size: 14))
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.gray)
-
-                    Button {
-                        WKInterfaceDevice.current().play(.success)
+                WorkoutControlBar(
+                    isPaused: model.isPaused,
+                    isLastSegment: model.isLastSegment,
+                    accentColor: accentColor,
+                    onTogglePause: {
+                        WKInterfaceDevice.current().play(.click)
+                        model.sendTogglePause()
+                    },
+                    onAdvance: {
+                        WKInterfaceDevice.current().play(model.isLastSegment ? .success : .directionUp)
                         model.sendAdvance()
-                    } label: {
-                        Text(model.isLastSegment ? "FINISH" : "NEXT")
-                            .font(.system(size: 13, weight: .bold))
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(model.isLastSegment ? .yellow : accentColor)
-
-                    Button {
+                    },
+                    onEnd: {
                         WKInterfaceDevice.current().play(.stop)
                         model.sendEnd()
-                    } label: {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 14))
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
-                }
+                )
             }
             .padding(.horizontal, 4)
             .background(Color.black)
