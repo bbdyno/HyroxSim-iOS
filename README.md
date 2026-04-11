@@ -104,18 +104,47 @@ HyroxSim-iOS/
 └── Tuist/Config.swift
 ```
 
-## Support
+## Support Me
 
-If this project is useful to you, you can support development here:
+If HYROX SIM is useful to you, you can support ongoing development here.
 
-- Buy Me a Coffee: https://buymeacoffee.com/bbdyno
-- Ko-fi: https://ko-fi.com/bbdyno
-- Email: della.kimko@gmail.com
+<p>
+  <a href="https://buymeacoffee.com/bbdyno">
+    <img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=bbdyno&button_colour=FFDD00&font_colour=000000&font_family=Arial&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me a Coffee">
+  </a>
+  <a href="https://ko-fi.com/bbdyno">
+    <img src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Ko-fi" height="44">
+  </a>
+</p>
 
-Crypto donation addresses referenced in the related `WorkoutPlaza` project:
+### Crypto Donation (BTC / ETH)
 
-- BTC: `bc1qz5neag5j4cg6j8sj53889udws70v7223zlvgd3`
-- ETH: `0x5f35523757d0e672fa3ffbc0f1d50d35fd6b2571`
+<details>
+  <summary>Click to see wallet addresses</summary>
+
+  <p><strong>BTC</strong>: <code>bc1qz5neag5j4cg6j8sj53889udws70v7223zlvgd3</code></p>
+  <p><strong>ETH</strong>: <code>0x5f35523757d0e672fa3ffbc0f1d50d35fd6b2571</code></p>
+</details>
+
+> **Thanks for your support!**
+>
+> 커피 한 잔의 후원은 저에게 큰 힘이 됩니다. 감사합니다!
+>
+> Thanks for the coffee! Your support keeps me going.
+>
+> شكراً على القهوة! دعمك يعني لي الكثير.
+>
+> Danke fuer den Kaffee! Deine Unterstuetzung motiviert mich.
+>
+> Merci pour le cafe ! Votre soutien me motive.
+>
+> Gracias por el cafe! Tu apoyo me motiva a seguir.
+>
+> コーヒーの差し入れ、ありがとうございます！励みになります。
+>
+> 感谢请我喝杯咖啡！您的支持是我最大的动力。
+>
+> Terima kasih traktiran kopinya! Dukunganmu sangat berarti.
 
 ## Status
 
