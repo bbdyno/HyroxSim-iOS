@@ -20,21 +20,52 @@ let versionSettings: SettingsDictionary = [
     "CURRENT_PROJECT_VERSION": .string(appBuildNumber)
 ]
 
-let iosCodeSigningBase: SettingsDictionary = [
+let automaticSigningBase: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Automatic"
+]
+
+let manualDevelopmentSigningBase: SettingsDictionary = [
     "CODE_SIGN_STYLE": "Manual",
     "CODE_SIGN_IDENTITY": "Apple Development"
 ]
 
-let iosAppBaseSettings: SettingsDictionary = iosCodeSigningBase
+let manualDistributionSigningBase: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Manual",
+    "CODE_SIGN_IDENTITY": "Apple Distribution"
+]
+
+let iosAppBaseSettings: SettingsDictionary = automaticSigningBase
     .merging(versionSettings) { _, new in new }
     .merging([
         "OTHER_LDFLAGS": "$(inherited) -ObjC"
     ]) { _, new in new }
 
-let watchAppBaseSettings: SettingsDictionary = versionSettings
-
-let widgetBaseSettings: SettingsDictionary = iosCodeSigningBase
+let watchAppBaseSettings: SettingsDictionary = manualDevelopmentSigningBase
     .merging(versionSettings) { _, new in new }
+    .merging([
+        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim WatchOS Provisioning"
+    ]) { _, new in new }
+
+let widgetBaseSettings: SettingsDictionary = manualDevelopmentSigningBase
+    .merging(versionSettings) { _, new in new }
+    .merging([
+        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"
+    ]) { _, new in new }
+
+let iosAppDistributionSettings: SettingsDictionary = manualDistributionSigningBase
+    .merging([
+        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Distribution Provisioning"
+    ]) { _, new in new }
+
+let watchAppDistributionSettings: SettingsDictionary = manualDistributionSigningBase
+    .merging([
+        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim WatchOS Distribution Provisioning"
+    ]) { _, new in new }
+
+let widgetDistributionSettings: SettingsDictionary = manualDistributionSigningBase
+    .merging([
+        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Distribution Provisioning"
+    ]) { _, new in new }
 
 let project = Project(
     name: "HyroxSim",
@@ -86,12 +117,8 @@ let project = Project(
             settings: .settings(
                 base: iosAppBaseSettings,
                 configurations: [
-                    .debug(name: .debug, settings: [
-                        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Provisioning"
-                    ]),
-                    .release(name: .release, settings: [
-                        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Provisioning"
-                    ])
+                    .debug(name: .debug),
+                    .release(name: .release, settings: iosAppDistributionSettings)
                 ]
             )
         ),
@@ -118,7 +145,13 @@ let project = Project(
                 .project(target: "HyroxCore", path: "../HyroxCore"),
                 .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple")
             ],
-            settings: .settings(base: watchAppBaseSettings)
+            settings: .settings(
+                base: watchAppBaseSettings,
+                configurations: [
+                    .debug(name: .debug),
+                    .release(name: .release, settings: watchAppDistributionSettings)
+                ]
+            )
         ),
         .target(
             name: "HyroxSimWidgets",
@@ -127,6 +160,7 @@ let project = Project(
             bundleId: "com.bbdyno.app.HyroxSim.widgets",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
+                "CFBundleDisplayName": "HYROX SIM",
                 "NSExtension": [
                     "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"
                 ]
@@ -138,12 +172,8 @@ let project = Project(
             settings: .settings(
                 base: widgetBaseSettings,
                 configurations: [
-                    .debug(name: .debug, settings: [
-                        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"
-                    ]),
-                    .release(name: .release, settings: [
-                        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"
-                    ])
+                    .debug(name: .debug),
+                    .release(name: .release, settings: widgetDistributionSettings)
                 ]
             )
         ),
