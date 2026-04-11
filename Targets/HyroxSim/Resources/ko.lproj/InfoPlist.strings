@@ -1,0 +1,5 @@
+"NSLocationWhenInUseUsageDescription" = "HYROX SIM은 운동 중 러닝 페이스와 이동 거리를 측정하기 위해 위치 정보가 필요합니다.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "HYROX SIM은 운동이 활성화된 동안 러닝 페이스와 이동 거리를 계속 측정하기 위해 위치 정보가 필요합니다.";
+"NSMotionUsageDescription" = "HYROX SIM은 운동 세션 중 움직임 분석을 지원하기 위해 모션 데이터가 필요합니다.";
+"NSHealthShareUsageDescription" = "HYROX SIM은 운동 중 HealthKit에서 심박수 데이터를 읽습니다.";
+"NSHealthUpdateUsageDescription" = "HYROX SIM은 완료한 운동 결과를 건강 앱에 저장합니다.";

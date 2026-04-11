@@ -92,11 +92,11 @@ let project = Project(
                 "UILaunchScreen": [
                     "UIColorName": "systemBackground"
                 ],
-                "NSLocationWhenInUseUsageDescription": "운동 중 페이스와 거리 측정을 위해 위치 정보가 필요합니다.",
-                "NSLocationAlwaysAndWhenInUseUsageDescription": "운동 중 페이스와 거리 측정을 위해 위치 정보가 필요합니다.",
-                "NSMotionUsageDescription": "운동 분석을 위해 모션 데이터를 사용합니다.",
-                "NSHealthShareUsageDescription": "심박수 등 운동 데이터를 읽어옵니다.",
-                "NSHealthUpdateUsageDescription": "운동 결과를 건강 앱에 저장합니다.",
+                "NSLocationWhenInUseUsageDescription": "HYROX SIM uses your location during workouts to measure your running pace and distance.",
+                "NSLocationAlwaysAndWhenInUseUsageDescription": "HYROX SIM uses your location during workouts to keep measuring your running pace and distance while the workout remains active.",
+                "NSMotionUsageDescription": "HYROX SIM uses motion data to support movement analysis during workout sessions.",
+                "NSHealthShareUsageDescription": "HYROX SIM reads your heart rate from HealthKit during workouts.",
+                "NSHealthUpdateUsageDescription": "HYROX SIM saves completed workout results to the Health app.",
                 "UIBackgroundModes": ["location", "audio"],
                 "NSSupportsLiveActivities": true
             ]),
@@ -106,6 +106,27 @@ let project = Project(
                 "../../Targets/HyroxSim/Resources/GoogleService-Info.plist"
             ],
             entitlements: "../../Targets/HyroxSim/HyroxSim.entitlements",
+            scripts: [
+                .post(
+                    script: """
+                    set -eu
+                    APP_BUNDLE="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
+                    mkdir -p "${APP_BUNDLE}/en.lproj" "${APP_BUNDLE}/ko.lproj"
+                    cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/en.lproj/InfoPlist.strings" "${APP_BUNDLE}/en.lproj/InfoPlist.strings"
+                    cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/ko.lproj/InfoPlist.strings" "${APP_BUNDLE}/ko.lproj/InfoPlist.strings"
+                    """,
+                    name: "Copy Localized InfoPlist Strings",
+                    inputPaths: [
+                        "../../Targets/HyroxSim/Resources/en.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSim/Resources/ko.lproj/InfoPlist.strings"
+                    ],
+                    outputPaths: [
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings"
+                    ],
+                    basedOnDependencyAnalysis: false
+                )
+            ],
             dependencies: [
                 .external(name: "FirebaseCore"),
                 .project(target: "HyroxCore", path: "../HyroxCore"),
@@ -130,9 +151,9 @@ let project = Project(
             deploymentTargets: .watchOS("10.0"),
             infoPlist: .extendingDefault(with: [
                 "WKApplication": true,
-                "NSLocationWhenInUseUsageDescription": "운동 중 페이스와 거리 측정을 위해 위치 정보가 필요합니다.",
-                "NSHealthShareUsageDescription": "심박수 등 운동 데이터를 읽어옵니다.",
-                "NSHealthUpdateUsageDescription": "운동 결과를 건강 앱에 저장합니다.",
+                "NSLocationWhenInUseUsageDescription": "HYROX SIM uses your location during workouts on Apple Watch to measure your running pace and distance.",
+                "NSHealthShareUsageDescription": "HYROX SIM reads your heart rate from HealthKit during workouts on Apple Watch.",
+                "NSHealthUpdateUsageDescription": "HYROX SIM saves completed Apple Watch workout results to the Health app.",
                 "WKBackgroundModes": ["workout-processing"],
                 "WKCompanionAppBundleIdentifier": "com.bbdyno.app.HyroxSim"
             ]),
@@ -141,6 +162,27 @@ let project = Project(
                 "../../Targets/HyroxSimWatch/Resources/Assets.xcassets"
             ],
             entitlements: "../../Targets/HyroxSimWatch/HyroxSimWatch.entitlements",
+            scripts: [
+                .post(
+                    script: """
+                    set -eu
+                    APP_BUNDLE="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
+                    mkdir -p "${APP_BUNDLE}/en.lproj" "${APP_BUNDLE}/ko.lproj"
+                    cp "${PROJECT_DIR}/../../Targets/HyroxSimWatch/Resources/en.lproj/InfoPlist.strings" "${APP_BUNDLE}/en.lproj/InfoPlist.strings"
+                    cp "${PROJECT_DIR}/../../Targets/HyroxSimWatch/Resources/ko.lproj/InfoPlist.strings" "${APP_BUNDLE}/ko.lproj/InfoPlist.strings"
+                    """,
+                    name: "Copy Localized InfoPlist Strings",
+                    inputPaths: [
+                        "../../Targets/HyroxSimWatch/Resources/en.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSimWatch/Resources/ko.lproj/InfoPlist.strings"
+                    ],
+                    outputPaths: [
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings"
+                    ],
+                    basedOnDependencyAnalysis: false
+                )
+            ],
             dependencies: [
                 .project(target: "HyroxCore", path: "../HyroxCore"),
                 .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple")

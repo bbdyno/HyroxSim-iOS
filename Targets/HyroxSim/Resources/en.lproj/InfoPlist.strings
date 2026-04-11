@@ -1,0 +1,5 @@
+"NSLocationWhenInUseUsageDescription" = "HYROX SIM uses your location during workouts to measure your running pace and distance.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "HYROX SIM uses your location during workouts to keep measuring your running pace and distance while the workout remains active.";
+"NSMotionUsageDescription" = "HYROX SIM uses motion data to support movement analysis during workout sessions.";
+"NSHealthShareUsageDescription" = "HYROX SIM reads your heart rate from HealthKit during workouts.";
+"NSHealthUpdateUsageDescription" = "HYROX SIM saves completed workout results to the Health app.";

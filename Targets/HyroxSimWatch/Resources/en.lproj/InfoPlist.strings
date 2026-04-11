@@ -1,0 +1,3 @@
+"NSLocationWhenInUseUsageDescription" = "HYROX SIM uses your location during workouts on Apple Watch to measure your running pace and distance.";
+"NSHealthShareUsageDescription" = "HYROX SIM reads your heart rate from HealthKit during workouts on Apple Watch.";
+"NSHealthUpdateUsageDescription" = "HYROX SIM saves completed Apple Watch workout results to the Health app.";
