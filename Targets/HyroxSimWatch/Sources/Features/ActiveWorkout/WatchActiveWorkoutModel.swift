@@ -25,6 +25,9 @@ final class WatchActiveWorkoutModel {
     private(set) var distanceText: String = "0 m"
     private(set) var heartRateText: String = "—"
     private(set) var heartRateZone: HeartRateZone?
+    private(set) var goalText: String = "—"
+    private(set) var goalDeltaText: String = "—"
+    private(set) var isOverGoal: Bool = false
     private(set) var stationNameText: String?
     private(set) var stationTargetText: String?
     private(set) var accentKind: AccentKind = .run
@@ -53,11 +56,14 @@ final class WatchActiveWorkoutModel {
     private var mirroringTask: Task<Void, Never>?
     private var segmentStartHKDistance: Double = 0
     private var isMirroringActive = false
+    private var didStart = false
     private var lastRemoteCommand: (command: WorkoutCommand, at: Date)?
     private var uiTestAutoEndDeadline: Date?
+    private var alertedGoalSegmentId: UUID?
 
     var finishHandler: ((CompletedWorkout) -> Void)?
     var errorHandler: ((Error) -> Void)?
+    var goalAlertHandler: (() -> Void)?
 
     init(
         template: WorkoutTemplate,
@@ -83,6 +89,8 @@ final class WatchActiveWorkoutModel {
     // MARK: - Lifecycle
 
     func start() async {
+        guard !didStart else { return }
+        didStart = true
         do {
             try engine.start(at: Date())
             if uiTestAutoEndDeadline == nil,
@@ -95,6 +103,7 @@ final class WatchActiveWorkoutModel {
             refresh()
             startSensors()
         } catch {
+            didStart = false
             errorHandler?(error)
         }
     }
@@ -166,11 +175,29 @@ final class WatchActiveWorkoutModel {
 
         guard let current = engine.currentSegment, let index = engine.currentSegmentIndex else {
             isFinished = engine.isFinished
+            goalText = "—"
+            goalDeltaText = "—"
+            isOverGoal = false
             return
         }
 
         let live = engine.liveMeasurementsSnapshot
         let segElapsed = engine.segmentElapsed(at: now)
+
+        if let goalSeconds = current.goalDurationSeconds {
+            goalText = DurationFormatter.ms(goalSeconds)
+            let delta = segElapsed - goalSeconds
+            goalDeltaText = DurationFormatter.signedMs(delta)
+            isOverGoal = delta >= 0
+            if isOverGoal, alertedGoalSegmentId != current.id {
+                alertedGoalSegmentId = current.id
+                goalAlertHandler?()
+            }
+        } else {
+            goalText = "—"
+            goalDeltaText = "—"
+            isOverGoal = false
+        }
 
         // GPS 거리 부족 시 HKWorkoutBuilder 거리로 폴백
         let gpsPace = live.averagePaceSecondsPerKm(activeDuration: segElapsed)
@@ -255,6 +282,7 @@ final class WatchActiveWorkoutModel {
             segmentElapsedText: segmentElapsedText, totalElapsedText: totalElapsedText,
             paceText: paceText, distanceText: distanceText,
             heartRateText: heartRateText, heartRateZoneRaw: heartRateZone?.rawValue,
+            goalText: goalText, goalDeltaText: goalDeltaText, isOverGoal: isOverGoal,
             stationNameText: stationNameText, stationTargetText: stationTargetText,
             accentKindRaw: accentRaw,
             isPaused: isPaused, isFinished: isFinished, isLastSegment: isLastSegment,

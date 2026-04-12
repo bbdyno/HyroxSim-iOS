@@ -25,6 +25,9 @@ public final class ActiveWorkoutViewModel {
     public private(set) var distanceText: String = "0 m"
     public private(set) var heartRateText: String = "—"
     public private(set) var heartRateZone: HeartRateZone?
+    public private(set) var goalText: String = "—"
+    public private(set) var goalDeltaText: String = "—"
+    public private(set) var isOverGoal: Bool = false
     public private(set) var stationNameText: String?
     public private(set) var stationTargetText: String?
     public private(set) var accentKind: AccentKind = .run
@@ -58,11 +61,13 @@ public final class ActiveWorkoutViewModel {
     private var heartRateTask: Task<Void, Never>?
     private var lastKnownBpm: Int?
     private var liveActivity: Activity<WorkoutActivityAttributes>?
+    private var alertedGoalSegmentId: UUID?
 
     // MARK: - Callbacks
     public var errorHandler: ((Error) -> Void)?
     public var finishHandler: ((CompletedWorkout) -> Void)?
     public var cancelHandler: (() -> Void)?
+    public var goalAlertHandler: (() -> Void)?
 
     public init(
         template: WorkoutTemplate,
@@ -179,6 +184,7 @@ public final class ActiveWorkoutViewModel {
             segmentElapsedText: segmentElapsedText, totalElapsedText: totalElapsedText,
             paceText: paceText, distanceText: distanceText,
             heartRateText: heartRateText, heartRateZoneRaw: heartRateZone?.rawValue,
+            goalText: goalText, goalDeltaText: goalDeltaText, isOverGoal: isOverGoal,
             stationNameText: stationNameText, stationTargetText: stationTargetText,
             accentKindRaw: accentRaw, isPaused: isPaused, isFinished: isFinished, isLastSegment: isLastSegment,
             gpsStrong: gpsStrong, gpsActive: gpsActive,
@@ -201,11 +207,27 @@ public final class ActiveWorkoutViewModel {
 
         guard let current = engine.currentSegment, let index = engine.currentSegmentIndex else {
             isFinished = engine.isFinished
+            isOverGoal = false
             return
         }
 
         let total = engine.template.segments.count
         let live = engine.liveMeasurementsSnapshot
+
+        if let goalSeconds = current.goalDurationSeconds {
+            goalText = DurationFormatter.ms(goalSeconds)
+            let delta = segElapsed - goalSeconds
+            goalDeltaText = DurationFormatter.signedMs(delta)
+            isOverGoal = delta >= 0
+            if isOverGoal, alertedGoalSegmentId != current.id {
+                alertedGoalSegmentId = current.id
+                goalAlertHandler?()
+            }
+        } else {
+            goalText = "—"
+            goalDeltaText = "—"
+            isOverGoal = false
+        }
 
         switch current.type {
         case .run:

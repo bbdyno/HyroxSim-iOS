@@ -8,8 +8,6 @@
 import UIKit
 import HyroxCore
 
-/// 워치에서 진행 중인 운동을 폰에서 실시간으로 보여주는 미러 화면.
-/// 워치의 LiveWorkoutState를 받아 표시하고, 원격 명령을 보낼 수 있다.
 @MainActor
 protocol LiveWorkoutMirrorDelegate: AnyObject {
     func mirrorDidClose()
@@ -20,22 +18,28 @@ final class LiveWorkoutMirrorViewController: UIViewController {
 
     weak var delegate: LiveWorkoutMirrorDelegate?
 
+    private let backgroundView = UIView()
+    private let contentStack = UIStackView()
+    private let watchBadge = UILabel()
+    private let gpsLabel = UILabel()
     private let headerLabel = UILabel()
     private let subHeaderLabel = UILabel()
     private let segmentMetric = MetricView()
     private let totalMetric = MetricView()
-    private let paceMetric = MetricView()
-    private let stationNameMetric = MetricView()
-    private let stationTargetMetric = MetricView()
+    private let infoPrimaryMetric = MetricView()
+    private let infoSecondaryMetric = MetricView()
     private let heartMetric = MetricView()
-    private let gpsLabel = UILabel()
-    private let nextButton = UIButton(type: .system)
+    private let goalCard = UIView()
+    private let goalTitleLabel = UILabel()
+    private let goalValueLabel = UILabel()
+    private let goalDeltaLabel = UILabel()
+    private let advanceControl = SlideActionControl()
     private let pauseButton = UIButton(type: .system)
     private let endButton = UIButton(type: .system)
-    private let watchBadge = UILabel()
 
     private var lastState: LiveWorkoutState?
     private var isConnected = true
+    private var alertedGoalSegmentIndex: Int?
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -47,7 +51,6 @@ final class LiveWorkoutMirrorViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = DesignTokens.Color.background
         setupUI()
         setupButtons()
     }
@@ -64,56 +67,67 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         UIApplication.shared.isIdleTimerDisabled = false
     }
 
-    /// 워치에서 수신한 실시간 상태를 반영
     func updateState(_ state: LiveWorkoutState) {
+        if state.isOverGoal, alertedGoalSegmentIndex != state.currentSegmentIndex {
+            alertedGoalSegmentIndex = state.currentSegmentIndex
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        }
+
         lastState = state
+
+        watchBadge.text = isConnected ? "LIVE FROM APPLE WATCH" : "WATCH DISCONNECTED"
+        watchBadge.textColor = isConnected ? DesignTokens.Color.accent : .systemRed
+
+        gpsLabel.text = gpsText(for: state)
+        gpsLabel.textColor = gpsColor(for: state)
 
         headerLabel.text = state.segmentLabel
         subHeaderLabel.text = state.segmentSubLabel
         subHeaderLabel.isHidden = state.segmentSubLabel == nil
 
-        segmentMetric.setValue(state.segmentElapsedText, caption: "SEGMENT")
+        segmentMetric.setValue(state.segmentElapsedText, caption: "CURRENT")
         totalMetric.setValue(state.totalElapsedText, caption: "TOTAL")
 
-        let isStation = state.accentKindRaw == "station"
-        if isStation {
-            stationNameMetric.setValue(state.stationNameText ?? "—", caption: "STATION")
-            stationTargetMetric.setValue(state.stationTargetText ?? "—", caption: "TARGET")
-        } else {
-            paceMetric.setValue(state.paceText, caption: "PACE")
-        }
-        paceMetric.isHidden = isStation
-        stationNameMetric.superview?.isHidden = !isStation
+        goalValueLabel.text = state.goalText
+        goalDeltaLabel.text = state.goalDeltaText
+        goalDeltaLabel.textColor = state.isOverGoal ? .systemRed : DesignTokens.Color.success
+        goalCard.backgroundColor = state.isOverGoal
+            ? UIColor.systemRed.withAlphaComponent(0.2)
+            : UIColor.white.withAlphaComponent(0.08)
+        goalCard.layer.borderColor = state.isOverGoal
+            ? UIColor.systemRed.withAlphaComponent(0.35).cgColor
+            : UIColor.white.withAlphaComponent(0.08).cgColor
 
-        heartMetric.setValue("\(state.heartRateText) ♥", caption: "HEART")
+        if state.accentKindRaw == "station" {
+            infoPrimaryMetric.setValue(state.stationNameText ?? "—", caption: "STATION")
+            infoSecondaryMetric.setValue(state.stationTargetText ?? "—", caption: "TARGET")
+            infoPrimaryMetric.setValueColor(accentColor(for: state))
+            infoSecondaryMetric.setValueColor(.white)
+        } else {
+            infoPrimaryMetric.setValue(state.paceText, caption: "PACE")
+            infoSecondaryMetric.setValue(state.distanceText, caption: "DISTANCE")
+            infoPrimaryMetric.setValueColor(.white)
+            infoSecondaryMetric.setValueColor(accentColor(for: state))
+        }
+
+        heartMetric.setValue("\(state.heartRateText) BPM", caption: "HEART")
         if let zoneRaw = state.heartRateZoneRaw, let zone = HeartRateZone(rawValue: zoneRaw) {
             heartMetric.setValueColor(colorFor(zone: zone))
         } else {
             heartMetric.setValueColor(.white)
         }
 
-        // Accent color on header
-        switch state.accentKindRaw {
-        case "run": headerLabel.textColor = DesignTokens.Color.runAccent
-        case "roxZone": headerLabel.textColor = DesignTokens.Color.roxZoneAccent
-        default: headerLabel.textColor = DesignTokens.Color.accent
-        }
+        headerLabel.textColor = accentColor(for: state)
+        backgroundView.backgroundColor = backgroundColor(for: state)
+        pauseButton.setImage(
+            UIImage(systemName: state.isPaused ? "play.fill" : "pause.fill"),
+            for: .normal
+        )
+        advanceControl.title = state.isLastSegment ? "SLIDE TO FINISH" : "SLIDE TO NEXT"
+        advanceControl.accentColor = state.isLastSegment ? .systemGreen : accentColor(for: state)
+        advanceControl.accessibilityLabel = advanceControl.title
 
-        // GPS
-        if !state.gpsActive {
-            gpsLabel.text = "📍 GPS OFF"
-            gpsLabel.textColor = UIColor.white.withAlphaComponent(0.2)
-        } else if state.gpsStrong {
-            gpsLabel.text = "📍 GPS ●●●"
-            gpsLabel.textColor = .systemGreen
-        } else {
-            gpsLabel.text = "📍 GPS ●○○"
-            gpsLabel.textColor = .systemOrange
-        }
-
-        // Buttons
-        nextButton.setTitle(state.isLastSegment ? "FINISH ✓" : "NEXT ▶", for: .normal)
-        pauseButton.setImage(UIImage(systemName: state.isPaused ? "play.fill" : "pause.fill"), for: .normal)
+        setControlsEnabled(isConnected)
 
         if state.isFinished {
             delegate?.mirrorDidClose()
@@ -122,126 +136,182 @@ final class LiveWorkoutMirrorViewController: UIViewController {
 
     func showDisconnected() {
         isConnected = false
-        watchBadge.text = "⌚ WATCH DISCONNECTED"
+        watchBadge.text = "WATCH DISCONNECTED"
         watchBadge.textColor = .systemRed
         setControlsEnabled(false)
     }
 
     func showReconnected() {
         isConnected = true
-        watchBadge.text = "⌚ LIVE FROM APPLE WATCH"
+        watchBadge.text = "LIVE FROM APPLE WATCH"
         watchBadge.textColor = DesignTokens.Color.accent
         setControlsEnabled(true)
-        if let last = lastState { updateState(last) }
+        if let lastState {
+            updateState(lastState)
+        }
     }
 
-    // MARK: - UI
-
     private func setupUI() {
-        // Watch badge
-        watchBadge.text = "⌚ LIVE FROM APPLE WATCH"
-        watchBadge.font = .systemFont(ofSize: 10, weight: .bold)
+        view.backgroundColor = .black
+
+        backgroundView.translatesAutoresizingMaskIntoConstraints = false
+        backgroundView.backgroundColor = DesignTokens.Color.runBackground
+        view.addSubview(backgroundView)
+        NSLayoutConstraint.activate([
+            backgroundView.topAnchor.constraint(equalTo: view.topAnchor),
+            backgroundView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            backgroundView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        watchBadge.font = .systemFont(ofSize: 10, weight: .black)
         watchBadge.textColor = DesignTokens.Color.accent
         watchBadge.textAlignment = .center
-        watchBadge.accessibilityIdentifier = "liveMirror.watchBadge"
+        watchBadge.text = "LIVE FROM APPLE WATCH"
 
-        gpsLabel.font = .systemFont(ofSize: 10, weight: .medium)
-        gpsLabel.textColor = .gray
+        gpsLabel.font = .systemFont(ofSize: 11, weight: .bold)
         gpsLabel.textAlignment = .center
-        gpsLabel.accessibilityIdentifier = "liveMirror.gpsLabel"
+        gpsLabel.textColor = UIColor.white.withAlphaComponent(0.7)
 
-        headerLabel.font = .systemFont(ofSize: 16, weight: .bold)
-        headerLabel.textColor = DesignTokens.Color.accent
+        headerLabel.font = .systemFont(ofSize: 24, weight: .black)
         headerLabel.textAlignment = .center
-        headerLabel.accessibilityIdentifier = "liveMirror.headerLabel"
+        headerLabel.textColor = .white
+        headerLabel.numberOfLines = 2
 
-        subHeaderLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        subHeaderLabel.textColor = UIColor.white.withAlphaComponent(0.6)
+        subHeaderLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         subHeaderLabel.textAlignment = .center
+        subHeaderLabel.textColor = UIColor.white.withAlphaComponent(0.75)
+        subHeaderLabel.numberOfLines = 2
         subHeaderLabel.isHidden = true
-        subHeaderLabel.accessibilityIdentifier = "liveMirror.subHeaderLabel"
 
-        segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 64, weight: .bold)
-        totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .medium)
-        totalMetric.valueLabel.textColor = UIColor.white.withAlphaComponent(0.6)
+        segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 92, weight: .black)
+        totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
+        totalMetric.widthAnchor.constraint(equalToConstant: 132).isActive = true
+        infoPrimaryMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
+        infoSecondaryMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
+        heartMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
 
-        let row2Station = UIStackView(arrangedSubviews: [stationNameMetric, stationTargetMetric])
-        row2Station.distribution = .fillEqually; row2Station.spacing = 16
+        let topMeta = UIStackView(arrangedSubviews: [watchBadge, gpsLabel])
+        topMeta.axis = .vertical
+        topMeta.spacing = 4
 
-        let mainStack = UIStackView(arrangedSubviews: [
-            watchBadge, gpsLabel, headerLabel, subHeaderLabel,
-            segmentMetric, totalMetric,
-            paceMetric, row2Station, heartMetric
-        ])
-        mainStack.axis = .vertical
-        mainStack.alignment = .fill
-        mainStack.spacing = 10
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(mainStack)
+        let topRow = UIStackView(arrangedSubviews: [topMeta, totalMetric])
+        topRow.axis = .horizontal
+        topRow.alignment = .center
+        topRow.spacing = 16
+
+        goalTitleLabel.text = "GOAL"
+        goalTitleLabel.font = .systemFont(ofSize: 11, weight: .black)
+        goalTitleLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+
+        goalValueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
+        goalValueLabel.textColor = .white
+
+        goalDeltaLabel.font = .monospacedDigitSystemFont(ofSize: 30, weight: .black)
+        goalDeltaLabel.textAlignment = .right
+
+        let goalTextStack = UIStackView(arrangedSubviews: [goalTitleLabel, goalValueLabel])
+        goalTextStack.axis = .vertical
+        goalTextStack.spacing = 2
+
+        let goalStack = UIStackView(arrangedSubviews: [goalTextStack, goalDeltaLabel])
+        goalStack.axis = .horizontal
+        goalStack.alignment = .center
+        goalStack.spacing = 12
+        goalStack.translatesAutoresizingMaskIntoConstraints = false
+
+        goalCard.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        goalCard.layer.cornerRadius = 18
+        goalCard.layer.borderWidth = 1
+        goalCard.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
+        goalCard.translatesAutoresizingMaskIntoConstraints = false
+        goalCard.addSubview(goalStack)
         NSLayoutConstraint.activate([
-            mainStack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -50),
-            mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+            goalStack.topAnchor.constraint(equalTo: goalCard.topAnchor, constant: 14),
+            goalStack.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor, constant: 16),
+            goalStack.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor, constant: -16),
+            goalStack.bottomAnchor.constraint(equalTo: goalCard.bottomAnchor, constant: -14)
+        ])
+
+        let infoRow = UIStackView(arrangedSubviews: [infoPrimaryMetric, infoSecondaryMetric])
+        infoRow.axis = .horizontal
+        infoRow.alignment = .fill
+        infoRow.distribution = .fillEqually
+        infoRow.spacing = 12
+
+        contentStack.axis = .vertical
+        contentStack.alignment = .fill
+        contentStack.spacing = 16
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.addArrangedSubview(topRow)
+        contentStack.addArrangedSubview(headerLabel)
+        contentStack.addArrangedSubview(subHeaderLabel)
+        contentStack.addArrangedSubview(segmentMetric)
+        contentStack.addArrangedSubview(goalCard)
+        contentStack.addArrangedSubview(infoRow)
+        contentStack.addArrangedSubview(heartMetric)
+        view.addSubview(contentStack)
+
+        NSLayoutConstraint.activate([
+            contentStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
         ])
     }
 
     private func setupButtons() {
+        let buttonSize: CGFloat = 54
         let margin: CGFloat = 24
 
-        nextButton.translatesAutoresizingMaskIntoConstraints = false
-        nextButton.setTitle("NEXT ▶", for: .normal)
-        nextButton.titleLabel?.font = .systemFont(ofSize: 20, weight: .bold)
-        nextButton.setTitleColor(.white, for: .normal)
-        nextButton.backgroundColor = UIColor.white.withAlphaComponent(0.25)
-        nextButton.layer.cornerRadius = 28
-        nextButton.layer.borderWidth = 2
-        nextButton.layer.borderColor = UIColor.white.withAlphaComponent(0.6).cgColor
-        nextButton.accessibilityIdentifier = "liveMirror.nextButton"
-        nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
-        view.addSubview(nextButton)
-        NSLayoutConstraint.activate([
-            nextButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            nextButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -margin),
-            nextButton.widthAnchor.constraint(equalToConstant: 180),
-            nextButton.heightAnchor.constraint(equalToConstant: 56)
-        ])
+        advanceControl.translatesAutoresizingMaskIntoConstraints = false
+        advanceControl.heightAnchor.constraint(equalToConstant: 68).isActive = true
+        advanceControl.addTarget(self, action: #selector(advanceTriggered), for: .primaryActionTriggered)
 
-        let btnSize: CGFloat = 50
-        for btn in [pauseButton, endButton] {
-            btn.tintColor = .white
-            btn.translatesAutoresizingMaskIntoConstraints = false
-            btn.layer.cornerRadius = btnSize / 2
-            btn.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-            view.addSubview(btn)
-            btn.widthAnchor.constraint(equalToConstant: btnSize).isActive = true
-            btn.heightAnchor.constraint(equalToConstant: btnSize).isActive = true
+        for button in [pauseButton, endButton] {
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.tintColor = .white
+            button.backgroundColor = UIColor.black.withAlphaComponent(0.25)
+            button.layer.cornerRadius = buttonSize / 2
+            button.widthAnchor.constraint(equalToConstant: buttonSize).isActive = true
+            button.heightAnchor.constraint(equalToConstant: buttonSize).isActive = true
         }
 
         pauseButton.setImage(UIImage(systemName: "pause.fill"), for: .normal)
-        pauseButton.accessibilityIdentifier = "liveMirror.pauseButton"
         pauseButton.addTarget(self, action: #selector(pauseTapped), for: .touchUpInside)
-        NSLayoutConstraint.activate([
-            pauseButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            pauseButton.bottomAnchor.constraint(equalTo: nextButton.topAnchor, constant: -16)
-        ])
 
-        endButton.setImage(UIImage(systemName: "stop.fill"), for: .normal)
-        endButton.accessibilityIdentifier = "liveMirror.endButton"
+        endButton.setImage(UIImage(systemName: "xmark"), for: .normal)
+        endButton.backgroundColor = UIColor.red.withAlphaComponent(0.2)
         endButton.addTarget(self, action: #selector(endTapped), for: .touchUpInside)
+
+        let controlRow = UIStackView(arrangedSubviews: [pauseButton, advanceControl, endButton])
+        controlRow.axis = .horizontal
+        controlRow.alignment = .center
+        controlRow.spacing = 14
+        controlRow.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(controlRow)
+
         NSLayoutConstraint.activate([
-            endButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
-            endButton.bottomAnchor.constraint(equalTo: nextButton.topAnchor, constant: -16)
+            controlRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
+            controlRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
+            controlRow.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
         ])
     }
 
-    @objc private func nextTapped() {
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    private func setControlsEnabled(_ enabled: Bool) {
+        [pauseButton, endButton, advanceControl].forEach { $0.isUserInteractionEnabled = enabled }
+        let alpha: CGFloat = enabled ? 1 : 0.45
+        pauseButton.alpha = alpha
+        endButton.alpha = alpha
+        advanceControl.alpha = alpha
+    }
+
+    @objc private func advanceTriggered() {
         delegate?.mirrorSendCommand(.advance)
     }
 
     @objc private func pauseTapped() {
-        let cmd: WorkoutCommand = (lastState?.isPaused == true) ? .resume : .pause
-        delegate?.mirrorSendCommand(cmd)
+        let command: WorkoutCommand = lastState?.isPaused == true ? .resume : .pause
+        delegate?.mirrorSendCommand(command)
     }
 
     @objc private func endTapped() {
@@ -253,6 +323,36 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         present(alert, animated: true)
     }
 
+    private func accentColor(for state: LiveWorkoutState) -> UIColor {
+        switch state.accentKindRaw {
+        case "run": return DesignTokens.Color.runAccent
+        case "roxZone": return DesignTokens.Color.roxZoneAccent
+        default: return DesignTokens.Color.stationAccent
+        }
+    }
+
+    private func backgroundColor(for state: LiveWorkoutState) -> UIColor {
+        if state.isOverGoal {
+            return UIColor(red: 0.36, green: 0.06, blue: 0.06, alpha: 1)
+        }
+
+        switch state.accentKindRaw {
+        case "run": return DesignTokens.Color.runBackground
+        case "roxZone": return DesignTokens.Color.roxZoneBackground
+        default: return DesignTokens.Color.stationBackground
+        }
+    }
+
+    private func gpsText(for state: LiveWorkoutState) -> String {
+        if !state.gpsActive { return "GPS OFF" }
+        return state.gpsStrong ? "GPS STRONG" : "GPS SEARCHING"
+    }
+
+    private func gpsColor(for state: LiveWorkoutState) -> UIColor {
+        if !state.gpsActive { return UIColor.white.withAlphaComponent(0.22) }
+        return state.gpsStrong ? .systemGreen : .systemOrange
+    }
+
     private func colorFor(zone: HeartRateZone) -> UIColor {
         switch zone {
         case .z1: return .lightGray
@@ -261,15 +361,5 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         case .z4: return .systemOrange
         case .z5: return .systemRed
         }
-    }
-
-    private func setControlsEnabled(_ isEnabled: Bool) {
-        nextButton.isEnabled = isEnabled
-        pauseButton.isEnabled = isEnabled
-        endButton.isEnabled = isEnabled
-        let alpha: CGFloat = isEnabled ? 1 : 0.45
-        nextButton.alpha = alpha
-        pauseButton.alpha = alpha
-        endButton.alpha = alpha
     }
 }

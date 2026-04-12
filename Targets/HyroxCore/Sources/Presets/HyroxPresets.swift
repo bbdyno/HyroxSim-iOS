@@ -72,6 +72,7 @@ public enum HyroxPresets {
             name: division.displayName,
             division: division,
             segments: segments,
+            usesRoxZone: true,
             isBuiltIn: true
         )
     }

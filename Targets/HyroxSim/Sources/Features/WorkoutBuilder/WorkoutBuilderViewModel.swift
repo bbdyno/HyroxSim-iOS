@@ -16,6 +16,7 @@ public final class WorkoutBuilderViewModel {
     public private(set) var name: String
     public private(set) var division: HyroxDivision?
     public private(set) var segments: [WorkoutSegment]
+    public private(set) var usesRoxZone: Bool
 
     private let persistence: PersistenceController
 
@@ -24,11 +25,14 @@ public final class WorkoutBuilderViewModel {
         if let t = template {
             self.name = t.isBuiltIn ? "Custom from \(t.name)" : t.name
             self.division = t.division
-            // Clone segments with new UUIDs to preserve original immutability
-            self.segments = t.segments.map { seg in
+            self.usesRoxZone = t.usesRoxZone || t.segments.contains(where: { $0.type == .roxZone })
+            // Builder only edits logical segments. ROX Zone is synthesized from the toggle.
+            self.segments = t.logicalSegments
+                .map { seg in
                 WorkoutSegment(
                     type: seg.type,
                     distanceMeters: seg.distanceMeters,
+                    goalDurationSeconds: seg.goalDurationSeconds,
                     stationKind: seg.stationKind,
                     stationTarget: seg.stationTarget,
                     weightKg: seg.weightKg,
@@ -39,12 +43,17 @@ public final class WorkoutBuilderViewModel {
             self.name = "My Workout"
             self.division = nil
             self.segments = []
+            self.usesRoxZone = true
         }
     }
 
     // MARK: - Editing
 
     public func rename(to newName: String) { name = newName }
+
+    public func setUsesRoxZone(_ enabled: Bool) {
+        usesRoxZone = enabled
+    }
 
     public func addSegment(_ segment: WorkoutSegment, at index: Int? = nil) {
         if let i = index { segments.insert(segment, at: i) } else { segments.append(segment) }
@@ -85,15 +94,11 @@ public final class WorkoutBuilderViewModel {
     }
 
     public var estimatedDurationSeconds: TimeInterval {
-        segments.reduce(0) { total, seg in
-            switch seg.type {
-            case .run:
-                return total + (seg.distanceMeters ?? 0) * 0.36
-            case .roxZone:
-                return total + 30
-            case .station:
-                return total + 240
-            }
+        materializedSegments().reduce(0) { total, seg in
+            total + (seg.goalDurationSeconds ?? WorkoutSegment.defaultGoalDurationSeconds(
+                for: seg.type,
+                distanceMeters: seg.distanceMeters
+            ))
         }
     }
 
@@ -103,7 +108,8 @@ public final class WorkoutBuilderViewModel {
         let template = WorkoutTemplate(
             name: name,
             division: division,
-            segments: segments,
+            segments: materializedSegments(),
+            usesRoxZone: usesRoxZone,
             isBuiltIn: false
         )
         try template.validate()
@@ -115,10 +121,15 @@ public final class WorkoutBuilderViewModel {
         let template = WorkoutTemplate(
             name: name,
             division: division,
-            segments: segments,
+            segments: materializedSegments(),
+            usesRoxZone: usesRoxZone,
             isBuiltIn: false
         )
         try template.validate()
         return template
+    }
+
+    private func materializedSegments() -> [WorkoutSegment] {
+        WorkoutTemplate.materializedSegments(from: segments, usesRoxZone: usesRoxZone)
     }
 }

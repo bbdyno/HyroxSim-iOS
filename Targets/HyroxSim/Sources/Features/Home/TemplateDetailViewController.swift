@@ -16,12 +16,21 @@ protocol TemplateDetailViewControllerDelegate: AnyObject {
 final class TemplateDetailViewController: UIViewController {
 
     weak var delegate: TemplateDetailViewControllerDelegate?
-    private let template: WorkoutTemplate
+    private var template: WorkoutTemplate
+    private let preservedRoxSegments: [WorkoutSegment]
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
+    private let titleLabel = UILabel()
+    private let metaLabel = UILabel()
+    private let roxZoneSwitch = UISwitch()
+    private let roxSubtitleLabel = UILabel()
+    private let courseRowsStack = UIStackView()
+    private let footerContainer = UIView()
+    private let startButton = UIButton(type: .system)
 
     init(template: WorkoutTemplate) {
         self.template = template
+        self.preservedRoxSegments = template.segments.filter { $0.type == .roxZone }
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -30,23 +39,26 @@ final class TemplateDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = template.division?.shortName ?? template.name
         view.backgroundColor = DesignTokens.Color.background
         applyDarkNavBarAppearance()
+        navigationItem.largeTitleDisplayMode = .never
+        setupFooter()
         setupScrollView()
         buildContent()
+        rebuildContent()
     }
 
     // MARK: - Layout
 
     private func setupScrollView() {
+        scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollView)
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            scrollView.bottomAnchor.constraint(equalTo: footerContainer.topAnchor)
         ])
 
         contentStack.axis = .vertical
@@ -55,39 +67,162 @@ final class TemplateDetailViewController: UIViewController {
         scrollView.addSubview(contentStack)
         let m: CGFloat = 20
         NSLayoutConstraint.activate([
-            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: m),
-            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: m),
-            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -m),
-            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -m)
+            contentStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: m),
+            contentStack.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor, constant: m),
+            contentStack.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor, constant: -m),
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -m)
         ])
     }
 
-    private func buildContent() {
-        let accent = DesignTokens.Color.accent
+    private func setupFooter() {
+        footerContainer.translatesAutoresizingMaskIntoConstraints = false
+        footerContainer.backgroundColor = DesignTokens.Color.background
+        view.addSubview(footerContainer)
 
-        // Header
-        addLabel(template.division?.displayName ?? template.name, font: .systemFont(ofSize: 22, weight: .bold), color: .white)
-        addSpacer(8)
+        let separator = UIView()
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        separator.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        footerContainer.addSubview(separator)
+
+        startButton.setTitle("Start Workout", for: .normal)
+        startButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
+        startButton.setTitleColor(.black, for: .normal)
+        startButton.backgroundColor = DesignTokens.Color.accent
+        startButton.layer.cornerRadius = 24
+        startButton.translatesAutoresizingMaskIntoConstraints = false
+        startButton.addTarget(self, action: #selector(startTapped), for: .touchUpInside)
+        footerContainer.addSubview(startButton)
+
+        NSLayoutConstraint.activate([
+            footerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            footerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            footerContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            separator.topAnchor.constraint(equalTo: footerContainer.topAnchor),
+            separator.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor),
+            separator.heightAnchor.constraint(equalToConstant: 0.5),
+
+            startButton.topAnchor.constraint(equalTo: footerContainer.topAnchor, constant: 12),
+            startButton.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 20),
+            startButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -20),
+            startButton.heightAnchor.constraint(equalToConstant: 48),
+            startButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12)
+        ])
+    }
+
+    private func rebuildContent() {
+        title = template.division?.shortName ?? template.name
+        titleLabel.text = template.division?.displayName ?? template.name
 
         let stations = template.segments.filter { $0.type == .station }.count
         let runDist = template.segments.filter { $0.type == .run }.compactMap(\.distanceMeters).reduce(0, +)
         let mins = Int(template.estimatedDurationSeconds / 60)
-        addLabel("\(stations) stations · \(DistanceFormatter.short(runDist)) run · ~\(mins) min", font: .systemFont(ofSize: 13, weight: .medium), color: DesignTokens.Color.textSecondary)
-        addSpacer(20)
+        metaLabel.text = "\(stations) stations · \(DistanceFormatter.short(runDist)) run · ~\(mins) min"
 
-        // Course header
-        addLabel("COURSE", font: .systemFont(ofSize: 12, weight: .bold), color: accent)
-        addSeparator(color: accent.withAlphaComponent(0.3))
+        roxZoneSwitch.isOn = template.usesRoxZone
+        roxSubtitleLabel.text = template.usesRoxZone
+            ? "Auto-inserts transition blocks between each run and station."
+            : "Runs connect directly to stations."
+
+        rebuildCourseRows()
+    }
+
+    private func buildContent() {
+        titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
+        titleLabel.textColor = .white
+        titleLabel.numberOfLines = 0
+        contentStack.addArrangedSubview(titleLabel)
+
         addSpacer(8)
 
-        // Segments
+        metaLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        metaLabel.textColor = DesignTokens.Color.textSecondary
+        metaLabel.numberOfLines = 0
+        contentStack.addArrangedSubview(metaLabel)
+
+        addSpacer(20)
+
+        let card = UIView()
+        card.backgroundColor = DesignTokens.Color.surfaceElevated
+        card.layer.cornerRadius = DesignTokens.Radius.card
+        card.heightAnchor.constraint(greaterThanOrEqualToConstant: 68).isActive = true
+
+        let titleLabel = UILabel()
+        titleLabel.text = "ROX ZONE"
+        titleLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        titleLabel.textColor = DesignTokens.Color.roxZoneAccent
+
+        roxSubtitleLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        roxSubtitleLabel.textColor = DesignTokens.Color.textSecondary
+        roxSubtitleLabel.numberOfLines = 0
+
+        roxZoneSwitch.onTintColor = DesignTokens.Color.accent
+        roxZoneSwitch.removeTarget(nil, action: nil, for: .valueChanged)
+        roxZoneSwitch.addTarget(self, action: #selector(roxZoneToggleChanged), for: .valueChanged)
+
+        let labels = UIStackView(arrangedSubviews: [titleLabel, roxSubtitleLabel])
+        labels.axis = .vertical
+        labels.spacing = 4
+
+        let row = UIStackView(arrangedSubviews: [labels, roxZoneSwitch])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 12
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        card.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
+            row.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            row.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+            row.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -14)
+        ])
+
+        contentStack.addArrangedSubview(card)
+        addSpacer(20)
+
+        let courseLabel = UILabel()
+        courseLabel.text = "COURSE"
+        courseLabel.font = .systemFont(ofSize: 12, weight: .bold)
+        courseLabel.textColor = DesignTokens.Color.accent
+        contentStack.addArrangedSubview(courseLabel)
+        addSeparator(color: DesignTokens.Color.accent.withAlphaComponent(0.3))
+        addSpacer(8)
+
+        courseRowsStack.axis = .vertical
+        courseRowsStack.spacing = 0
+        contentStack.addArrangedSubview(courseRowsStack)
+        addSpacer(24)
+    }
+
+    private func rebuildCourseRows() {
+        courseRowsStack.arrangedSubviews.forEach {
+            courseRowsStack.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+
         var stationIdx = 0
-        for (_, seg) in template.segments.enumerated() {
+        for seg in template.segments {
             switch seg.type {
             case .run:
-                addSegmentRow(num: nil, title: "Running", detail: DistanceFormatter.short(seg.distanceMeters ?? 0), color: DesignTokens.Color.runAccent, dimmed: false)
+                addSegmentRow(
+                    to: courseRowsStack,
+                    num: nil,
+                    title: "Running",
+                    detail: DistanceFormatter.short(seg.distanceMeters ?? 0),
+                    color: DesignTokens.Color.runAccent,
+                    dimmed: false
+                )
             case .roxZone:
-                addSegmentRow(num: nil, title: "Rox Zone", detail: nil, color: DesignTokens.Color.roxZoneAccent, dimmed: true)
+                addSegmentRow(
+                    to: courseRowsStack,
+                    num: nil,
+                    title: "Rox Zone",
+                    detail: nil,
+                    color: DesignTokens.Color.roxZoneAccent,
+                    dimmed: true
+                )
             case .station:
                 stationIdx += 1
                 let name = seg.stationKind?.displayName ?? "Station"
@@ -96,32 +231,40 @@ final class TemplateDetailViewController: UIViewController {
                     detail += " · \(Int(w))kg"
                     if let n = seg.weightNote { detail += " \(n)" }
                 }
-                addSegmentRow(num: String(format: "%02d", stationIdx), title: name, detail: detail, color: accent, dimmed: false)
+                addSegmentRow(
+                    to: courseRowsStack,
+                    num: String(format: "%02d", stationIdx),
+                    title: name,
+                    detail: detail,
+                    color: DesignTokens.Color.accent,
+                    dimmed: false
+                )
             }
         }
-
-        addSpacer(24)
-
-        // Start button
-        let startBtn = UIButton(type: .system)
-        startBtn.setTitle("Start Workout", for: .normal)
-        startBtn.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
-        startBtn.setTitleColor(.black, for: .normal)
-        startBtn.backgroundColor = accent
-        startBtn.layer.cornerRadius = 24
-        startBtn.heightAnchor.constraint(equalToConstant: 48).isActive = true
-        startBtn.addTarget(self, action: #selector(startTapped), for: .touchUpInside)
-        contentStack.addArrangedSubview(startBtn)
-        addSpacer(20)
     }
 
     @objc private func startTapped() {
         delegate?.templateDetailDidTapStart(template)
     }
 
+    @objc private func roxZoneToggleChanged() {
+        template = template.settingUsesRoxZone(
+            roxZoneSwitch.isOn,
+            preservedRoxSegments: preservedRoxSegments
+        )
+        rebuildContent()
+    }
+
     // MARK: - Helpers
 
-    private func addSegmentRow(num: String?, title: String, detail: String?, color: UIColor, dimmed: Bool) {
+    private func addSegmentRow(
+        to stackView: UIStackView,
+        num: String?,
+        title: String,
+        detail: String?,
+        color: UIColor,
+        dimmed: Bool
+    ) {
         let row = UIStackView()
         row.alignment = .center
         row.spacing = 10
@@ -174,7 +317,7 @@ final class TemplateDetailViewController: UIViewController {
             row.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -5)
         ])
-        contentStack.addArrangedSubview(container)
+        stackView.addArrangedSubview(container)
     }
 
     private func addLabel(_ text: String, font: UIFont, color: UIColor) {

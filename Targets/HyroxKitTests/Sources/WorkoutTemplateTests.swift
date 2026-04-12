@@ -64,4 +64,56 @@ final class WorkoutTemplateTests: XCTestCase {
         let template = WorkoutTemplate(name: "Bad", segments: [badSegment])
         XCTAssertThrowsError(try template.validate())
     }
+
+    func testLogicalSegmentsExcludeRoxZone() {
+        let template = WorkoutTemplate(
+            name: "Test",
+            segments: [.run(), .roxZone(), .station(.skiErg)]
+        )
+
+        XCTAssertEqual(template.logicalSegments.map(\.type), [.run, .station])
+    }
+
+    func testMaterializedSegmentsInsertRoxBetweenRunAndStationBoundaries() {
+        let segments: [WorkoutSegment] = [
+            .run(distanceMeters: 1000),
+            .station(.skiErg),
+            .run(distanceMeters: 1000)
+        ]
+
+        let materialized = WorkoutTemplate.materializedSegments(from: segments, usesRoxZone: true)
+
+        XCTAssertEqual(
+            materialized.map(\.type),
+            [.run, .roxZone, .station, .roxZone, .run]
+        )
+    }
+
+    func testMaterializedSegmentsSkipRoxWhenDisabled() {
+        let segments: [WorkoutSegment] = [
+            .run(distanceMeters: 1000),
+            .station(.skiErg),
+            .run(distanceMeters: 1000)
+        ]
+
+        let materialized = WorkoutTemplate.materializedSegments(from: segments, usesRoxZone: false)
+
+        XCTAssertEqual(materialized.map(\.type), [.run, .station, .run])
+    }
+
+    func testSettingUsesRoxZonePreservesExistingRoxSegmentsWhenEnabled() {
+        var rox = WorkoutSegment.roxZone()
+        rox.goalDurationSeconds = 91
+        let template = WorkoutTemplate(
+            name: "Test",
+            segments: [.run(distanceMeters: 1000), rox, .station(.skiErg)],
+            usesRoxZone: true
+        )
+
+        let updated = template.settingUsesRoxZone(true)
+
+        XCTAssertEqual(updated.segments.count, 3)
+        XCTAssertEqual(updated.segments[1].type, .roxZone)
+        XCTAssertEqual(updated.segments[1].goalDurationSeconds, 91)
+    }
 }

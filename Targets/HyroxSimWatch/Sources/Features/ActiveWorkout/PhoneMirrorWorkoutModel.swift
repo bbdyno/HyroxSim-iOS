@@ -21,8 +21,12 @@ final class PhoneMirrorWorkoutModel {
     private(set) var segmentElapsedText: String = "00:00"
     private(set) var totalElapsedText: String = "0:00:00"
     private(set) var paceText: String = "—"
+    private(set) var distanceText: String = "0 m"
     private(set) var heartRateText: String = "—"
     private(set) var heartRateZone: HeartRateZone?
+    private(set) var goalText: String = "—"
+    private(set) var goalDeltaText: String = "—"
+    private(set) var isOverGoal: Bool = false
     private(set) var stationNameText: String?
     private(set) var stationTargetText: String?
     private(set) var accentKindRaw: String = "run"
@@ -39,6 +43,8 @@ final class PhoneMirrorWorkoutModel {
     private let maxHeartRate: Int
     private var workoutSession: WatchWorkoutSession?
     private var hrRelayTask: Task<Void, Never>?
+    private var alertedGoalSegmentIndex: Int?
+    var goalAlertHandler: (() -> Void)?
 
     init(templateName: String, syncCoordinator: any SyncCoordinator, maxHeartRate: Int = 190) {
         self.templateName = templateName
@@ -54,6 +60,10 @@ final class PhoneMirrorWorkoutModel {
         segmentElapsedText = state.segmentElapsedText
         totalElapsedText = state.totalElapsedText
         paceText = state.paceText
+        distanceText = state.distanceText
+        goalText = state.goalText
+        goalDeltaText = state.goalDeltaText
+        isOverGoal = state.isOverGoal
         stationNameText = state.stationNameText
         stationTargetText = state.stationTargetText
         accentKindRaw = state.accentKindRaw
@@ -67,6 +77,11 @@ final class PhoneMirrorWorkoutModel {
         if state.heartRateText != "—" {
             heartRateText = state.heartRateText
             heartRateZone = state.heartRateZoneRaw.flatMap { HeartRateZone(rawValue: $0) }
+        }
+
+        if state.isOverGoal, alertedGoalSegmentIndex != state.currentSegmentIndex {
+            alertedGoalSegmentIndex = state.currentSegmentIndex
+            goalAlertHandler?()
         }
     }
 

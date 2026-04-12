@@ -13,6 +13,11 @@ struct SummaryView: View {
     var onDone: (() -> Void)? = nil
 
     private let accent = Color(red: 1.0, green: 0.84, blue: 0.0)
+    private var totalGoal: TimeInterval? {
+        let values = workout.segments.compactMap(\.goalDurationSeconds)
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +)
+    }
 
     var body: some View {
         ScrollView {
@@ -20,6 +25,12 @@ struct SummaryView: View {
                 Text(DurationFormatter.hms(workout.totalDuration))
                     .font(.system(size: 28, weight: .bold, design: .rounded).monospacedDigit())
                     .foregroundStyle(accent)
+
+                if let totalGoal {
+                    Text(DurationFormatter.signedMs(workout.totalDuration - totalGoal))
+                        .font(.system(size: 13, weight: .black, design: .rounded).monospacedDigit())
+                        .foregroundStyle(deltaColor(for: workout.totalDuration - totalGoal))
+                }
 
                 Text(workout.division?.shortName ?? workout.templateName)
                     .font(.system(size: 12, weight: .bold))
@@ -48,9 +59,16 @@ struct SummaryView: View {
                             .font(.system(size: 11, weight: record.type == .station ? .bold : .regular))
                             .foregroundStyle(record.type == .roxZone ? .gray.opacity(0.5) : .white)
                         Spacer()
-                        Text(DurationFormatter.ms(record.activeDuration))
-                            .font(.system(size: 11, design: .rounded).monospacedDigit())
-                            .foregroundStyle(record.type == .roxZone ? .gray.opacity(0.5) : .white)
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text(DurationFormatter.ms(record.activeDuration))
+                                .font(.system(size: 11, design: .rounded).monospacedDigit())
+                                .foregroundStyle(record.type == .roxZone ? .gray.opacity(0.5) : .white)
+                            if let goal = record.goalDurationSeconds {
+                                Text(DurationFormatter.signedMs(record.activeDuration - goal))
+                                    .font(.system(size: 9, weight: .bold, design: .rounded).monospacedDigit())
+                                    .foregroundStyle(deltaColor(for: record.activeDuration - goal))
+                            }
+                        }
                     }
                 }
 
@@ -83,5 +101,11 @@ struct SummaryView: View {
         case .roxZone: return "Rox Zone"
         case .station: return workout.resolvedStationDisplayName(for: record) ?? "Station"
         }
+    }
+
+    private func deltaColor(for delta: TimeInterval) -> Color {
+        if delta < 0 { return .green }
+        if delta > 0 { return .red }
+        return .white
     }
 }

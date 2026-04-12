@@ -23,12 +23,19 @@ final class WorkoutBuilderViewController: UIViewController {
     private enum Section: Int, CaseIterable { case segments, addButtons }
     private enum Item: Hashable {
         case segment(UUID)
-        case addRun, addRoxZone, addStation
+        case addRun, addStation
     }
 
     private var collectionView: UICollectionView!
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private let emptyLabel = UILabel()
+    private let headerStack = UIStackView()
+    private let summaryCard = UIView()
+    private let summaryLabel = UILabel()
+    private let roxCard = UIView()
+    private let roxZoneSwitch = UISwitch()
+    private var startButtonItem: UIBarButtonItem!
+    private var saveButtonItem: UIBarButtonItem!
 
     init(viewModel: WorkoutBuilderViewModel) {
         self.viewModel = viewModel
@@ -44,24 +51,29 @@ final class WorkoutBuilderViewController: UIViewController {
         view.backgroundColor = DesignTokens.Color.background
         applyDarkNavBarAppearance()
         setupNav()
+        setupHeader()
         setupCollectionView()
         setupDataSource()
         setupEmptyLabel()
-        setupToolbar()
         applySnapshot()
     }
 
     // MARK: - Nav
 
     private func setupNav() {
+        navigationController?.isToolbarHidden = true
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Start", style: .done, target: self, action: #selector(startTapped))
-        navigationItem.rightBarButtonItem?.tintColor = DesignTokens.Color.accent
+        saveButtonItem = UIBarButtonItem(title: "Save", style: .plain, target: self, action: #selector(saveTapped))
+        saveButtonItem.tintColor = DesignTokens.Color.textSecondary
+        startButtonItem = UIBarButtonItem(title: "Start", style: .done, target: self, action: #selector(startTapped))
+        startButtonItem.tintColor = DesignTokens.Color.accent
+        navigationItem.rightBarButtonItems = [startButtonItem, saveButtonItem]
         updateStartButton()
+        saveButtonItem.isEnabled = viewModel.canSave
     }
 
     private func updateStartButton() {
-        navigationItem.rightBarButtonItem?.isEnabled = viewModel.canStart
+        startButtonItem?.isEnabled = viewModel.canStart
     }
 
     @objc private func cancelTapped() {
@@ -78,23 +90,82 @@ final class WorkoutBuilderViewController: UIViewController {
         delegate?.builderDidRequestStart(template: template)
     }
 
-    // MARK: - Toolbar
+    // MARK: - Header
 
-    private func setupToolbar() {
-        navigationController?.isToolbarHidden = false
-        applyDarkToolbarAppearance()
+    private func setupHeader() {
+        headerStack.axis = .vertical
+        headerStack.spacing = 12
+        headerStack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(headerStack)
+        NSLayoutConstraint.activate([
+            headerStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            headerStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            headerStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+        ])
 
-        let saveBtn = UIBarButtonItem(title: "Save as Template", style: .plain, target: self, action: #selector(saveTapped))
-        saveBtn.tintColor = DesignTokens.Color.accent
-        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        summaryCard.backgroundColor = DesignTokens.Color.surface
+        summaryCard.layer.cornerRadius = DesignTokens.Radius.card
+        summaryCard.layer.borderWidth = 1
+        summaryCard.layer.borderColor = UIColor.white.withAlphaComponent(0.06).cgColor
 
-        let metaLabel = UILabel()
-        metaLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-        metaLabel.textColor = DesignTokens.Color.textSecondary
-        metaLabel.text = metaSummary()
-        let metaItem = UIBarButtonItem(customView: metaLabel)
+        let summaryTitleLabel = UILabel()
+        summaryTitleLabel.text = "BUILDER"
+        summaryTitleLabel.font = .systemFont(ofSize: 11, weight: .bold)
+        summaryTitleLabel.textColor = DesignTokens.Color.textTertiary
 
-        toolbarItems = [metaItem, flex, saveBtn]
+        summaryLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
+        summaryLabel.textColor = .white
+        summaryLabel.numberOfLines = 0
+
+        let summaryStack = UIStackView(arrangedSubviews: [summaryTitleLabel, summaryLabel])
+        summaryStack.axis = .vertical
+        summaryStack.spacing = 6
+        summaryStack.translatesAutoresizingMaskIntoConstraints = false
+        summaryCard.addSubview(summaryStack)
+        NSLayoutConstraint.activate([
+            summaryStack.topAnchor.constraint(equalTo: summaryCard.topAnchor, constant: 14),
+            summaryStack.leadingAnchor.constraint(equalTo: summaryCard.leadingAnchor, constant: 16),
+            summaryStack.trailingAnchor.constraint(equalTo: summaryCard.trailingAnchor, constant: -16),
+            summaryStack.bottomAnchor.constraint(equalTo: summaryCard.bottomAnchor, constant: -14)
+        ])
+
+        roxCard.backgroundColor = DesignTokens.Color.surfaceElevated
+        roxCard.layer.cornerRadius = DesignTokens.Radius.card
+
+        let roxTitleLabel = UILabel()
+        roxTitleLabel.text = "ROX ZONE"
+        roxTitleLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        roxTitleLabel.textColor = DesignTokens.Color.roxZoneAccent
+
+        let roxSubtitleLabel = UILabel()
+        roxSubtitleLabel.tag = 101
+        roxSubtitleLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        roxSubtitleLabel.textColor = DesignTokens.Color.textSecondary
+        roxSubtitleLabel.numberOfLines = 0
+
+        roxZoneSwitch.isOn = viewModel.usesRoxZone
+        roxZoneSwitch.onTintColor = DesignTokens.Color.accent
+        roxZoneSwitch.addTarget(self, action: #selector(roxZoneToggleChanged), for: .valueChanged)
+
+        let roxLabels = UIStackView(arrangedSubviews: [roxTitleLabel, roxSubtitleLabel])
+        roxLabels.axis = .vertical
+        roxLabels.spacing = 4
+
+        let roxStack = UIStackView(arrangedSubviews: [roxLabels, roxZoneSwitch])
+        roxStack.axis = .horizontal
+        roxStack.alignment = .center
+        roxStack.spacing = 12
+        roxStack.translatesAutoresizingMaskIntoConstraints = false
+        roxCard.addSubview(roxStack)
+        NSLayoutConstraint.activate([
+            roxStack.topAnchor.constraint(equalTo: roxCard.topAnchor, constant: 14),
+            roxStack.leadingAnchor.constraint(equalTo: roxCard.leadingAnchor, constant: 16),
+            roxStack.trailingAnchor.constraint(equalTo: roxCard.trailingAnchor, constant: -16),
+            roxStack.bottomAnchor.constraint(equalTo: roxCard.bottomAnchor, constant: -14)
+        ])
+
+        headerStack.addArrangedSubview(summaryCard)
+        headerStack.addArrangedSubview(roxCard)
     }
 
     private func metaSummary() -> String {
@@ -120,6 +191,11 @@ final class WorkoutBuilderViewController: UIViewController {
         present(alert, animated: true)
     }
 
+    @objc private func roxZoneToggleChanged() {
+        viewModel.setUsesRoxZone(roxZoneSwitch.isOn)
+        updateMeta()
+    }
+
     // MARK: - Collection View
 
     private func setupCollectionView() {
@@ -142,11 +218,12 @@ final class WorkoutBuilderViewController: UIViewController {
         collectionView.delegate = self
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            collectionView.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 12),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+        collectionView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 24, right: 0)
     }
 
     private func setupDataSource() {
@@ -185,7 +262,6 @@ final class WorkoutBuilderViewController: UIViewController {
             var config = UIListContentConfiguration.cell()
             switch item {
             case .addRun: config.text = "+ Add Run"; config.textProperties.color = DesignTokens.Color.runAccent
-            case .addRoxZone: config.text = "+ Add ROX Zone"; config.textProperties.color = DesignTokens.Color.roxZoneAccent
             case .addStation: config.text = "+ Add Station"; config.textProperties.color = DesignTokens.Color.accent
             default: break
             }
@@ -224,7 +300,7 @@ final class WorkoutBuilderViewController: UIViewController {
         view.addSubview(emptyLabel)
         NSLayoutConstraint.activate([
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -50)
+            emptyLabel.centerYAnchor.constraint(equalTo: collectionView.centerYAnchor, constant: -20)
         ])
     }
 
@@ -232,7 +308,7 @@ final class WorkoutBuilderViewController: UIViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.segments, .addButtons])
         snapshot.appendItems(viewModel.segments.map { .segment($0.id) }, toSection: .segments)
-        snapshot.appendItems([.addRun, .addRoxZone, .addStation], toSection: .addButtons)
+        snapshot.appendItems([.addRun, .addStation], toSection: .addButtons)
         dataSource.apply(snapshot, animatingDifferences: true)
         emptyLabel.isHidden = !viewModel.isEmpty
         updateStartButton()
@@ -240,7 +316,13 @@ final class WorkoutBuilderViewController: UIViewController {
     }
 
     private func updateMeta() {
-        if let l = toolbarItems?.first?.customView as? UILabel { l.text = metaSummary(); l.sizeToFit() }
+        summaryLabel.text = metaSummary()
+        if let subtitleLabel = roxCard.viewWithTag(101) as? UILabel {
+            subtitleLabel.text = viewModel.usesRoxZone
+                ? "Transitions are inserted automatically between runs and stations."
+                : "Runs connect directly to stations without transition blocks."
+        }
+        saveButtonItem?.isEnabled = viewModel.canSave
     }
 }
 
@@ -260,7 +342,6 @@ extension WorkoutBuilderViewController: UICollectionViewDelegate {
             case .roxZone: break
             }
         case .addRun: presentEditRun(mode: .create)
-        case .addRoxZone: viewModel.addSegment(.roxZone()); applySnapshot()
         case .addStation: presentAddStation(mode: .create)
         }
     }

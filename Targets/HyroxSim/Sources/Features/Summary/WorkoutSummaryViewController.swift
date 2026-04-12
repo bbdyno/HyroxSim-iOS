@@ -14,17 +14,14 @@ protocol WorkoutSummaryViewControllerDelegate: AnyObject {
     func summaryDidTapShare(_ workout: CompletedWorkout)
 }
 
-/// Workout summary screen — black + yellow accent, matching HYROX results aesthetic.
 final class WorkoutSummaryViewController: UIViewController {
 
     weak var delegate: WorkoutSummaryViewControllerDelegate?
+
     private let viewModel: WorkoutSummaryViewModel
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
-
-    private let accent = DesignTokens.Color.accent
-    private let bg = DesignTokens.Color.background
-    private let surface = DesignTokens.Color.surface
+    private var expandedRunGroups: Set<String> = []
 
     init(viewModel: WorkoutSummaryViewModel) {
         self.viewModel = viewModel
@@ -37,26 +34,38 @@ final class WorkoutSummaryViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Summary"
-        view.backgroundColor = bg
-        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneTapped))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(shareTapped))
+        view.backgroundColor = DesignTokens.Color.background
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: self,
+            action: #selector(doneTapped)
+        )
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .action,
+            target: self,
+            action: #selector(shareTapped)
+        )
+        applyDarkNavigationStyle()
+        setupScrollView()
+        rebuildContent()
+    }
 
-        // Style nav bar for dark theme
+    @objc private func doneTapped() {
+        delegate?.summaryDidTapDone()
+    }
+
+    @objc private func shareTapped() {
+        delegate?.summaryDidTapShare(viewModel.workout)
+    }
+
+    private func applyDarkNavigationStyle() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = bg
+        appearance.backgroundColor = DesignTokens.Color.background
         appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
         navigationItem.standardAppearance = appearance
         navigationItem.scrollEdgeAppearance = appearance
-
-        setupScrollView()
-        buildContent()
     }
-
-    @objc private func doneTapped() { delegate?.summaryDidTapDone() }
-    @objc private func shareTapped() { delegate?.summaryDidTapShare(viewModel.workout) }
-
-    // MARK: - Layout
 
     private func setupScrollView() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -69,206 +78,357 @@ final class WorkoutSummaryViewController: UIViewController {
         ])
 
         contentStack.axis = .vertical
-        contentStack.spacing = 0
+        contentStack.spacing = 10
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStack)
-        let margin: CGFloat = 20
+
         NSLayoutConstraint.activate([
-            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: margin),
-            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
-            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -margin)
+            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 16),
+            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20)
         ])
     }
 
-    private func buildContent() {
-        // Header
-        addSpacer(16)
-        addCenteredLabel(viewModel.totalTimeText, font: DesignTokens.Font.largeNumber, color: .white)
-        addSpacer(4)
-        addCenteredLabel("TOTAL TIME", font: DesignTokens.Font.label, color: DesignTokens.Color.textTertiary)
-        addSpacer(12)
-        addCenteredLabel(viewModel.titleText, font: .systemFont(ofSize: 16, weight: .bold), color: accent)
-        addCenteredLabel(viewModel.dateText, font: .systemFont(ofSize: 12, weight: .medium), color: DesignTokens.Color.textTertiary)
-        addSpacer(24)
-        addSeparator()
+    private func rebuildContent() {
+        contentStack.arrangedSubviews.forEach { view in
+            contentStack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
 
-        // Summary table header (yellow)
-        addSpacer(16)
-        addTableHeader(["Split", "Time", "Place"])
-        addSpacer(8)
+        addHeader()
+        addMetricStrip()
 
-        // Segment breakdown — HYROX results style
-        let segments = viewModel.workout.segments
-        var stationIndex = 0
-        for (i, record) in segments.enumerated() {
-            switch record.type {
-            case .run:
-                let runNum = segments[0...i].filter { $0.type == .run }.count
-                addSegmentRow(badge: nil, name: "Running \(runNum)", time: DurationFormatter.hms(record.activeDuration), isBold: false)
-            case .roxZone:
-                // ROX Zone rows are subtle
-                addSegmentRow(badge: nil, name: "Rox Zone", time: DurationFormatter.hms(record.activeDuration), isBold: false, dimmed: true)
-            case .station:
-                stationIndex += 1
-                let displayName = viewModel.workout.resolvedStationDisplayName(for: record) ?? "Station"
-                addSegmentRow(
-                    badge: String(format: "%02d", stationIndex),
-                    name: displayName,
-                    time: DurationFormatter.hms(record.activeDuration),
-                    isBold: true
+        for section in viewModel.sections {
+            if let runGroup = section.runGroup {
+                let isExpandable = runGroup.detailItems.count > 1
+                let isExpanded = expandedRunGroups.contains(runGroup.id)
+                contentStack.addArrangedSubview(
+                    makeMainRow(
+                        badgeText: "R\(String(format: "%02d", runGroup.index))",
+                        badgeTint: DesignTokens.Color.runAccent,
+                        title: runGroup.title,
+                        subtitle: runGroup.subtitle,
+                        duration: runGroup.durationText,
+                        delta: runGroup.delta,
+                        showsChevron: isExpandable,
+                        expanded: isExpanded,
+                        tapTag: isExpandable ? runGroup.id : nil
+                    )
+                )
+
+                if isExpanded {
+                    for detail in runGroup.detailItems {
+                        contentStack.addArrangedSubview(makeDetailRow(detail))
+                    }
+                }
+            }
+
+            if let station = section.station {
+                contentStack.addArrangedSubview(
+                    makeMainRow(
+                        badgeText: String(format: "%02d", station.index),
+                        badgeTint: DesignTokens.Color.stationAccent,
+                        title: station.title,
+                        subtitle: station.subtitle,
+                        duration: station.durationText,
+                        delta: station.delta,
+                        showsChevron: false,
+                        expanded: false,
+                        tapTag: nil
+                    )
                 )
             }
         }
-
-        // Summary totals (like the reference bottom section)
-        addSpacer(12)
-        addSeparator()
-        addSpacer(8)
-        addSummaryRow("Roxzone Time", viewModel.totalRoxZoneTimeText, highlighted: true)
-        addSummaryRow("Run Total", viewModel.totalRunTimeText, highlighted: true)
-        addSpacer(4)
-        addSummaryRow("Avg Pace", viewModel.averagePaceText, highlighted: false)
-        addSummaryRow("Avg HR", viewModel.averageHeartRateText, highlighted: false)
-        addSummaryRow("Max HR", viewModel.maxHeartRateText, highlighted: false)
-        addSpacer(20)
     }
 
-    // MARK: - Row Builders
+    private func addHeader() {
+        let totalLabel = UILabel()
+        totalLabel.text = viewModel.totalTimeText
+        totalLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 42, weight: .black)
+        totalLabel.textColor = .white
+        totalLabel.textAlignment = .center
 
-    private func addTableHeader(_ columns: [String]) {
+        let deltaLabel = UILabel()
+        deltaLabel.text = viewModel.totalDelta.text
+        deltaLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .black)
+        deltaLabel.textColor = color(for: viewModel.totalDelta.tone)
+        deltaLabel.textAlignment = .center
+
+        let goalLabel = UILabel()
+        goalLabel.text = "Goal \(viewModel.totalGoalText)"
+        goalLabel.font = .systemFont(ofSize: 12, weight: .bold)
+        goalLabel.textColor = DesignTokens.Color.textSecondary
+        goalLabel.textAlignment = .center
+
+        let titleLabel = UILabel()
+        titleLabel.text = viewModel.titleText
+        titleLabel.font = .systemFont(ofSize: 15, weight: .black)
+        titleLabel.textColor = DesignTokens.Color.accent
+        titleLabel.textAlignment = .center
+        titleLabel.numberOfLines = 2
+
+        let dateLabel = UILabel()
+        dateLabel.text = viewModel.dateText
+        dateLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        dateLabel.textColor = DesignTokens.Color.textSecondary
+        dateLabel.textAlignment = .center
+
+        let stack = UIStackView(arrangedSubviews: [totalLabel, deltaLabel, goalLabel, titleLabel, dateLabel])
+        stack.axis = .vertical
+        stack.spacing = 4
+        contentStack.addArrangedSubview(stack)
+    }
+
+    private func addMetricStrip() {
         let row = UIStackView()
-        row.distribution = .fillProportionally
+        row.axis = .horizontal
+        row.spacing = 8
+        row.distribution = .fillEqually
 
-        let col1 = makeLabel(columns[0], font: .systemFont(ofSize: 13, weight: .bold), color: accent)
-        col1.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
-        row.addArrangedSubview(col1)
-
-        let col2 = makeLabel(columns[1], font: .systemFont(ofSize: 13, weight: .bold), color: accent)
-        col2.textAlignment = .center
-        row.addArrangedSubview(col2)
-
-        if columns.count > 2 {
-            let col3 = makeLabel(columns[2], font: .systemFont(ofSize: 13, weight: .bold), color: accent)
-            col3.textAlignment = .right
-            col3.widthAnchor.constraint(equalToConstant: 50).isActive = true
-            row.addArrangedSubview(col3)
+        for metric in viewModel.headerMetrics {
+            row.addArrangedSubview(makeMetricCard(title: metric.title, value: metric.value))
         }
 
         contentStack.addArrangedSubview(row)
-        addSeparator(color: accent.withAlphaComponent(0.3))
     }
 
-    private func addSegmentRow(badge: String?, name: String, time: String, isBold: Bool, dimmed: Bool = false) {
-        let row = UIStackView()
-        row.alignment = .center
-        row.spacing = 8
+    private func makeMetricCard(title: String, value: String) -> UIView {
+        let container = UIView()
+        container.backgroundColor = DesignTokens.Color.surface
+        container.layer.cornerRadius = 14
 
-        // Badge
-        if let badge {
-            let bv = UIView()
-            bv.backgroundColor = accent
-            bv.layer.cornerRadius = DesignTokens.Radius.badge
-            bv.translatesAutoresizingMaskIntoConstraints = false
-            bv.widthAnchor.constraint(equalToConstant: 30).isActive = true
-            bv.heightAnchor.constraint(equalToConstant: 20).isActive = true
+        let valueLabel = UILabel()
+        valueLabel.text = value
+        valueLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 15, weight: .bold)
+        valueLabel.textColor = .white
+        valueLabel.textAlignment = .center
+        valueLabel.adjustsFontSizeToFitWidth = true
+        valueLabel.minimumScaleFactor = 0.7
 
-            let bl = UILabel()
-            bl.text = badge
-            bl.font = .systemFont(ofSize: 11, weight: .black)
-            bl.textColor = .black
-            bl.textAlignment = .center
-            bl.translatesAutoresizingMaskIntoConstraints = false
-            bv.addSubview(bl)
-            NSLayoutConstraint.activate([
-                bl.centerXAnchor.constraint(equalTo: bv.centerXAnchor),
-                bl.centerYAnchor.constraint(equalTo: bv.centerYAnchor)
-            ])
-            row.addArrangedSubview(bv)
-        } else {
-            let spacer = UIView()
-            spacer.widthAnchor.constraint(equalToConstant: 30).isActive = true
-            row.addArrangedSubview(spacer)
+        let titleLabel = UILabel()
+        titleLabel.text = title
+        titleLabel.font = .systemFont(ofSize: 10, weight: .black)
+        titleLabel.textColor = DesignTokens.Color.textSecondary
+        titleLabel.textAlignment = .center
+
+        let stack = UIStackView(arrangedSubviews: [valueLabel, titleLabel])
+        stack.axis = .vertical
+        stack.spacing = 2
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 10),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 6),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -6),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10)
+        ])
+
+        return container
+    }
+
+    private func makeMainRow(
+        badgeText: String,
+        badgeTint: UIColor,
+        title: String,
+        subtitle: String?,
+        duration: String,
+        delta: WorkoutSummaryViewModel.GoalDelta,
+        showsChevron: Bool,
+        expanded: Bool,
+        tapTag: String?
+    ) -> UIView {
+        let container = UIView()
+        container.backgroundColor = DesignTokens.Color.surface
+        container.layer.cornerRadius = 16
+
+        if let tapTag {
+            container.isUserInteractionEnabled = true
+            let tap = UITapGestureRecognizer(target: self, action: #selector(runGroupTapped(_:)))
+            container.addGestureRecognizer(tap)
+            container.accessibilityIdentifier = tapTag
         }
 
-        let alpha: CGFloat = dimmed ? 0.4 : 1.0
-        let nameLabel = makeLabel(name,
-            font: isBold ? .systemFont(ofSize: 15, weight: .bold) : .systemFont(ofSize: 14, weight: .regular),
-            color: DesignTokens.Color.textPrimary.withAlphaComponent(alpha))
-        row.addArrangedSubview(nameLabel)
+        let badge = UILabel()
+        badge.text = badgeText
+        badge.font = .systemFont(ofSize: 10, weight: .black)
+        badge.textColor = .black
+        badge.textAlignment = .center
+        badge.backgroundColor = badgeTint
+        badge.layer.cornerRadius = 10
+        badge.clipsToBounds = true
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        badge.widthAnchor.constraint(equalToConstant: 42).isActive = true
+        badge.heightAnchor.constraint(equalToConstant: 20).isActive = true
 
-        let timeLabel = makeLabel(time,
-            font: .monospacedDigitSystemFont(ofSize: 14, weight: .medium),
-            color: DesignTokens.Color.textPrimary.withAlphaComponent(alpha))
-        timeLabel.textAlignment = .right
-        timeLabel.widthAnchor.constraint(equalToConstant: 80).isActive = true
-        row.addArrangedSubview(timeLabel)
+        let titleLabel = UILabel()
+        titleLabel.text = title
+        titleLabel.font = .systemFont(ofSize: 14, weight: .black)
+        titleLabel.textColor = .white
+        titleLabel.numberOfLines = 1
 
-        let container = UIView()
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = subtitle
+        subtitleLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        subtitleLabel.textColor = DesignTokens.Color.textSecondary
+        subtitleLabel.numberOfLines = 1
+        subtitleLabel.isHidden = subtitle == nil
+
+        let titleStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        titleStack.axis = .vertical
+        titleStack.spacing = 2
+
+        let durationLabel = UILabel()
+        durationLabel.text = duration
+        durationLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 15, weight: .bold)
+        durationLabel.textColor = .white
+        durationLabel.textAlignment = .right
+
+        let deltaLabel = UILabel()
+        deltaLabel.text = delta.text
+        deltaLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .black)
+        deltaLabel.textColor = color(for: delta.tone)
+        deltaLabel.textAlignment = .right
+
+        let trailingStack = UIStackView(arrangedSubviews: [durationLabel, deltaLabel])
+        trailingStack.axis = .vertical
+        trailingStack.spacing = 2
+        trailingStack.alignment = .trailing
+
+        let row = UIStackView(arrangedSubviews: [badge, titleStack, trailingStack])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 10
         row.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(row)
+
+        let trailingConstraint: NSLayoutConstraint
+        if showsChevron {
+            trailingConstraint = row.trailingAnchor.constraint(
+                equalTo: container.trailingAnchor,
+                constant: -34
+            )
+        } else {
+            trailingConstraint = row.trailingAnchor.constraint(
+                equalTo: container.trailingAnchor,
+                constant: -12
+            )
+        }
+
         NSLayoutConstraint.activate([
-            row.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
-            row.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            row.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6)
+            row.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            trailingConstraint,
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -12)
         ])
-        contentStack.addArrangedSubview(container)
+
+        if showsChevron {
+            let chevron = UILabel()
+            chevron.text = expanded ? "▾" : "▸"
+            chevron.font = .systemFont(ofSize: 15, weight: .black)
+            chevron.textColor = DesignTokens.Color.textSecondary
+            chevron.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(chevron)
+            NSLayoutConstraint.activate([
+                chevron.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                chevron.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12)
+            ])
+        }
+
+        return container
     }
 
-    private func addSummaryRow(_ label: String, _ value: String, highlighted: Bool) {
-        let row = UIStackView()
-        row.distribution = .fill
-
-        let lbl = makeLabel(label,
-            font: .systemFont(ofSize: 14, weight: highlighted ? .bold : .medium),
-            color: highlighted ? accent : DesignTokens.Color.textSecondary)
-        row.addArrangedSubview(lbl)
-
-        let val = makeLabel(value,
-            font: .monospacedDigitSystemFont(ofSize: 14, weight: .semibold),
-            color: highlighted ? accent : DesignTokens.Color.textPrimary)
-        val.textAlignment = .right
-        row.addArrangedSubview(val)
-
+    private func makeDetailRow(_ detail: WorkoutSummaryViewModel.DetailItem) -> UIView {
         let container = UIView()
+        container.backgroundColor = UIColor.white.withAlphaComponent(0.04)
+        container.layer.cornerRadius = 14
+
+        let accent = accentColor(for: detail.accent)
+
+        let dot = UIView()
+        dot.backgroundColor = accent
+        dot.layer.cornerRadius = 4
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        dot.widthAnchor.constraint(equalToConstant: 8).isActive = true
+        dot.heightAnchor.constraint(equalToConstant: 8).isActive = true
+
+        let titleLabel = UILabel()
+        titleLabel.text = detail.title
+        titleLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        titleLabel.textColor = accent
+
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = detail.subtitle
+        subtitleLabel.font = .systemFont(ofSize: 10, weight: .medium)
+        subtitleLabel.textColor = DesignTokens.Color.textSecondary
+        subtitleLabel.isHidden = detail.subtitle == nil
+
+        let titleStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        titleStack.axis = .vertical
+        titleStack.spacing = 2
+
+        let durationLabel = UILabel()
+        durationLabel.text = detail.durationText
+        durationLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .bold)
+        durationLabel.textColor = .white
+        durationLabel.textAlignment = .right
+
+        let deltaLabel = UILabel()
+        deltaLabel.text = detail.delta.text
+        deltaLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .bold)
+        deltaLabel.textColor = color(for: detail.delta.tone)
+        deltaLabel.textAlignment = .right
+
+        let trailingStack = UIStackView(arrangedSubviews: [durationLabel, deltaLabel])
+        trailingStack.axis = .vertical
+        trailingStack.spacing = 2
+        trailingStack.alignment = .trailing
+
+        let row = UIStackView(arrangedSubviews: [dot, titleStack, trailingStack])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 10
         row.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(row)
+
         NSLayoutConstraint.activate([
-            row.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
-            row.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            row.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4)
+            row.topAnchor.constraint(equalTo: container.topAnchor, constant: 10),
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+            row.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10)
         ])
-        contentStack.addArrangedSubview(container)
+
+        return container
     }
 
-    // MARK: - Helpers
+    @objc private func runGroupTapped(_ gesture: UITapGestureRecognizer) {
+        guard
+            let id = gesture.view?.accessibilityIdentifier,
+            !id.isEmpty
+        else { return }
 
-    private func makeLabel(_ text: String, font: UIFont, color: UIColor) -> UILabel {
-        let l = UILabel()
-        l.text = text
-        l.font = font
-        l.textColor = color
-        return l
+        if expandedRunGroups.contains(id) {
+            expandedRunGroups.remove(id)
+        } else {
+            expandedRunGroups.insert(id)
+        }
+        rebuildContent()
     }
 
-    private func addCenteredLabel(_ text: String, font: UIFont, color: UIColor) {
-        let l = makeLabel(text, font: font, color: color)
-        l.textAlignment = .center
-        contentStack.addArrangedSubview(l)
+    private func color(for tone: WorkoutSummaryViewModel.DeltaTone) -> UIColor {
+        switch tone {
+        case .ahead: return DesignTokens.Color.success
+        case .behind: return .systemRed
+        case .neutral: return UIColor.white.withAlphaComponent(0.78)
+        }
     }
 
-    private func addSpacer(_ height: CGFloat) {
-        let v = UIView()
-        v.heightAnchor.constraint(equalToConstant: height).isActive = true
-        contentStack.addArrangedSubview(v)
-    }
-
-    private func addSeparator(color: UIColor = UIColor.white.withAlphaComponent(0.1)) {
-        let v = UIView()
-        v.backgroundColor = color
-        v.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
-        contentStack.addArrangedSubview(v)
+    private func accentColor(for accent: WorkoutSummaryViewModel.DetailItem.Accent) -> UIColor {
+        switch accent {
+        case .run: return DesignTokens.Color.runAccent
+        case .roxZone: return DesignTokens.Color.roxZoneAccent
+        case .station: return DesignTokens.Color.stationAccent
+        }
     }
 }

@@ -38,6 +38,9 @@ public struct LiveWorkoutState: Codable, Sendable {
     public let distanceText: String
     public let heartRateText: String
     public let heartRateZoneRaw: Int?  // HeartRateZone.rawValue
+    public let goalText: String
+    public let goalDeltaText: String
+    public let isOverGoal: Bool
 
     // MARK: - 스테이션
     public let stationNameText: String?
@@ -64,6 +67,7 @@ public struct LiveWorkoutState: Codable, Sendable {
         segmentElapsedText: String, totalElapsedText: String,
         paceText: String, distanceText: String,
         heartRateText: String, heartRateZoneRaw: Int?,
+        goalText: String, goalDeltaText: String, isOverGoal: Bool,
         stationNameText: String?, stationTargetText: String?,
         accentKindRaw: String, isPaused: Bool, isFinished: Bool, isLastSegment: Bool,
         gpsStrong: Bool, gpsActive: Bool,
@@ -78,6 +82,9 @@ public struct LiveWorkoutState: Codable, Sendable {
         self.distanceText = distanceText
         self.heartRateText = heartRateText
         self.heartRateZoneRaw = heartRateZoneRaw
+        self.goalText = goalText
+        self.goalDeltaText = goalDeltaText
+        self.isOverGoal = isOverGoal
         self.stationNameText = stationNameText
         self.stationTargetText = stationTargetText
         self.accentKindRaw = accentKindRaw

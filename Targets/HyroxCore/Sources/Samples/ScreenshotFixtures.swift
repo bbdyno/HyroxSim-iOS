@@ -22,21 +22,21 @@ public enum ScreenshotFixtures {
         startedAt: referenceDate.addingTimeInterval(-4_612),
         finishedAt: referenceDate,
         segments: [
-            runRecord(index: 0, startedAtOffset: -4_612, duration: 338, distanceMeters: 1_000, heartRates: [149, 154, 158, 161]),
-            roxRecord(index: 1, startedAtOffset: -4_274, duration: 24, heartRates: [159, 160]),
-            stationRecord(index: 2, startedAtOffset: -4_250, duration: 236, kind: .skiErg, heartRates: [162, 166, 168]),
-            runRecord(index: 3, startedAtOffset: -4_014, duration: 345, distanceMeters: 1_000, heartRates: [164, 167, 170, 172]),
-            roxRecord(index: 4, startedAtOffset: -3_669, duration: 25, heartRates: [170, 171]),
-            stationRecord(index: 5, startedAtOffset: -3_644, duration: 221, kind: .sledPush, heartRates: [171, 174, 176]),
-            runRecord(index: 6, startedAtOffset: -3_423, duration: 351, distanceMeters: 1_000, heartRates: [168, 171, 173, 175]),
-            roxRecord(index: 7, startedAtOffset: -3_072, duration: 26, heartRates: [172, 173]),
-            stationRecord(index: 8, startedAtOffset: -3_046, duration: 198, kind: .burpeeBroadJumps, heartRates: [174, 178, 181]),
-            runRecord(index: 9, startedAtOffset: -2_848, duration: 362, distanceMeters: 1_000, heartRates: [170, 173, 176, 178]),
-            roxRecord(index: 10, startedAtOffset: -2_486, duration: 24, heartRates: [176, 177]),
-            stationRecord(index: 11, startedAtOffset: -2_462, duration: 412, kind: .rowing, heartRates: [172, 175, 177]),
-            runRecord(index: 12, startedAtOffset: -2_050, duration: 355, distanceMeters: 1_000, heartRates: [169, 171, 174, 176]),
-            roxRecord(index: 13, startedAtOffset: -1_695, duration: 21, heartRates: [173, 174]),
-            stationRecord(index: 14, startedAtOffset: -1_674, duration: 168, kind: .wallBalls, heartRates: [175, 179, 183])
+            runRecord(index: 0, startedAtOffset: -4_612, duration: 338, distanceMeters: 1_000, heartRates: [149, 154, 158, 161], goalDuration: 345),
+            roxRecord(index: 1, startedAtOffset: -4_274, duration: 24, heartRates: [159, 160], goalDuration: 25),
+            stationRecord(index: 2, startedAtOffset: -4_250, duration: 236, kind: .skiErg, heartRates: [162, 166, 168], goalDuration: 240),
+            runRecord(index: 3, startedAtOffset: -4_014, duration: 345, distanceMeters: 1_000, heartRates: [164, 167, 170, 172], goalDuration: 342),
+            roxRecord(index: 4, startedAtOffset: -3_669, duration: 25, heartRates: [170, 171], goalDuration: 24),
+            stationRecord(index: 5, startedAtOffset: -3_644, duration: 221, kind: .sledPush, heartRates: [171, 174, 176], goalDuration: 235),
+            runRecord(index: 6, startedAtOffset: -3_423, duration: 351, distanceMeters: 1_000, heartRates: [168, 171, 173, 175], goalDuration: 346),
+            roxRecord(index: 7, startedAtOffset: -3_072, duration: 26, heartRates: [172, 173], goalDuration: 24),
+            stationRecord(index: 8, startedAtOffset: -3_046, duration: 198, kind: .burpeeBroadJumps, heartRates: [174, 178, 181], goalDuration: 210),
+            runRecord(index: 9, startedAtOffset: -2_848, duration: 362, distanceMeters: 1_000, heartRates: [170, 173, 176, 178], goalDuration: 350),
+            roxRecord(index: 10, startedAtOffset: -2_486, duration: 24, heartRates: [176, 177], goalDuration: 24),
+            stationRecord(index: 11, startedAtOffset: -2_462, duration: 412, kind: .rowing, heartRates: [172, 175, 177], goalDuration: 390),
+            runRecord(index: 12, startedAtOffset: -2_050, duration: 355, distanceMeters: 1_000, heartRates: [169, 171, 174, 176], goalDuration: 348),
+            roxRecord(index: 13, startedAtOffset: -1_695, duration: 21, heartRates: [173, 174], goalDuration: 24),
+            stationRecord(index: 14, startedAtOffset: -1_674, duration: 168, kind: .wallBalls, heartRates: [175, 179, 183], goalDuration: 180)
         ]
     )
 
@@ -58,6 +58,9 @@ public enum ScreenshotFixtures {
         distanceText: "910 m",
         heartRateText: "172",
         heartRateZoneRaw: HeartRateZone.z4.rawValue,
+        goalText: "05:00",
+        goalDeltaText: "-0:32",
+        isOverGoal: false,
         stationNameText: nil,
         stationTargetText: nil,
         accentKindRaw: "run",
@@ -74,7 +77,7 @@ public enum ScreenshotFixtures {
 
     public static let watchSummaryWorkout = summaryWorkout
 
-    private static func runRecord(index: Int, startedAtOffset: TimeInterval, duration: TimeInterval, distanceMeters: Double, heartRates: [Int]) -> SegmentRecord {
+    private static func runRecord(index: Int, startedAtOffset: TimeInterval, duration: TimeInterval, distanceMeters: Double, heartRates: [Int], goalDuration: TimeInterval) -> SegmentRecord {
         let startedAt = referenceDate.addingTimeInterval(startedAtOffset)
         return SegmentRecord(
             segmentId: UUID(),
@@ -86,11 +89,12 @@ public enum ScreenshotFixtures {
                 locationSamples: locationSamples(startedAt: startedAt, duration: duration, distanceMeters: distanceMeters),
                 heartRateSamples: heartRateSamples(startedAt: startedAt, duration: duration, values: heartRates)
             ),
-            plannedDistanceMeters: distanceMeters
+            plannedDistanceMeters: distanceMeters,
+            goalDurationSeconds: goalDuration
         )
     }
 
-    private static func roxRecord(index: Int, startedAtOffset: TimeInterval, duration: TimeInterval, heartRates: [Int]) -> SegmentRecord {
+    private static func roxRecord(index: Int, startedAtOffset: TimeInterval, duration: TimeInterval, heartRates: [Int], goalDuration: TimeInterval) -> SegmentRecord {
         let startedAt = referenceDate.addingTimeInterval(startedAtOffset)
         return SegmentRecord(
             segmentId: UUID(),
@@ -100,11 +104,12 @@ public enum ScreenshotFixtures {
             endedAt: startedAt.addingTimeInterval(duration),
             measurements: SegmentMeasurements(
                 heartRateSamples: heartRateSamples(startedAt: startedAt, duration: duration, values: heartRates)
-            )
+            ),
+            goalDurationSeconds: goalDuration
         )
     }
 
-    private static func stationRecord(index: Int, startedAtOffset: TimeInterval, duration: TimeInterval, kind: StationKind, heartRates: [Int]) -> SegmentRecord {
+    private static func stationRecord(index: Int, startedAtOffset: TimeInterval, duration: TimeInterval, kind: StationKind, heartRates: [Int], goalDuration: TimeInterval) -> SegmentRecord {
         let startedAt = referenceDate.addingTimeInterval(startedAtOffset)
         return SegmentRecord(
             segmentId: UUID(),
@@ -115,7 +120,8 @@ public enum ScreenshotFixtures {
             measurements: SegmentMeasurements(
                 heartRateSamples: heartRateSamples(startedAt: startedAt, duration: duration, values: heartRates)
             ),
-            stationDisplayName: kind.displayName
+            stationDisplayName: kind.displayName,
+            goalDurationSeconds: goalDuration
         )
     }
 

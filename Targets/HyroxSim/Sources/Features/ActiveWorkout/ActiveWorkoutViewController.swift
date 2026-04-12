@@ -13,24 +13,25 @@ final class ActiveWorkoutViewController: UIViewController {
     private let viewModel: ActiveWorkoutViewModel
     private var uiTimer: Timer?
 
-    // MARK: - Metrics
+    private let backgroundView = UIView()
+    private let contentStack = UIStackView()
+    private let gpsStatusView = UIStackView()
     private let headerLabel = UILabel()
     private let subHeaderLabel = UILabel()
-    private let gpsStatusView = UIStackView()
     private let segmentMetric = MetricView()
     private let totalMetric = MetricView()
-    private let paceMetric = MetricView()
-    private let stationNameMetric = MetricView()
-    private let stationTargetMetric = MetricView()
+    private let infoPrimaryMetric = MetricView()
+    private let infoSecondaryMetric = MetricView()
     private let heartMetric = MetricView()
-
-    // MARK: - Buttons
-    private let nextButton = UIButton(type: .system)
+    private let goalCard = UIView()
+    private let goalTitleLabel = UILabel()
+    private let goalValueLabel = UILabel()
+    private let goalDeltaLabel = UILabel()
+    private let advanceControl = SlideActionControl()
     private let pauseButton = UIButton(type: .system)
     private let endButton = UIButton(type: .system)
-
-    // MARK: - Overlay
     private let pauseOverlay = UIView()
+    private let pauseLabel = UILabel()
 
     init(viewModel: ActiveWorkoutViewModel) {
         self.viewModel = viewModel
@@ -44,8 +45,8 @@ final class ActiveWorkoutViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupGestures()
         setupButtons()
+        setupCallbacks()
         Task { await viewModel.start() }
         startUITimer()
     }
@@ -63,59 +64,107 @@ final class ActiveWorkoutViewController: UIViewController {
 
     override var prefersStatusBarHidden: Bool { true }
 
-    // MARK: - Setup
-
     private func setupUI() {
-        view.backgroundColor = DesignTokens.Color.background
+        view.backgroundColor = .black
 
-        // Header
-        headerLabel.font = .systemFont(ofSize: 16, weight: .bold)
-        headerLabel.textColor = DesignTokens.Color.accent
-        headerLabel.textAlignment = .center
+        backgroundView.translatesAutoresizingMaskIntoConstraints = false
+        backgroundView.backgroundColor = DesignTokens.Color.runBackground
+        view.addSubview(backgroundView)
+        NSLayoutConstraint.activate([
+            backgroundView.topAnchor.constraint(equalTo: view.topAnchor),
+            backgroundView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            backgroundView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
 
-        subHeaderLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        subHeaderLabel.textColor = UIColor.white.withAlphaComponent(0.6)
-        subHeaderLabel.textAlignment = .center
-        subHeaderLabel.isHidden = true
-
-        // GPS status bar (icon + 3 signal bars + label)
         setupGPSStatusView()
 
-        // Segment time (biggest)
-        segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 64, weight: .bold)
-        // Total time (smaller below)
-        totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .medium)
-        totalMetric.valueLabel.textColor = UIColor.white.withAlphaComponent(0.6)
+        headerLabel.font = .systemFont(ofSize: 24, weight: .black)
+        headerLabel.textColor = .white
+        headerLabel.textAlignment = .center
+        headerLabel.numberOfLines = 2
 
-        // Row 2b: Station
-        let row2Station = UIStackView(arrangedSubviews: [stationNameMetric, stationTargetMetric])
-        row2Station.distribution = .fillEqually
-        row2Station.spacing = 16
+        subHeaderLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        subHeaderLabel.textColor = UIColor.white.withAlphaComponent(0.75)
+        subHeaderLabel.textAlignment = .center
+        subHeaderLabel.numberOfLines = 2
+        subHeaderLabel.isHidden = true
 
-        // Main vertical layout
-        let mainStack = UIStackView(arrangedSubviews: [
-            gpsStatusView,
-            headerLabel, subHeaderLabel,
-            segmentMetric, totalMetric,
-            paceMetric, row2Station,
-            heartMetric
+        segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 92, weight: .black)
+        segmentMetric.captionLabel.textColor = UIColor.white.withAlphaComponent(0.45)
+        totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
+        totalMetric.captionLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+        totalMetric.widthAnchor.constraint(equalToConstant: 132).isActive = true
+
+        infoPrimaryMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
+        infoSecondaryMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
+        heartMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
+
+        let topRow = UIStackView(arrangedSubviews: [gpsStatusView, totalMetric])
+        topRow.axis = .horizontal
+        topRow.alignment = .center
+        topRow.spacing = 16
+
+        let goalTextStack = UIStackView(arrangedSubviews: [goalTitleLabel, goalValueLabel])
+        goalTextStack.axis = .vertical
+        goalTextStack.spacing = 2
+
+        goalTitleLabel.font = .systemFont(ofSize: 11, weight: .black)
+        goalTitleLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+        goalTitleLabel.text = "GOAL"
+
+        goalValueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
+        goalValueLabel.textColor = .white
+
+        goalDeltaLabel.font = .monospacedDigitSystemFont(ofSize: 30, weight: .black)
+        goalDeltaLabel.textAlignment = .right
+
+        let goalStack = UIStackView(arrangedSubviews: [goalTextStack, goalDeltaLabel])
+        goalStack.axis = .horizontal
+        goalStack.alignment = .center
+        goalStack.spacing = 12
+        goalStack.translatesAutoresizingMaskIntoConstraints = false
+
+        goalCard.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        goalCard.layer.cornerRadius = 18
+        goalCard.layer.borderWidth = 1
+        goalCard.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
+        goalCard.translatesAutoresizingMaskIntoConstraints = false
+        goalCard.addSubview(goalStack)
+        NSLayoutConstraint.activate([
+            goalStack.topAnchor.constraint(equalTo: goalCard.topAnchor, constant: 14),
+            goalStack.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor, constant: 16),
+            goalStack.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor, constant: -16),
+            goalStack.bottomAnchor.constraint(equalTo: goalCard.bottomAnchor, constant: -14)
         ])
-        mainStack.axis = .vertical
-        mainStack.alignment = .fill
-        mainStack.spacing = 12
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(mainStack)
+
+        let infoRow = UIStackView(arrangedSubviews: [infoPrimaryMetric, infoSecondaryMetric])
+        infoRow.axis = .horizontal
+        infoRow.alignment = .fill
+        infoRow.distribution = .fillEqually
+        infoRow.spacing = 12
+
+        contentStack.axis = .vertical
+        contentStack.alignment = .fill
+        contentStack.spacing = 16
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.addArrangedSubview(topRow)
+        contentStack.addArrangedSubview(headerLabel)
+        contentStack.addArrangedSubview(subHeaderLabel)
+        contentStack.addArrangedSubview(segmentMetric)
+        contentStack.addArrangedSubview(goalCard)
+        contentStack.addArrangedSubview(infoRow)
+        contentStack.addArrangedSubview(heartMetric)
+        view.addSubview(contentStack)
 
         NSLayoutConstraint.activate([
-            mainStack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -50),
-            mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+            contentStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
         ])
 
-        // Pause overlay
-        pauseOverlay.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        pauseOverlay.backgroundColor = UIColor.black.withAlphaComponent(0.32)
         pauseOverlay.isHidden = true
-        pauseOverlay.isUserInteractionEnabled = false
         pauseOverlay.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(pauseOverlay)
         NSLayoutConstraint.activate([
@@ -124,84 +173,65 @@ final class ActiveWorkoutViewController: UIViewController {
             pauseOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             pauseOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+
+        pauseLabel.text = "PAUSED"
+        pauseLabel.font = .systemFont(ofSize: 28, weight: .black)
+        pauseLabel.textColor = UIColor.white.withAlphaComponent(0.86)
+        pauseLabel.translatesAutoresizingMaskIntoConstraints = false
+        pauseOverlay.addSubview(pauseLabel)
+        NSLayoutConstraint.activate([
+            pauseLabel.centerXAnchor.constraint(equalTo: pauseOverlay.centerXAnchor),
+            pauseLabel.centerYAnchor.constraint(equalTo: pauseOverlay.centerYAnchor)
+        ])
     }
 
     private func setupButtons() {
-        let smallSize: CGFloat = 50
         let margin: CGFloat = DesignTokens.Spacing.l
+        let buttonSize: CGFloat = 54
 
-        // NEXT button — large, prominent, center bottom
-        nextButton.translatesAutoresizingMaskIntoConstraints = false
-        nextButton.setTitle("NEXT ▶", for: .normal)
-        nextButton.titleLabel?.font = .systemFont(ofSize: 20, weight: .bold)
-        nextButton.setTitleColor(.white, for: .normal)
-        nextButton.backgroundColor = UIColor.white.withAlphaComponent(0.25)
-        nextButton.layer.cornerRadius = 28
-        nextButton.layer.borderWidth = 2
-        nextButton.layer.borderColor = UIColor.white.withAlphaComponent(0.6).cgColor
-        nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
-        view.addSubview(nextButton)
-        NSLayoutConstraint.activate([
-            nextButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            nextButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -margin),
-            nextButton.widthAnchor.constraint(equalToConstant: 180),
-            nextButton.heightAnchor.constraint(equalToConstant: 56)
-        ])
+        advanceControl.translatesAutoresizingMaskIntoConstraints = false
+        advanceControl.heightAnchor.constraint(equalToConstant: 68).isActive = true
+        advanceControl.addTarget(self, action: #selector(advanceTriggered), for: .primaryActionTriggered)
 
-        // Small corner buttons
-        for btn in [pauseButton, endButton] {
-            btn.tintColor = .white
-            btn.translatesAutoresizingMaskIntoConstraints = false
-            btn.layer.cornerRadius = smallSize / 2
-            btn.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-            view.addSubview(btn)
-            NSLayoutConstraint.activate([
-                btn.widthAnchor.constraint(equalToConstant: smallSize),
-                btn.heightAnchor.constraint(equalToConstant: smallSize)
-            ])
+        for button in [pauseButton, endButton] {
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.tintColor = .white
+            button.backgroundColor = UIColor.black.withAlphaComponent(0.25)
+            button.layer.cornerRadius = buttonSize / 2
+            button.widthAnchor.constraint(equalToConstant: buttonSize).isActive = true
+            button.heightAnchor.constraint(equalToConstant: buttonSize).isActive = true
         }
 
         pauseButton.setImage(UIImage(systemName: "pause.fill"), for: .normal)
         pauseButton.addTarget(self, action: #selector(pauseTapped), for: .touchUpInside)
-        NSLayoutConstraint.activate([
-            pauseButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
-            pauseButton.bottomAnchor.constraint(equalTo: nextButton.topAnchor, constant: -DesignTokens.Spacing.m)
-        ])
 
-        endButton.setImage(UIImage(systemName: "stop.fill"), for: .normal)
+        endButton.setImage(UIImage(systemName: "xmark"), for: .normal)
+        endButton.backgroundColor = UIColor.red.withAlphaComponent(0.2)
         endButton.addTarget(self, action: #selector(endTapped), for: .touchUpInside)
+
+        let controlRow = UIStackView(arrangedSubviews: [pauseButton, advanceControl, endButton])
+        controlRow.axis = .horizontal
+        controlRow.alignment = .center
+        controlRow.spacing = 14
+        controlRow.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(controlRow)
+
         NSLayoutConstraint.activate([
-            endButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
-            endButton.bottomAnchor.constraint(equalTo: nextButton.topAnchor, constant: -DesignTokens.Spacing.m)
+            controlRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: margin),
+            controlRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -margin),
+            controlRow.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
         ])
     }
 
-    private func setupGestures() {
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPress.minimumPressDuration = 0.3
-        view.addGestureRecognizer(longPress)
+    private func setupCallbacks() {
+        viewModel.goalAlertHandler = { [weak self] in
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            self?.flashGoalCard()
+        }
     }
 
-    // MARK: - Actions
-
-    @objc private func nextTapped() {
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    @objc private func advanceTriggered() {
         viewModel.advance()
-    }
-
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        let location = gesture.location(in: view)
-        for btn in [nextButton, pauseButton, endButton] {
-            if btn.frame.insetBy(dx: -10, dy: -10).contains(location) { return }
-        }
-        switch gesture.state {
-        case .began:
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        case .ended:
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            viewModel.advance()
-        default: break
-        }
     }
 
     @objc private func pauseTapped() {
@@ -209,11 +239,13 @@ final class ActiveWorkoutViewController: UIViewController {
     }
 
     @objc private func endTapped() {
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        viewModel.endWorkout()
+        let alert = DarkAlertController(title: "운동 종료?", message: "현재 세션을 즉시 종료합니다.")
+        alert.addAction(.init(title: "취소", style: .cancel, handler: nil))
+        alert.addAction(.init(title: "종료", style: .destructive, handler: { [weak self] in
+            self?.viewModel.endWorkout()
+        }))
+        present(alert, animated: true)
     }
-
-    // MARK: - UI Timer
 
     private func startUITimer() {
         uiTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
@@ -231,38 +263,51 @@ final class ActiveWorkoutViewController: UIViewController {
         subHeaderLabel.text = viewModel.segmentSubLabel
         subHeaderLabel.isHidden = viewModel.segmentSubLabel == nil
 
-        segmentMetric.setValue(viewModel.segmentElapsedText, caption: "SEGMENT")
+        segmentMetric.setValue(viewModel.segmentElapsedText, caption: "CURRENT")
         totalMetric.setValue(viewModel.totalElapsedText, caption: "TOTAL")
+
+        goalValueLabel.text = viewModel.goalText
+        goalDeltaLabel.text = viewModel.goalDeltaText
+        goalDeltaLabel.textColor = goalDeltaColor()
+        goalCard.backgroundColor = viewModel.isOverGoal
+            ? UIColor.systemRed.withAlphaComponent(0.2)
+            : UIColor.white.withAlphaComponent(0.08)
+        goalCard.layer.borderColor = viewModel.isOverGoal
+            ? UIColor.systemRed.withAlphaComponent(0.35).cgColor
+            : UIColor.white.withAlphaComponent(0.08).cgColor
 
         switch viewModel.accentKind {
         case .run, .roxZone:
-            paceMetric.setValue(viewModel.paceText, caption: "PACE")
-            paceMetric.isHidden = false
-            stationNameMetric.superview?.isHidden = true
+            infoPrimaryMetric.setValue(viewModel.paceText, caption: "PACE")
+            infoSecondaryMetric.setValue(viewModel.distanceText, caption: "DISTANCE")
+            infoPrimaryMetric.setValueColor(.white)
+            infoSecondaryMetric.setValueColor(accentColor(for: viewModel.accentKind))
         case .station:
-            stationNameMetric.setValue(viewModel.stationNameText ?? "—", caption: "STATION")
-            stationTargetMetric.setValue(viewModel.stationTargetText ?? "—", caption: "TARGET")
-            paceMetric.isHidden = true
-            stationNameMetric.superview?.isHidden = false
+            infoPrimaryMetric.setValue(viewModel.stationNameText ?? "—", caption: "STATION")
+            infoSecondaryMetric.setValue(viewModel.stationTargetText ?? "—", caption: "TARGET")
+            infoPrimaryMetric.setValueColor(accentColor(for: viewModel.accentKind))
+            infoSecondaryMetric.setValueColor(.white)
         }
 
-        heartMetric.setValue("\(viewModel.heartRateText) ♥", caption: "HEART")
+        heartMetric.setValue("\(viewModel.heartRateText) BPM", caption: "HEART")
         heartMetric.setValueColor(colorFor(zone: viewModel.heartRateZone))
 
-        // Keep black background, tint header with accent color
         headerLabel.textColor = accentColor(for: viewModel.accentKind)
+        backgroundView.backgroundColor = backgroundColor(
+            for: viewModel.accentKind,
+            isOverGoal: viewModel.isOverGoal
+        )
         pauseOverlay.isHidden = !viewModel.isPaused
         pauseButton.setImage(
             UIImage(systemName: viewModel.isPaused ? "play.fill" : "pause.fill"),
             for: .normal
         )
 
-        // NEXT → FINISH on last segment
-        let btnTitle = viewModel.isLastSegment ? "FINISH ✓" : "NEXT ▶"
-        nextButton.setTitle(btnTitle, for: .normal)
-        nextButton.backgroundColor = viewModel.isLastSegment
-            ? DesignTokens.Color.accent.withAlphaComponent(0.4)
-            : UIColor.white.withAlphaComponent(0.25)
+        advanceControl.title = viewModel.isLastSegment ? "SLIDE TO FINISH" : "SLIDE TO NEXT"
+        advanceControl.accentColor = viewModel.isLastSegment
+            ? UIColor.systemGreen
+            : accentColor(for: viewModel.accentKind)
+        advanceControl.accessibilityLabel = advanceControl.title
 
         updateGPSStatus()
 
@@ -271,12 +316,42 @@ final class ActiveWorkoutViewController: UIViewController {
         }
     }
 
+    private func flashGoalCard() {
+        UIView.animate(withDuration: 0.12, animations: {
+            self.goalCard.transform = CGAffineTransform(scaleX: 1.03, y: 1.03)
+        }) { _ in
+            UIView.animate(withDuration: 0.18) {
+                self.goalCard.transform = .identity
+            }
+        }
+    }
+
     private func accentColor(for accent: ActiveWorkoutViewModel.AccentKind) -> UIColor {
         switch accent {
         case .run: return DesignTokens.Color.runAccent
         case .roxZone: return DesignTokens.Color.roxZoneAccent
-        case .station: return DesignTokens.Color.accent
+        case .station: return DesignTokens.Color.stationAccent
         }
+    }
+
+    private func backgroundColor(
+        for accent: ActiveWorkoutViewModel.AccentKind,
+        isOverGoal: Bool
+    ) -> UIColor {
+        if isOverGoal {
+            return UIColor(red: 0.36, green: 0.06, blue: 0.06, alpha: 1)
+        }
+
+        switch accent {
+        case .run: return DesignTokens.Color.runBackground
+        case .roxZone: return DesignTokens.Color.roxZoneBackground
+        case .station: return DesignTokens.Color.stationBackground
+        }
+    }
+
+    private func goalDeltaColor() -> UIColor {
+        if viewModel.goalText == "—" { return UIColor.white.withAlphaComponent(0.8) }
+        return viewModel.isOverGoal ? UIColor.systemRed : DesignTokens.Color.success
     }
 
     private func colorFor(zone: HeartRateZone?) -> UIColor {
@@ -313,58 +388,56 @@ final class ActiveWorkoutViewController: UIViewController {
         barsStack.axis = .horizontal
         barsStack.alignment = .bottom
         barsStack.spacing = 2
-        for (i, bar) in gpsBars.enumerated() {
+        for (index, bar) in gpsBars.enumerated() {
             bar.backgroundColor = UIColor.white.withAlphaComponent(0.2)
             bar.layer.cornerRadius = 1.5
             bar.translatesAutoresizingMaskIntoConstraints = false
             bar.widthAnchor.constraint(equalToConstant: 4).isActive = true
-            bar.heightAnchor.constraint(equalToConstant: CGFloat(6 + i * 4)).isActive = true
+            bar.heightAnchor.constraint(equalToConstant: CGFloat(6 + index * 4)).isActive = true
             barsStack.addArrangedSubview(bar)
         }
         gpsStatusView.addArrangedSubview(barsStack)
 
-        gpsLabel.font = .systemFont(ofSize: 10, weight: .medium)
-        gpsLabel.textColor = .gray
+        gpsLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        gpsLabel.textColor = UIColor.white.withAlphaComponent(0.7)
         gpsStatusView.addArrangedSubview(gpsLabel)
 
-        // Push everything to the left
         let spacer = UIView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         gpsStatusView.addArrangedSubview(spacer)
 
-        gpsStatusView.heightAnchor.constraint(equalToConstant: 16).isActive = true
+        gpsStatusView.heightAnchor.constraint(equalToConstant: 18).isActive = true
     }
 
     private func updateGPSStatus() {
-        let status = viewModel.gpsStatus
-        switch status {
+        switch viewModel.gpsStatus {
         case .off:
             gpsIcon.tintColor = UIColor.white.withAlphaComponent(0.2)
             gpsLabel.text = "GPS OFF"
-            gpsLabel.textColor = UIColor.white.withAlphaComponent(0.2)
+            gpsLabel.textColor = UIColor.white.withAlphaComponent(0.22)
             gpsBars.forEach { $0.backgroundColor = UIColor.white.withAlphaComponent(0.1) }
         case .searching:
             gpsIcon.tintColor = .gray
-            gpsLabel.text = "Searching..."
+            gpsLabel.text = "GPS SEARCHING"
             gpsLabel.textColor = .gray
             gpsBars.forEach { $0.backgroundColor = UIColor.white.withAlphaComponent(0.15) }
         case .weak:
             gpsIcon.tintColor = .systemOrange
-            gpsLabel.text = "GPS Weak"
+            gpsLabel.text = "GPS WEAK"
             gpsLabel.textColor = .systemOrange
             gpsBars[0].backgroundColor = .systemOrange
             gpsBars[1].backgroundColor = UIColor.white.withAlphaComponent(0.15)
             gpsBars[2].backgroundColor = UIColor.white.withAlphaComponent(0.15)
         case .fair:
             gpsIcon.tintColor = DesignTokens.Color.accent
-            gpsLabel.text = "GPS Fair"
+            gpsLabel.text = "GPS FAIR"
             gpsLabel.textColor = DesignTokens.Color.accent
             gpsBars[0].backgroundColor = DesignTokens.Color.accent
             gpsBars[1].backgroundColor = DesignTokens.Color.accent
             gpsBars[2].backgroundColor = UIColor.white.withAlphaComponent(0.15)
         case .strong:
             gpsIcon.tintColor = .systemGreen
-            gpsLabel.text = "GPS Strong"
+            gpsLabel.text = "GPS STRONG"
             gpsLabel.textColor = .systemGreen
             gpsBars.forEach { $0.backgroundColor = .systemGreen }
         }

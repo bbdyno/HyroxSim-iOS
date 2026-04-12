@@ -26,6 +26,15 @@ public enum DurationFormatter {
         return String(format: "%02d:%02d", m, s)
     }
 
+    /// Formats signed seconds as "+M:SS" or "-M:SS".
+    public static func signedMs(_ seconds: TimeInterval) -> String {
+        let sign = seconds >= 0 ? "+" : "-"
+        let total = Int(abs(seconds))
+        let m = total / 60
+        let s = total % 60
+        return String(format: "%@%d:%02d", sign, m, s)
+    }
+
     /// Formats pace (sec/km) as "5'42\" /km". Returns "—" for nil.
     public static func pace(_ secondsPerKm: Double?) -> String {
         guard let sPerKm = secondsPerKm, sPerKm.isFinite, sPerKm > 0 else { return "—" }

@@ -14,6 +14,8 @@ public struct WorkoutSegment: Identifiable, Codable, Hashable, Sendable {
 
     /// Distance in meters (meaningful for run/roxZone segments)
     public var distanceMeters: Double?
+    /// User-facing target duration for this segment in seconds.
+    public var goalDurationSeconds: TimeInterval?
 
     /// Kind of station exercise (meaningful for station segments)
     public var stationKind: StationKind?
@@ -28,6 +30,7 @@ public struct WorkoutSegment: Identifiable, Codable, Hashable, Sendable {
         id: UUID = UUID(),
         type: SegmentType,
         distanceMeters: Double? = nil,
+        goalDurationSeconds: TimeInterval? = nil,
         stationKind: StationKind? = nil,
         stationTarget: StationTarget? = nil,
         weightKg: Double? = nil,
@@ -36,6 +39,7 @@ public struct WorkoutSegment: Identifiable, Codable, Hashable, Sendable {
         self.id = id
         self.type = type
         self.distanceMeters = distanceMeters
+        self.goalDurationSeconds = goalDurationSeconds
         self.stationKind = stationKind
         self.stationTarget = stationTarget
         self.weightKg = weightKg
@@ -46,12 +50,19 @@ public struct WorkoutSegment: Identifiable, Codable, Hashable, Sendable {
 
     /// Creates a run segment with the given distance (default 1 km)
     public static func run(distanceMeters: Double = 1000) -> WorkoutSegment {
-        WorkoutSegment(type: .run, distanceMeters: distanceMeters)
+        WorkoutSegment(
+            type: .run,
+            distanceMeters: distanceMeters,
+            goalDurationSeconds: defaultGoalDurationSeconds(for: .run, distanceMeters: distanceMeters)
+        )
     }
 
     /// Creates a ROX Zone transition segment
     public static func roxZone() -> WorkoutSegment {
-        WorkoutSegment(type: .roxZone)
+        WorkoutSegment(
+            type: .roxZone,
+            goalDurationSeconds: defaultGoalDurationSeconds(for: .roxZone, distanceMeters: nil)
+        )
     }
 
     /// Creates a station segment
@@ -63,11 +74,27 @@ public struct WorkoutSegment: Identifiable, Codable, Hashable, Sendable {
     ) -> WorkoutSegment {
         WorkoutSegment(
             type: .station,
+            goalDurationSeconds: defaultGoalDurationSeconds(for: .station, distanceMeters: nil),
             stationKind: kind,
             stationTarget: target,
             weightKg: weightKg,
             weightNote: weightNote
         )
+    }
+
+    public static func defaultGoalDurationSeconds(
+        for type: SegmentType,
+        distanceMeters: Double?
+    ) -> TimeInterval {
+        switch type {
+        case .run:
+            let distance = distanceMeters ?? 1000
+            return distance * 0.36
+        case .roxZone:
+            return 30
+        case .station:
+            return 240
+        }
     }
 
     // MARK: - Validation

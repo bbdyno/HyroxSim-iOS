@@ -28,6 +28,11 @@ final class HomeViewController: UIViewController {
     private let contentStack = UIStackView()
     private var carouselCollectionView: UICollectionView!
     private let pageControl = UIPageControl()
+    private enum Tags {
+        static let recentContainer = 100
+        static let customTemplatesHeader = 101
+        static let customTemplatesContainer = 102
+    }
 
     private var cardWidth: CGFloat { view.bounds.width - hMargin * 2 }
     private let cardSpacing: CGFloat = 10
@@ -54,12 +59,14 @@ final class HomeViewController: UIViewController {
         viewModel.load()
         carouselCollectionView?.reloadData()
         rebuildRecentCard()
+        rebuildCustomTemplates()
     }
 
     @objc private func handleSyncUpdate() {
         viewModel.load()
         carouselCollectionView?.reloadData()
         rebuildRecentCard()
+        rebuildCustomTemplates()
     }
 
     // MARK: - Scroll View
@@ -92,7 +99,7 @@ final class HomeViewController: UIViewController {
     private func buildContent() {
         // Recent workout placeholder
         let recentContainer = UIView()
-        recentContainer.tag = 100
+        recentContainer.tag = Tags.recentContainer
         contentStack.addArrangedSubview(recentContainer)
 
         // Carousel
@@ -104,6 +111,16 @@ final class HomeViewController: UIViewController {
         pageControl.pageIndicatorTintColor = UIColor.white.withAlphaComponent(0.2)
         pageControl.isUserInteractionEnabled = false
         contentStack.addArrangedSubview(pageControl)
+
+        let customHeader = makeSectionHeader("SAVED TEMPLATES")
+        customHeader.tag = Tags.customTemplatesHeader
+        customHeader.isHidden = true
+        contentStack.addArrangedSubview(customHeader)
+
+        let customContainer = UIView()
+        customContainer.tag = Tags.customTemplatesContainer
+        customContainer.isHidden = true
+        contentStack.addArrangedSubview(customContainer)
 
         // Actions
         contentStack.addArrangedSubview(makeSectionHeader("MY WORKOUTS"))
@@ -134,7 +151,7 @@ final class HomeViewController: UIViewController {
     // MARK: - Recent Card
 
     private func rebuildRecentCard() {
-        guard let container = contentStack.arrangedSubviews.first(where: { $0.tag == 100 }) else { return }
+        guard let container = contentStack.arrangedSubviews.first(where: { $0.tag == Tags.recentContainer }) else { return }
         container.subviews.forEach { $0.removeFromSuperview() }
 
         guard let workout = viewModel.mostRecentWorkout else {
@@ -198,6 +215,40 @@ final class HomeViewController: UIViewController {
         card.isUserInteractionEnabled = true
     }
 
+    private func rebuildCustomTemplates() {
+        guard
+            let header = contentStack.arrangedSubviews.first(where: { $0.tag == Tags.customTemplatesHeader }),
+            let container = contentStack.arrangedSubviews.first(where: { $0.tag == Tags.customTemplatesContainer })
+        else { return }
+
+        container.subviews.forEach { $0.removeFromSuperview() }
+
+        guard !viewModel.customTemplates.isEmpty else {
+            header.isHidden = true
+            container.isHidden = true
+            return
+        }
+
+        header.isHidden = false
+        container.isHidden = false
+
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 10
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+
+        for (index, template) in viewModel.customTemplates.enumerated() {
+            stack.addArrangedSubview(makeCustomTemplateRow(template: template, index: index))
+        }
+    }
+
     @objc private func recentTapped() {
         guard let workout = viewModel.mostRecentWorkout else { return }
         delegate?.homeDidSelectRecent(workout)
@@ -248,10 +299,49 @@ final class HomeViewController: UIViewController {
         return container
     }
 
+    private func makeCustomTemplateRow(template: WorkoutTemplate, index: Int) -> UIView {
+        let button = UIButton(type: .system)
+        var config = UIButton.Configuration.filled()
+        config.title = template.name
+        config.subtitle = customTemplateSummary(for: template)
+        config.image = UIImage(systemName: template.usesRoxZone ? "square.stack.3d.forward.dottedline.fill" : "figure.run")
+        config.imagePadding = 10
+        config.baseForegroundColor = .white
+        config.baseBackgroundColor = DesignTokens.Color.surface
+        config.cornerStyle = .large
+        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
+        button.configuration = config
+        button.contentHorizontalAlignment = .leading
+        button.tag = index
+        button.addTarget(self, action: #selector(customTemplateTapped(_:)), for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = UIView()
+        container.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.topAnchor.constraint(equalTo: container.topAnchor),
+            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
+            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
+            button.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        return container
+    }
+
+    private func customTemplateSummary(for template: WorkoutTemplate) -> String {
+        let stations = template.segments.filter { $0.type == .station }.count
+        let mins = Int(template.estimatedDurationSeconds / 60)
+        let roxLabel = template.usesRoxZone ? "ROX ON" : "ROX OFF"
+        return "\(roxLabel)  ·  \(stations) stations  ·  ~\(mins) min"
+    }
+
     // MARK: - Actions
 
     @objc private func newWorkoutTapped() { delegate?.homeDidTapNewWorkout() }
     @objc private func historyTapped() { delegate?.homeDidTapHistory() }
+    @objc private func customTemplateTapped(_ sender: UIButton) {
+        guard sender.tag < viewModel.customTemplates.count else { return }
+        delegate?.homeDidSelectTemplate(viewModel.customTemplates[sender.tag])
+    }
 }
 
 // MARK: - UICollectionViewDataSource

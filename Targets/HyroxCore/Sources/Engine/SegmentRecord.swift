@@ -27,6 +27,8 @@ public struct SegmentRecord: Identifiable, Hashable, Sendable, Codable {
     public let stationDisplayName: String?
     /// Planned distance from the template (run/roxZone). Separate from measured GPS distance.
     public let plannedDistanceMeters: Double?
+    /// Goal duration snapshot taken when the workout started.
+    public let goalDurationSeconds: TimeInterval?
 
     /// Total wall-clock duration (includes paused time)
     public var duration: TimeInterval { endedAt.timeIntervalSince(startedAt) }
@@ -54,7 +56,8 @@ public struct SegmentRecord: Identifiable, Hashable, Sendable, Codable {
         pausedDuration: TimeInterval = 0,
         measurements: SegmentMeasurements = SegmentMeasurements(),
         stationDisplayName: String? = nil,
-        plannedDistanceMeters: Double? = nil
+        plannedDistanceMeters: Double? = nil,
+        goalDurationSeconds: TimeInterval? = nil
     ) {
         self.id = id
         self.segmentId = segmentId
@@ -66,5 +69,6 @@ public struct SegmentRecord: Identifiable, Hashable, Sendable, Codable {
         self.measurements = measurements
         self.stationDisplayName = stationDisplayName
         self.plannedDistanceMeters = plannedDistanceMeters
+        self.goalDurationSeconds = goalDurationSeconds
     }
 }

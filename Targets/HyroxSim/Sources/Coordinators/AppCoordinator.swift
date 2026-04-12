@@ -191,6 +191,9 @@ public final class AppCoordinator {
             distanceText: "820 m",
             heartRateText: "168",
             heartRateZoneRaw: HeartRateZone.z4.rawValue,
+            goalText: "06:00",
+            goalDeltaText: "-4:37",
+            isOverGoal: false,
             stationNameText: nil,
             stationTargetText: nil,
             accentKindRaw: "run",
@@ -348,6 +351,14 @@ extension AppCoordinator: WorkoutBuilderViewControllerDelegate {
 extension AppCoordinator {
 
     func startWorkout(template: WorkoutTemplate) {
+        let goalSetup = WorkoutGoalSetupViewController(template: template)
+        goalSetup.delegate = self
+        let nav = UINavigationController(rootViewController: goalSetup)
+        nav.applyDarkTheme()
+        navigationController.present(nav, animated: true)
+    }
+
+    private func beginWorkout(template: WorkoutTemplate) {
         let location = CoreLocationAdapter()
         let heartRate = HealthKitHeartRateAdapter()
         let vm = ActiveWorkoutViewModel(
@@ -395,6 +406,21 @@ extension AppCoordinator {
             let nav = UINavigationController(rootViewController: vc)
             nav.applyDarkTheme()
             navigationController.present(nav, animated: animated)
+        }
+    }
+}
+
+// MARK: - WorkoutGoalSetupViewControllerDelegate
+
+extension AppCoordinator: WorkoutGoalSetupViewControllerDelegate {
+
+    func goalSetupDidCancel() {
+        navigationController.dismiss(animated: true)
+    }
+
+    func goalSetupDidConfirm(template: WorkoutTemplate) {
+        navigationController.dismiss(animated: true) { [self] in
+            beginWorkout(template: template)
         }
     }
 }

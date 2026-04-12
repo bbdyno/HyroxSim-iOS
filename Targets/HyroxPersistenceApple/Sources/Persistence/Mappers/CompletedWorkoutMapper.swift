@@ -30,6 +30,7 @@ public enum CompletedWorkoutMapper {
                 pausedDuration: record.pausedDuration,
                 stationDisplayName: record.stationDisplayName,
                 plannedDistanceMeters: record.plannedDistanceMeters,
+                goalDurationSeconds: record.goalDurationSeconds,
                 measurementsData: measData
             )
         }
@@ -65,7 +66,8 @@ public enum CompletedWorkoutMapper {
                 pausedDuration: seg.pausedDuration,
                 measurements: measurements,
                 stationDisplayName: seg.stationDisplayName,
-                plannedDistanceMeters: seg.plannedDistanceMeters
+                plannedDistanceMeters: seg.plannedDistanceMeters,
+                goalDurationSeconds: seg.goalDurationSeconds
             )
         }
 
