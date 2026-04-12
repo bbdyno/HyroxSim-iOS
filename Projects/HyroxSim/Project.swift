@@ -8,7 +8,7 @@
 import ProjectDescription
 
 let appVersion = "1.0.0"
-let appBuildNumber = "2026.04.12.1"
+let appBuildNumber = "2026.04.12.2"
 
 let signingSettings: SettingsDictionary = [
     "SWIFT_VERSION": "5.9",
@@ -78,6 +78,8 @@ let project = Project(
             bundleId: "com.bbdyno.app.HyroxSim",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
+                "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "UIApplicationSceneManifest": [
                     "UIApplicationSupportsMultipleScenes": false,
                     "UISceneConfigurations": [
@@ -150,6 +152,8 @@ let project = Project(
             bundleId: "com.bbdyno.app.HyroxSim.watchkitapp",
             deploymentTargets: .watchOS("10.0"),
             infoPlist: .extendingDefault(with: [
+                "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "WKApplication": true,
                 "NSLocationWhenInUseUsageDescription": "HYROX SIM uses your location during workouts on Apple Watch to measure your running pace and distance.",
                 "NSHealthShareUsageDescription": "HYROX SIM reads your heart rate from HealthKit during workouts on Apple Watch.",
@@ -202,6 +206,8 @@ let project = Project(
             bundleId: "com.bbdyno.app.HyroxSim.widgets",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
+                "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "CFBundleDisplayName": "HYROX SIM",
                 "NSExtension": [
                     "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"
