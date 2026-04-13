@@ -137,6 +137,8 @@ struct ActiveWorkoutView: View {
                     }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(nil, value: model.accentKind)
+                .animation(nil, value: model.isOverGoal)
             }
         }
     }
@@ -282,7 +284,7 @@ struct ActiveWorkoutView: View {
                 Color.red.opacity(0.06)
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: model.accentKind)
+        .animation(.easeInOut(duration: 0.4), value: model.accentKind)
         .animation(.easeInOut(duration: 0.25), value: model.isOverGoal)
     }
 

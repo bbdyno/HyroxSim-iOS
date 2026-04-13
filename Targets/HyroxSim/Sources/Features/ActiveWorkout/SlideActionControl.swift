@@ -82,11 +82,13 @@ final class SlideActionControl: UIControl {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         trackView.addSubview(titleLabel)
 
-        thumbView.backgroundColor = .white
+        thumbView.backgroundColor = accentColor
+        thumbView.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
+        thumbView.layer.borderWidth = 1.5
         thumbView.translatesAutoresizingMaskIntoConstraints = false
         trackView.addSubview(thumbView)
 
-        thumbImageView.tintColor = .black
+        thumbImageView.tintColor = .white
         thumbImageView.contentMode = .scaleAspectFit
         thumbImageView.translatesAutoresizingMaskIntoConstraints = false
         thumbView.addSubview(thumbImageView)
@@ -116,7 +118,7 @@ final class SlideActionControl: UIControl {
 
             thumbLeadingConstraint,
             thumbView.centerYAnchor.constraint(equalTo: trackView.centerYAnchor),
-            thumbView.heightAnchor.constraint(equalToConstant: 52),
+            thumbView.heightAnchor.constraint(equalTo: thumbView.widthAnchor),
             thumbWidthConstraint,
 
             thumbImageView.centerXAnchor.constraint(equalTo: thumbView.centerXAnchor),
@@ -131,6 +133,7 @@ final class SlideActionControl: UIControl {
 
     private func updateAppearance() {
         fillView.backgroundColor = accentColor.withAlphaComponent(0.32)
+        thumbView.backgroundColor = accentColor
     }
 
     private func applyOffset(_ offset: CGFloat, animated: Bool) {
@@ -138,7 +141,7 @@ final class SlideActionControl: UIControl {
         let progress = maxTravel > 0 ? clamped / maxTravel : 0
         let updates = {
             self.thumbLeadingConstraint.constant = self.horizontalInset + clamped
-            self.fillWidthConstraint.constant = self.horizontalInset + clamped + self.thumbDiameter
+            self.fillWidthConstraint.constant = self.horizontalInset + clamped + self.thumbDiameter / 2
             self.titleLabel.alpha = max(0.18, 1 - (progress * 1.15))
             self.layoutIfNeeded()
         }

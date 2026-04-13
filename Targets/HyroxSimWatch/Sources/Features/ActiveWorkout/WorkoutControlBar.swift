@@ -119,9 +119,12 @@ struct WorkoutControlBar: View {
                                 withAnimation(.spring(response: 0.18, dampingFraction: 0.82)) {
                                     progress = 1
                                 }
-                                onAdvance()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                                // knob reset 후 세그먼트 전환 — 순서 중요
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                     resetControl()
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                        onAdvance()
+                                    }
                                 }
                             } else {
                                 resetControl()
