@@ -2,7 +2,7 @@
 //  SlideActionControl.swift
 //  HyroxSim
 //
-//  Created by Codex on 4/12/26.
+//  Created by bbdyno on 4/12/26.
 //
 
 import UIKit

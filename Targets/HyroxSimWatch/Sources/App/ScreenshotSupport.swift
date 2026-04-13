@@ -35,50 +35,57 @@ struct WatchScreenshotActiveWorkoutView: View {
     private let heart = Color.orange
 
     var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: "location.fill")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.green)
-                Text("RUN 3 / 8")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(accent)
+        VStack(spacing: 6) {
+            HStack {
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.green)
+                    Text("RUN 3 / 8")
+                        .font(.system(size: 13, weight: .black))
+                        .foregroundStyle(accent)
+                }
+                Spacer()
+                Text("0:27:41")
+                    .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.62))
             }
 
-            Text("Strong pace")
-                .font(.system(size: 10))
-                .foregroundStyle(.gray)
-
             Text("04:28")
-                .font(.system(size: 40, weight: .bold, design: .rounded).monospacedDigit())
+                .font(.system(size: 44, weight: .black, design: .rounded).monospacedDigit())
                 .foregroundStyle(.white)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
 
-            Text("0:27:41")
-                .font(.system(size: 14, weight: .medium, design: .rounded).monospacedDigit())
-                .foregroundStyle(.gray)
-
-            VStack(spacing: 0) {
-                Text("4'13\" /km")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white)
-                Text("PACE")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.gray)
+            HStack {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("GOAL")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundStyle(.white.opacity(0.55))
+                    Text("06:00")
+                        .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.white)
+                }
+                Spacer()
+                Text("-1:32")
+                    .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.green)
             }
-            .padding(.vertical, 2)
+
+            Text("4'13\" /km  •  680 m")
+                .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.86))
 
             HStack(spacing: 3) {
-                Text("172")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(heart)
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 10))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(heart)
+                Text("172")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded).monospacedDigit())
                     .foregroundStyle(heart)
             }
 
-            Spacer(minLength: 2)
+            Spacer(minLength: 14)
 
             HStack(spacing: 8) {
                 Button {} label: {
@@ -104,7 +111,8 @@ struct WatchScreenshotActiveWorkoutView: View {
                 .tint(.red)
             }
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
         .background(Color.black)
     }
 }

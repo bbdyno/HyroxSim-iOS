@@ -19,6 +19,8 @@ final class WorkoutGoalSetupViewController: UIViewController {
     weak var delegate: WorkoutGoalSetupViewControllerDelegate?
 
     private var template: WorkoutTemplate
+    private let screenTitle: String
+    private let confirmButtonTitle: String
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private let totalGoalLabel = UILabel()
@@ -26,8 +28,14 @@ final class WorkoutGoalSetupViewController: UIViewController {
     private let footerContainer = UIView()
     private let startButton = UIButton(type: .system)
 
-    init(template: WorkoutTemplate) {
+    init(
+        template: WorkoutTemplate,
+        screenTitle: String = "Set Goals",
+        confirmButtonTitle: String = "Start Workout"
+    ) {
         self.template = template
+        self.screenTitle = screenTitle
+        self.confirmButtonTitle = confirmButtonTitle
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -36,7 +44,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Set Goals"
+        title = screenTitle
         view.backgroundColor = DesignTokens.Color.background
         applyDarkNavBarAppearance()
         navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -91,7 +99,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
         separator.backgroundColor = UIColor.white.withAlphaComponent(0.08)
         footerContainer.addSubview(separator)
 
-        startButton.setTitle("Start Workout", for: .normal)
+        startButton.setTitle(confirmButtonTitle, for: .normal)
         startButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
         startButton.setTitleColor(.black, for: .normal)
         startButton.backgroundColor = DesignTokens.Color.accent
@@ -127,7 +135,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
         contentStack.addArrangedSubview(titleLabel)
 
         let subtitleLabel = UILabel()
-        subtitleLabel.text = "Adjust each segment target before starting. Format: MM:SS"
+        subtitleLabel.text = "Adjust each segment target. Format: MM:SS"
         subtitleLabel.font = .systemFont(ofSize: 13, weight: .medium)
         subtitleLabel.textColor = DesignTokens.Color.textSecondary
         subtitleLabel.numberOfLines = 0

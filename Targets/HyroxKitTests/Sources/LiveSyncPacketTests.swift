@@ -31,6 +31,8 @@ final class LiveSyncPacketTests: XCTestCase {
         let state = LiveWorkoutState(
             segmentLabel: "RUN 1 / 1",
             segmentSubLabel: nil,
+            currentDisplayTitle: "RUNNING 1",
+            nextDisplayTitle: "SkiErg",
             segmentElapsedText: "01:23",
             totalElapsedText: "0:12:34",
             paceText: "4'12\" /km",

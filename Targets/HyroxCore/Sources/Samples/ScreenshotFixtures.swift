@@ -52,6 +52,8 @@ public enum ScreenshotFixtures {
     public static let liveMirrorState = LiveWorkoutState(
         segmentLabel: "RUN 3 / 8",
         segmentSubLabel: "Strong pace",
+        currentDisplayTitle: "RUNNING 3",
+        nextDisplayTitle: nil,
         segmentElapsedText: "04:28",
         totalElapsedText: "0:27:41",
         paceText: "4'13\" /km",

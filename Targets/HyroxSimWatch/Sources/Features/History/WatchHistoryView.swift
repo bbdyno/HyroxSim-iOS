@@ -18,12 +18,12 @@ struct WatchHistoryView: View {
     var body: some View {
         Group {
             if workouts.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     Image(systemName: "figure.run")
-                        .font(.system(size: 24))
+                        .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(.gray)
                     Text("기록 없음")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.gray)
                 }
             } else {
@@ -32,19 +32,22 @@ struct WatchHistoryView: View {
                         NavigationLink {
                             SummaryView(workout: workout, onDone: {})
                         } label: {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 3) {
                                 Text(workout.division?.shortName ?? workout.templateName)
-                                    .font(.system(size: 13, weight: .bold))
+                                    .font(.system(size: 15, weight: .bold))
                                     .foregroundStyle(.white)
+                                    .lineLimit(2)
                                 Text(DurationFormatter.hms(workout.totalDuration))
-                                    .font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
+                                    .font(.system(size: 20, weight: .black, design: .rounded).monospacedDigit())
                                     .foregroundStyle(accent)
                                 Text(workout.finishedAt, style: .relative)
-                                    .font(.system(size: 10))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.gray)
                             }
+                            .padding(.vertical, 6)
                         }
-                        .listRowBackground(Color.white.opacity(0.06))
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 2))
                     }
                     .onDelete(perform: deleteWorkouts)
                 }

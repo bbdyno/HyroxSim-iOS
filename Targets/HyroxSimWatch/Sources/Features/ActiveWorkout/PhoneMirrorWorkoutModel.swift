@@ -18,6 +18,8 @@ final class PhoneMirrorWorkoutModel {
     // MARK: - UI State (폰 LiveWorkoutState에서 받음)
     private(set) var segmentLabel: String = ""
     private(set) var segmentSubLabel: String?
+    private(set) var currentDisplayTitle: String = ""
+    private(set) var nextDisplayTitle: String?
     private(set) var segmentElapsedText: String = "00:00"
     private(set) var totalElapsedText: String = "0:00:00"
     private(set) var paceText: String = "—"
@@ -57,6 +59,8 @@ final class PhoneMirrorWorkoutModel {
         lastStateReceivedAt = Date()
         segmentLabel = state.segmentLabel
         segmentSubLabel = state.segmentSubLabel
+        currentDisplayTitle = state.currentDisplayTitle
+        nextDisplayTitle = state.nextDisplayTitle
         segmentElapsedText = state.segmentElapsedText
         totalElapsedText = state.totalElapsedText
         paceText = state.paceText

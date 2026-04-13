@@ -68,6 +68,8 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     }
 
     func updateState(_ state: LiveWorkoutState) {
+        loadViewIfNeeded()
+
         if state.isOverGoal, alertedGoalSegmentIndex != state.currentSegmentIndex {
             alertedGoalSegmentIndex = state.currentSegmentIndex
             UINotificationFeedbackGenerator().notificationOccurred(.warning)
@@ -75,7 +77,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
 
         lastState = state
 
-        watchBadge.text = isConnected ? "LIVE FROM APPLE WATCH" : "WATCH DISCONNECTED"
+        watchBadge.text = isConnected ? "⌚ LIVE FROM APPLE WATCH" : "⌚ WATCH DISCONNECTED"
         watchBadge.textColor = isConnected ? DesignTokens.Color.accent : .systemRed
 
         gpsLabel.text = gpsText(for: state)
@@ -135,15 +137,17 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     }
 
     func showDisconnected() {
+        loadViewIfNeeded()
         isConnected = false
-        watchBadge.text = "WATCH DISCONNECTED"
+        watchBadge.text = "⌚ WATCH DISCONNECTED"
         watchBadge.textColor = .systemRed
         setControlsEnabled(false)
     }
 
     func showReconnected() {
+        loadViewIfNeeded()
         isConnected = true
-        watchBadge.text = "LIVE FROM APPLE WATCH"
+        watchBadge.text = "⌚ LIVE FROM APPLE WATCH"
         watchBadge.textColor = DesignTokens.Color.accent
         setControlsEnabled(true)
         if let lastState {
@@ -167,7 +171,8 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         watchBadge.font = .systemFont(ofSize: 10, weight: .black)
         watchBadge.textColor = DesignTokens.Color.accent
         watchBadge.textAlignment = .center
-        watchBadge.text = "LIVE FROM APPLE WATCH"
+        watchBadge.text = "⌚ LIVE FROM APPLE WATCH"
+        watchBadge.accessibilityIdentifier = "liveMirror.watchBadge"
 
         gpsLabel.font = .systemFont(ofSize: 11, weight: .bold)
         gpsLabel.textAlignment = .center
@@ -177,6 +182,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         headerLabel.textAlignment = .center
         headerLabel.textColor = .white
         headerLabel.numberOfLines = 2
+        headerLabel.accessibilityIdentifier = "liveMirror.headerLabel"
 
         subHeaderLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         subHeaderLabel.textAlignment = .center
@@ -277,11 +283,15 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         }
 
         pauseButton.setImage(UIImage(systemName: "pause.fill"), for: .normal)
+        pauseButton.accessibilityIdentifier = "liveMirror.pauseButton"
         pauseButton.addTarget(self, action: #selector(pauseTapped), for: .touchUpInside)
 
         endButton.setImage(UIImage(systemName: "xmark"), for: .normal)
         endButton.backgroundColor = UIColor.red.withAlphaComponent(0.2)
+        endButton.accessibilityIdentifier = "liveMirror.endButton"
         endButton.addTarget(self, action: #selector(endTapped), for: .touchUpInside)
+
+        advanceControl.accessibilityIdentifier = "liveMirror.nextButton"
 
         let controlRow = UIStackView(arrangedSubviews: [pauseButton, advanceControl, endButton])
         controlRow.axis = .horizontal
@@ -298,7 +308,11 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     }
 
     private func setControlsEnabled(_ enabled: Bool) {
-        [pauseButton, endButton, advanceControl].forEach { $0.isUserInteractionEnabled = enabled }
+        [pauseButton, endButton, advanceControl].forEach {
+            $0.isEnabled = enabled
+            $0.isUserInteractionEnabled = enabled
+        }
+        advanceControl.accessibilityTraits = enabled ? [.button] : [.button, .notEnabled]
         let alpha: CGFloat = enabled ? 1 : 0.45
         pauseButton.alpha = alpha
         endButton.alpha = alpha

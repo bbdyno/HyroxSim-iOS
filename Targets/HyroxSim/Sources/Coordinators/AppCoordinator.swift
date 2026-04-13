@@ -17,6 +17,8 @@ public final class AppCoordinator {
     let persistence: PersistenceController
     private let syncCoordinator: WatchConnectivitySyncCoordinator
     private let workoutMirrorController: WorkoutMirrorController
+    private let templateGoalOverrideStore = TemplateGoalOverrideStore()
+    private let forceDisconnectedMirrorUITest = ProcessInfo.processInfo.arguments.contains("UITestWatchMirrorDisconnected")
 
     init(window: UIWindow, services: AppServices) {
         self.window = window
@@ -69,13 +71,17 @@ public final class AppCoordinator {
                     ?? Self.placeholderTemplate(for: state)
                 self?.showLiveMirror(template: template)
             }
-            self?.liveMirrorVC?.updateState(state)
+            self?.applyLiveMirrorState(state)
         }
         workoutMirrorController.onWorkoutFinished = { [weak self] origin in
             guard origin == .watch else { return }
             self?.dismissLiveMirror()
         }
         workoutMirrorController.onConnectionChanged = { [weak self] connected in
+            if self?.forceDisconnectedMirrorUITest == true {
+                self?.liveMirrorVC?.showDisconnected()
+                return
+            }
             if connected {
                 self?.liveMirrorVC?.showReconnected()
             } else {
@@ -93,7 +99,7 @@ public final class AppCoordinator {
             if self?.liveMirrorVC == nil {
                 self?.showLiveMirror(template: Self.placeholderTemplate(for: state))
             }
-            self?.liveMirrorVC?.updateState(state)
+            self?.applyLiveMirrorState(state)
         }
         syncCoordinator.onWorkoutFinished = { [weak self] origin in
             guard origin == .watch else { return }
@@ -101,6 +107,10 @@ public final class AppCoordinator {
         }
         syncCoordinator.onReachabilityChanged = { [weak self] reachable in
             guard let self, !self.workoutMirrorController.hasActiveWorkout else { return }
+            if self.forceDisconnectedMirrorUITest {
+                self.liveMirrorVC?.showDisconnected()
+                return
+            }
             if reachable {
                 self.liveMirrorVC?.showReconnected()
             } else {
@@ -111,9 +121,11 @@ public final class AppCoordinator {
         if let template = workoutMirrorController.currentTemplate {
             showLiveMirror(template: template)
             if let state = workoutMirrorController.currentState {
-                liveMirrorVC?.updateState(state)
+                applyLiveMirrorState(state)
             }
-            if !workoutMirrorController.isConnected {
+            if forceDisconnectedMirrorUITest {
+                liveMirrorVC?.showDisconnected()
+            } else if !workoutMirrorController.isConnected {
                 liveMirrorVC?.showDisconnected()
             }
         }
@@ -162,6 +174,13 @@ public final class AppCoordinator {
         WorkoutTemplate(name: state.templateName, segments: [.run(distanceMeters: 1000)])
     }
 
+    private func applyLiveMirrorState(_ state: LiveWorkoutState) {
+        liveMirrorVC?.updateState(state)
+        if forceDisconnectedMirrorUITest {
+            liveMirrorVC?.showDisconnected()
+        }
+    }
+
     private func refreshHomeIfVisible() {
         // Trigger viewWillAppear-equivalent reload by popping to root if possible,
         // or just set a flag. Simplest: call reload if the VC exposes it.
@@ -185,6 +204,8 @@ public final class AppCoordinator {
         let state = LiveWorkoutState(
             segmentLabel: "RUN 1 / 1",
             segmentSubLabel: nil,
+            currentDisplayTitle: "RUNNING 1",
+            nextDisplayTitle: nil,
             segmentElapsedText: "01:23",
             totalElapsedText: "0:12:34",
             paceText: "4'12\" /km",
@@ -209,9 +230,9 @@ public final class AppCoordinator {
         )
 
         showLiveMirror(template: template)
-        liveMirrorVC?.updateState(state)
+        applyLiveMirrorState(state)
 
-        if arguments.contains("UITestWatchMirrorDisconnected") {
+        if forceDisconnectedMirrorUITest {
             liveMirrorVC?.showDisconnected()
         }
     }
@@ -251,7 +272,10 @@ public final class AppCoordinator {
     }
 
     private func showTemplateDetail(_ template: WorkoutTemplate) {
-        let vc = TemplateDetailViewController(template: template)
+        let resolvedTemplate = templateWithOverrides(template)
+        let vc = TemplateDetailViewController(template: resolvedTemplate) { [weak self] updatedTemplate in
+            self?.persistTemplateChanges(updatedTemplate)
+        }
         vc.delegate = self
         navigationController.pushViewController(vc, animated: true)
     }
@@ -268,7 +292,8 @@ public final class AppCoordinator {
     }
 
     private func presentBuilder(startingFrom template: WorkoutTemplate?, animated: Bool = true) {
-        let vm = WorkoutBuilderViewModel(startingFrom: template, persistence: persistence)
+        let resolvedTemplate = template.map(templateWithOverrides)
+        let vm = WorkoutBuilderViewModel(startingFrom: resolvedTemplate, persistence: persistence)
         let vc = WorkoutBuilderViewController(viewModel: vm)
         vc.delegate = self
         let nav = UINavigationController(rootViewController: vc)
@@ -351,11 +376,7 @@ extension AppCoordinator: WorkoutBuilderViewControllerDelegate {
 extension AppCoordinator {
 
     func startWorkout(template: WorkoutTemplate) {
-        let goalSetup = WorkoutGoalSetupViewController(template: template)
-        goalSetup.delegate = self
-        let nav = UINavigationController(rootViewController: goalSetup)
-        nav.applyDarkTheme()
-        navigationController.present(nav, animated: true)
+        beginWorkout(template: templateWithOverrides(template))
     }
 
     private func beginWorkout(template: WorkoutTemplate) {
@@ -408,20 +429,20 @@ extension AppCoordinator {
             navigationController.present(nav, animated: animated)
         }
     }
-}
 
-// MARK: - WorkoutGoalSetupViewControllerDelegate
-
-extension AppCoordinator: WorkoutGoalSetupViewControllerDelegate {
-
-    func goalSetupDidCancel() {
-        navigationController.dismiss(animated: true)
+    private func templateWithOverrides(_ template: WorkoutTemplate) -> WorkoutTemplate {
+        templateGoalOverrideStore.resolvedTemplate(from: template)
     }
 
-    func goalSetupDidConfirm(template: WorkoutTemplate) {
-        navigationController.dismiss(animated: true) { [self] in
-            beginWorkout(template: template)
+    private func persistTemplateChanges(_ template: WorkoutTemplate) {
+        if template.isBuiltIn {
+            templateGoalOverrideStore.save(template)
+            return
         }
+
+        try? persistence.upsertTemplate(template)
+        try? syncCoordinator.sendTemplate(template)
+        refreshHomeIfVisible()
     }
 }
 
@@ -434,16 +455,6 @@ extension AppCoordinator: WorkoutSummaryViewControllerDelegate {
             navigationController.dismiss(animated: true)
         } else {
             navigationController.popViewController(animated: true)
-        }
-    }
-
-    func summaryDidTapShare(_ workout: CompletedWorkout) {
-        let vm = WorkoutSummaryViewModel(workout: workout)
-        let avc = UIActivityViewController(activityItems: [vm.shareText], applicationActivities: nil)
-        if let presented = navigationController.presentedViewController {
-            presented.present(avc, animated: true)
-        } else {
-            navigationController.present(avc, animated: true)
         }
     }
 }

@@ -32,12 +32,12 @@ final class WorkoutBuilderViewModelTests: XCTestCase {
     func testPresetInit() throws {
         let preset = HyroxPresets.menOpenSingle
         let vm = WorkoutBuilderViewModel(startingFrom: preset, persistence: try makePersistence())
-        XCTAssertEqual(vm.segments.count, 31)
+        XCTAssertEqual(vm.segments.count, preset.logicalSegments.count)
         XCTAssertEqual(vm.division, .menOpenSingle)
 
-        // Segments should have new UUIDs (cloned)
+        // Builder edits logical segments only, and they should be cloned with new UUIDs.
         for (i, seg) in vm.segments.enumerated() {
-            XCTAssertNotEqual(seg.id, preset.segments[i].id, "Segment \(i) should be cloned with new UUID")
+            XCTAssertNotEqual(seg.id, preset.logicalSegments[i].id, "Segment \(i) should be cloned with new UUID")
         }
     }
 
@@ -102,7 +102,8 @@ final class WorkoutBuilderViewModelTests: XCTestCase {
         vm.addSegment(.station(.wallBalls, target: .reps(count: 50)))
 
         let template = try vm.saveAsTemplate()
-        XCTAssertEqual(template.segments.count, 2)
+        XCTAssertEqual(template.segments.count, 3)
+        XCTAssertEqual(template.segments.map(\.type), [.run, .roxZone, .station])
 
         let fetched = try persistence.fetchAllTemplates()
         XCTAssertEqual(fetched.count, 1)

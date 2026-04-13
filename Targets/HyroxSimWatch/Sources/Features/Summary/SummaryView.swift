@@ -23,53 +23,24 @@ struct SummaryView: View {
         ScrollView {
             VStack(spacing: 8) {
                 Text(DurationFormatter.hms(workout.totalDuration))
-                    .font(.system(size: 28, weight: .bold, design: .rounded).monospacedDigit())
+                    .font(.system(size: 34, weight: .black, design: .rounded).monospacedDigit())
                     .foregroundStyle(accent)
 
                 if let totalGoal {
                     Text(DurationFormatter.signedMs(workout.totalDuration - totalGoal))
-                        .font(.system(size: 13, weight: .black, design: .rounded).monospacedDigit())
+                        .font(.system(size: 15, weight: .black, design: .rounded).monospacedDigit())
                         .foregroundStyle(deltaColor(for: workout.totalDuration - totalGoal))
                 }
 
                 Text(workout.division?.shortName ?? workout.templateName)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
 
-                Rectangle().fill(accent.opacity(0.3)).frame(height: 0.5).padding(.vertical, 4)
-
-                metricRow("Avg HR", workout.averageHeartRate.map(String.init) ?? "—")
-                metricRow("Max HR", workout.maxHeartRate.map(String.init) ?? "—")
-
-                Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5).padding(.vertical, 4)
+                heartSummaryRow
 
                 ForEach(Array(workout.segments.enumerated()), id: \.element.id) { index, record in
-                    HStack(spacing: 4) {
-                        if record.type == .station {
-                            let stIdx = workout.segments[0...index].filter { $0.type == .station }.count
-                            Text(String(format: "%02d", stIdx))
-                                .font(.system(size: 8, weight: .black))
-                                .foregroundStyle(.black)
-                                .padding(.horizontal, 3)
-                                .padding(.vertical, 1)
-                                .background(accent)
-                                .cornerRadius(2)
-                        }
-                        Text(segmentLabel(for: record))
-                            .font(.system(size: 11, weight: record.type == .station ? .bold : .regular))
-                            .foregroundStyle(record.type == .roxZone ? .gray.opacity(0.5) : .white)
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(DurationFormatter.ms(record.activeDuration))
-                                .font(.system(size: 11, design: .rounded).monospacedDigit())
-                                .foregroundStyle(record.type == .roxZone ? .gray.opacity(0.5) : .white)
-                            if let goal = record.goalDurationSeconds {
-                                Text(DurationFormatter.signedMs(record.activeDuration - goal))
-                                    .font(.system(size: 9, weight: .bold, design: .rounded).monospacedDigit())
-                                    .foregroundStyle(deltaColor(for: record.activeDuration - goal))
-                            }
-                        }
-                    }
+                    segmentRow(for: record, at: index)
                 }
 
                 if let onDone {
@@ -81,23 +52,85 @@ struct SummaryView: View {
                 }
             }
             .padding(.horizontal, 8)
+            .padding(.vertical, 4)
         }
         .background(Color.black)
         .navigationTitle(onDone != nil ? "Complete" : "Detail")
         .navigationBarBackButtonHidden(onDone != nil)
     }
 
-    private func metricRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(.gray)
-            Spacer()
-            Text(value).font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit()).foregroundStyle(.white)
+    private var heartSummaryRow: some View {
+        HStack(spacing: 12) {
+            heartMetric(label: "AVG", value: workout.averageHeartRate.map(String.init) ?? "—")
+            Divider()
+                .frame(height: 16)
+                .overlay(Color.white.opacity(0.14))
+            heartMetric(label: "MAX", value: workout.maxHeartRate.map(String.init) ?? "—")
         }
+        .padding(.vertical, 2)
+    }
+
+    private func heartMetric(label: String, value: String) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(.gray)
+            Image(systemName: "heart.fill")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(accent)
+            Text(value)
+                .font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(.white)
+        }
+    }
+
+    private func segmentRow(for record: SegmentRecord, at index: Int) -> some View {
+        let isStation = record.type == .station
+        let isRox = record.type == .roxZone
+
+        return VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                if isStation {
+                    let stationIndex = workout.segments[0...index].filter { $0.type == .station }.count
+                    Text(String(format: "%02d", stationIndex))
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(accent, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(segmentLabel(for: record))
+                        .font(.system(size: 14, weight: isStation ? .bold : .semibold))
+                        .foregroundStyle(isRox ? .gray.opacity(0.72) : .white)
+                }
+
+                Spacer(minLength: 6)
+
+                Text(DurationFormatter.hms(record.activeDuration))
+                    .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(isRox ? .gray.opacity(0.72) : .white)
+            }
+
+            if let goal = record.goalDurationSeconds {
+                HStack {
+                    Text(DurationFormatter.signedMs(record.activeDuration - goal))
+                        .font(.system(size: 12, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(deltaColor(for: record.activeDuration - goal))
+                    Spacer()
+                }
+            }
+
+            Divider()
+                .overlay(Color.white.opacity(0.08))
+        }
+        .padding(.top, 6)
     }
 
     private func segmentLabel(for record: SegmentRecord) -> String {
         switch record.type {
-        case .run: return "Running"
+        case .run: return "Run"
         case .roxZone: return "Rox Zone"
         case .station: return workout.resolvedStationDisplayName(for: record) ?? "Station"
         }

@@ -17,20 +17,27 @@ final class TemplateDetailViewController: UIViewController {
 
     weak var delegate: TemplateDetailViewControllerDelegate?
     private var template: WorkoutTemplate
-    private let preservedRoxSegments: [WorkoutSegment]
+    private var preservedRoxSegments: [WorkoutSegment]
+    private let onTemplateUpdated: ((WorkoutTemplate) -> Void)?
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private let titleLabel = UILabel()
     private let metaLabel = UILabel()
+    private let goalValueLabel = UILabel()
+    private let goalHintLabel = UILabel()
     private let roxZoneSwitch = UISwitch()
     private let roxSubtitleLabel = UILabel()
     private let courseRowsStack = UIStackView()
     private let footerContainer = UIView()
     private let startButton = UIButton(type: .system)
 
-    init(template: WorkoutTemplate) {
+    init(
+        template: WorkoutTemplate,
+        onTemplateUpdated: ((WorkoutTemplate) -> Void)? = nil
+    ) {
         self.template = template
         self.preservedRoxSegments = template.segments.filter { $0.type == .roxZone }
+        self.onTemplateUpdated = onTemplateUpdated
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -119,6 +126,8 @@ final class TemplateDetailViewController: UIViewController {
         let runDist = template.segments.filter { $0.type == .run }.compactMap(\.distanceMeters).reduce(0, +)
         let mins = Int(template.estimatedDurationSeconds / 60)
         metaLabel.text = "\(stations) stations · \(DistanceFormatter.short(runDist)) run · ~\(mins) min"
+        goalValueLabel.text = "Goal Total \(DurationFormatter.hms(template.estimatedDurationSeconds))"
+        goalHintLabel.text = "Edit segment targets"
 
         roxZoneSwitch.isOn = template.usesRoxZone
         roxSubtitleLabel.text = template.usesRoxZone
@@ -141,7 +150,9 @@ final class TemplateDetailViewController: UIViewController {
         metaLabel.numberOfLines = 0
         contentStack.addArrangedSubview(metaLabel)
 
-        addSpacer(20)
+        addSpacer(16)
+        contentStack.addArrangedSubview(makeGoalCard())
+        addSpacer(12)
 
         let card = UIView()
         card.backgroundColor = DesignTokens.Color.surfaceElevated
@@ -247,15 +258,80 @@ final class TemplateDetailViewController: UIViewController {
         delegate?.templateDetailDidTapStart(template)
     }
 
+    @objc private func editGoalsTapped() {
+        let vc = WorkoutGoalSetupViewController(
+            template: template,
+            screenTitle: "Edit Goals",
+            confirmButtonTitle: "Save Goals"
+        )
+        vc.delegate = self
+
+        let nav = UINavigationController(rootViewController: vc)
+        nav.applyDarkTheme()
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.large()]
+        }
+        present(nav, animated: true)
+    }
+
     @objc private func roxZoneToggleChanged() {
         template = template.settingUsesRoxZone(
             roxZoneSwitch.isOn,
             preservedRoxSegments: preservedRoxSegments
         )
+        if template.usesRoxZone {
+            preservedRoxSegments = template.segments.filter { $0.type == .roxZone }
+        }
+        onTemplateUpdated?(template)
         rebuildContent()
     }
 
     // MARK: - Helpers
+
+    private func makeGoalCard() -> UIView {
+        let card = UIView()
+        card.backgroundColor = DesignTokens.Color.surfaceElevated
+        card.layer.cornerRadius = DesignTokens.Radius.card
+        card.isUserInteractionEnabled = true
+
+        let titleLabel = UILabel()
+        titleLabel.text = "GOALS"
+        titleLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        titleLabel.textColor = DesignTokens.Color.accent
+
+        goalValueLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
+        goalValueLabel.textColor = .white
+
+        goalHintLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        goalHintLabel.textColor = DesignTokens.Color.textSecondary
+
+        let labels = UIStackView(arrangedSubviews: [titleLabel, goalValueLabel, goalHintLabel])
+        labels.axis = .vertical
+        labels.spacing = 4
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = DesignTokens.Color.textSecondary
+        chevron.contentMode = .scaleAspectFit
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+        chevron.widthAnchor.constraint(equalToConstant: 14).isActive = true
+
+        let row = UIStackView(arrangedSubviews: [labels, chevron])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 12
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        card.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
+            row.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            row.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+            row.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -14)
+        ])
+
+        card.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(editGoalsTapped)))
+        return card
+    }
 
     private func addSegmentRow(
         to stackView: UIStackView,
@@ -340,5 +416,21 @@ final class TemplateDetailViewController: UIViewController {
         v.backgroundColor = color
         v.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
         contentStack.addArrangedSubview(v)
+    }
+}
+
+extension TemplateDetailViewController: WorkoutGoalSetupViewControllerDelegate {
+
+    func goalSetupDidCancel() {
+        dismiss(animated: true)
+    }
+
+    func goalSetupDidConfirm(template: WorkoutTemplate) {
+        self.template = template
+        preservedRoxSegments = template.segments.filter { $0.type == .roxZone }
+        onTemplateUpdated?(template)
+        dismiss(animated: true) {
+            self.rebuildContent()
+        }
     }
 }

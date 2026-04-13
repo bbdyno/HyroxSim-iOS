@@ -17,6 +17,7 @@ public final class WorkoutBuilderViewModel {
     public private(set) var division: HyroxDivision?
     public private(set) var segments: [WorkoutSegment]
     public private(set) var usesRoxZone: Bool
+    private var preservedRoxSegments: [WorkoutSegment]
 
     private let persistence: PersistenceController
 
@@ -26,6 +27,7 @@ public final class WorkoutBuilderViewModel {
             self.name = t.isBuiltIn ? "Custom from \(t.name)" : t.name
             self.division = t.division
             self.usesRoxZone = t.usesRoxZone || t.segments.contains(where: { $0.type == .roxZone })
+            self.preservedRoxSegments = t.segments.filter { $0.type == .roxZone }
             // Builder only edits logical segments. ROX Zone is synthesized from the toggle.
             self.segments = t.logicalSegments
                 .map { seg in
@@ -44,6 +46,7 @@ public final class WorkoutBuilderViewModel {
             self.division = nil
             self.segments = []
             self.usesRoxZone = true
+            self.preservedRoxSegments = []
         }
     }
 
@@ -73,6 +76,16 @@ public final class WorkoutBuilderViewModel {
     public func updateSegment(at index: Int, _ updated: WorkoutSegment) {
         guard index < segments.count else { return }
         segments[index] = updated
+    }
+
+    public func applyGoalTemplate(_ template: WorkoutTemplate) {
+        let updatedSegments = template.logicalSegments
+        guard updatedSegments.count == segments.count else { return }
+
+        for index in segments.indices {
+            segments[index].goalDurationSeconds = updatedSegments[index].goalDurationSeconds
+        }
+        preservedRoxSegments = template.segments.filter { $0.type == .roxZone }
     }
 
     // MARK: - Derived
@@ -130,6 +143,10 @@ public final class WorkoutBuilderViewModel {
     }
 
     private func materializedSegments() -> [WorkoutSegment] {
-        WorkoutTemplate.materializedSegments(from: segments, usesRoxZone: usesRoxZone)
+        WorkoutTemplate.materializedSegments(
+            from: segments,
+            usesRoxZone: usesRoxZone,
+            preservedRoxSegments: preservedRoxSegments
+        )
     }
 }

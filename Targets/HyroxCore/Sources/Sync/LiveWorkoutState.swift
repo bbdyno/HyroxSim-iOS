@@ -30,6 +30,8 @@ public struct LiveWorkoutState: Codable, Sendable {
     // MARK: - 세그먼트 정보
     public let segmentLabel: String
     public let segmentSubLabel: String?
+    public let currentDisplayTitle: String
+    public let nextDisplayTitle: String?
     public let segmentElapsedText: String
     public let totalElapsedText: String
 
@@ -64,6 +66,7 @@ public struct LiveWorkoutState: Codable, Sendable {
 
     public init(
         segmentLabel: String, segmentSubLabel: String?,
+        currentDisplayTitle: String, nextDisplayTitle: String?,
         segmentElapsedText: String, totalElapsedText: String,
         paceText: String, distanceText: String,
         heartRateText: String, heartRateZoneRaw: Int?,
@@ -76,6 +79,8 @@ public struct LiveWorkoutState: Codable, Sendable {
     ) {
         self.segmentLabel = segmentLabel
         self.segmentSubLabel = segmentSubLabel
+        self.currentDisplayTitle = currentDisplayTitle
+        self.nextDisplayTitle = nextDisplayTitle
         self.segmentElapsedText = segmentElapsedText
         self.totalElapsedText = totalElapsedText
         self.paceText = paceText

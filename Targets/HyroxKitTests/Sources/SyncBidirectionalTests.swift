@@ -51,6 +51,7 @@ final class SyncBidirectionalTests: XCTestCase {
     func testLiveWorkoutStateOriginDefaultsToWatch() {
         let state = LiveWorkoutState(
             segmentLabel: "RUN 1 / 8", segmentSubLabel: nil,
+            currentDisplayTitle: "RUNNING 1", nextDisplayTitle: "SkiErg",
             segmentElapsedText: "01:30", totalElapsedText: "0:01:30",
             paceText: "5'00\" /km", distanceText: "300 m",
             heartRateText: "145", heartRateZoneRaw: 3,
@@ -66,6 +67,7 @@ final class SyncBidirectionalTests: XCTestCase {
     func testLiveWorkoutStateOriginPhone() {
         let state = LiveWorkoutState(
             segmentLabel: "RUN 1 / 8", segmentSubLabel: nil,
+            currentDisplayTitle: "RUNNING 1", nextDisplayTitle: "SkiErg",
             segmentElapsedText: "01:30", totalElapsedText: "0:01:30",
             paceText: "5'00\" /km", distanceText: "300 m",
             heartRateText: "145", heartRateZoneRaw: 3,
@@ -82,6 +84,7 @@ final class SyncBidirectionalTests: XCTestCase {
     func testLiveWorkoutStateCodableWithOrigin() throws {
         let state = LiveWorkoutState(
             segmentLabel: "STATION 1 / 8", segmentSubLabel: "SkiErg",
+            currentDisplayTitle: "SkiErg", nextDisplayTitle: "RUNNING 2",
             segmentElapsedText: "02:00", totalElapsedText: "0:15:00",
             paceText: "—", distanceText: "—",
             heartRateText: "160", heartRateZoneRaw: 4,

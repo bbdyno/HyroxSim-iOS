@@ -48,23 +48,25 @@ struct HomeView: View {
                     } label: {
                         HStack {
                             Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 12))
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(accent)
                             Text("History")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(.white)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 10))
+                                .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(Color.white.opacity(0.3))
                         }
-                        .padding(10)
-                        .background(Color.white.opacity(0.06))
-                        .cornerRadius(10)
+                        .padding(.vertical, 10)
+                        .overlay(alignment: .bottom) {
+                            Divider()
+                                .overlay(Color.white.opacity(0.08))
+                        }
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, 6)
             }
             .background(Color.black)
             .navigationTitle("HYROX")
@@ -80,41 +82,44 @@ struct HomeView: View {
     private func sectionHeader(_ text: String) -> some View {
         HStack {
             Text(text)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 11, weight: .black))
                 .foregroundStyle(accent)
             Spacer()
         }
-        .padding(.top, 8)
-        .padding(.leading, 4)
+        .padding(.top, 6)
     }
 
     private func presetCard(_ template: WorkoutTemplate) -> some View {
-        HStack {
-            if template.isBuiltIn {
-                Text(badgeText(template))
-                    .font(.system(size: 8, weight: .black))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(accent)
-                    .cornerRadius(3)
+        VStack(spacing: 0) {
+            HStack {
+                if template.isBuiltIn {
+                    Text(badgeText(template))
+                        .font(.system(size: 8, weight: .black))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(accent)
+                        .cornerRadius(3)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(template.division?.shortName ?? template.name)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                    Text("\(template.segments.filter { $0.type == .station }.count) stations")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.gray)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.3))
             }
-            VStack(alignment: .leading, spacing: 1) {
-                Text(template.division?.shortName ?? template.name)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-                Text("\(template.segments.filter { $0.type == .station }.count) stations")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.gray)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10))
-                .foregroundStyle(Color.white.opacity(0.3))
+            .padding(.vertical, 10)
+
+            Divider()
+                .overlay(Color.white.opacity(0.08))
         }
-        .padding(10)
-        .background(Color.white.opacity(0.06))
-        .cornerRadius(10)
     }
 
     private func badgeText(_ template: WorkoutTemplate) -> String {

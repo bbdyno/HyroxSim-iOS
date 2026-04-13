@@ -19,23 +19,23 @@ struct ConfirmStartView: View {
     private let accent = Color(red: 1.0, green: 0.84, blue: 0.0)
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             Text(template.division?.displayName ?? template.name)
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
 
             let stations = template.segments.filter { $0.type == .station }.count
             let mins = Int(template.estimatedDurationSeconds / 60)
             Text("\(stations) stations · ~\(mins) min")
-                .font(.system(size: 11))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.gray)
 
             Button {
                 showActive = true
             } label: {
                 Label("Start", systemImage: "play.fill")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)

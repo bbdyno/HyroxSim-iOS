@@ -32,6 +32,9 @@ final class WorkoutBuilderViewController: UIViewController {
     private let headerStack = UIStackView()
     private let summaryCard = UIView()
     private let summaryLabel = UILabel()
+    private let goalCard = UIView()
+    private let goalValueLabel = UILabel()
+    private let goalHintLabel = UILabel()
     private let roxCard = UIView()
     private let roxZoneSwitch = UISwitch()
     private var startButtonItem: UIBarButtonItem!
@@ -129,6 +132,44 @@ final class WorkoutBuilderViewController: UIViewController {
             summaryStack.bottomAnchor.constraint(equalTo: summaryCard.bottomAnchor, constant: -14)
         ])
 
+        goalCard.backgroundColor = DesignTokens.Color.surfaceElevated
+        goalCard.layer.cornerRadius = DesignTokens.Radius.card
+        goalCard.isUserInteractionEnabled = true
+
+        let goalTitleLabel = UILabel()
+        goalTitleLabel.text = "GOALS"
+        goalTitleLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        goalTitleLabel.textColor = DesignTokens.Color.accent
+
+        goalValueLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
+        goalValueLabel.textColor = .white
+
+        goalHintLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        goalHintLabel.textColor = DesignTokens.Color.textSecondary
+
+        let goalLabels = UIStackView(arrangedSubviews: [goalTitleLabel, goalValueLabel, goalHintLabel])
+        goalLabels.axis = .vertical
+        goalLabels.spacing = 4
+
+        let goalChevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        goalChevron.tintColor = DesignTokens.Color.textSecondary
+        goalChevron.translatesAutoresizingMaskIntoConstraints = false
+        goalChevron.widthAnchor.constraint(equalToConstant: 14).isActive = true
+
+        let goalStack = UIStackView(arrangedSubviews: [goalLabels, goalChevron])
+        goalStack.axis = .horizontal
+        goalStack.alignment = .center
+        goalStack.spacing = 12
+        goalStack.translatesAutoresizingMaskIntoConstraints = false
+        goalCard.addSubview(goalStack)
+        NSLayoutConstraint.activate([
+            goalStack.topAnchor.constraint(equalTo: goalCard.topAnchor, constant: 14),
+            goalStack.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor, constant: 16),
+            goalStack.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor, constant: -16),
+            goalStack.bottomAnchor.constraint(equalTo: goalCard.bottomAnchor, constant: -14)
+        ])
+        goalCard.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(goalsTapped)))
+
         roxCard.backgroundColor = DesignTokens.Color.surfaceElevated
         roxCard.layer.cornerRadius = DesignTokens.Radius.card
 
@@ -165,6 +206,7 @@ final class WorkoutBuilderViewController: UIViewController {
         ])
 
         headerStack.addArrangedSubview(summaryCard)
+        headerStack.addArrangedSubview(goalCard)
         headerStack.addArrangedSubview(roxCard)
     }
 
@@ -194,6 +236,24 @@ final class WorkoutBuilderViewController: UIViewController {
     @objc private func roxZoneToggleChanged() {
         viewModel.setUsesRoxZone(roxZoneSwitch.isOn)
         updateMeta()
+    }
+
+    @objc private func goalsTapped() {
+        guard let template = try? viewModel.makeTemplateForStart() else { return }
+
+        let vc = WorkoutGoalSetupViewController(
+            template: template,
+            screenTitle: "Edit Goals",
+            confirmButtonTitle: "Save Goals"
+        )
+        vc.delegate = self
+
+        let nav = UINavigationController(rootViewController: vc)
+        nav.applyDarkTheme()
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.large()]
+        }
+        present(nav, animated: true)
     }
 
     // MARK: - Collection View
@@ -317,6 +377,10 @@ final class WorkoutBuilderViewController: UIViewController {
 
     private func updateMeta() {
         summaryLabel.text = metaSummary()
+        goalValueLabel.text = "Goal Total \(DurationFormatter.hms(viewModel.estimatedDurationSeconds))"
+        goalHintLabel.text = viewModel.segments.isEmpty ? "Add segments first" : "Edit segment targets"
+        goalCard.alpha = viewModel.segments.isEmpty ? 0.45 : 1
+        goalCard.isUserInteractionEnabled = !viewModel.segments.isEmpty
         if let subtitleLabel = roxCard.viewWithTag(101) as? UILabel {
             subtitleLabel.text = viewModel.usesRoxZone
                 ? "Transitions are inserted automatically between runs and stations."
@@ -372,4 +436,18 @@ extension WorkoutBuilderViewController: EditRunSheetDelegate {
         dismiss(animated: true) { let s = WorkoutSegment.run(distanceMeters: distanceMeters); switch mode { case .create: self.viewModel.addSegment(s); case .edit(_, let i): self.viewModel.updateSegment(at: i, s) }; self.applySnapshot() }
     }
     func editRunDidCancel() { dismiss(animated: true) }
+}
+
+extension WorkoutBuilderViewController: WorkoutGoalSetupViewControllerDelegate {
+
+    func goalSetupDidCancel() {
+        dismiss(animated: true)
+    }
+
+    func goalSetupDidConfirm(template: WorkoutTemplate) {
+        viewModel.applyGoalTemplate(template)
+        dismiss(animated: true) {
+            self.applySnapshot()
+        }
+    }
 }
