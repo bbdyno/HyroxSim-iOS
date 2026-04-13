@@ -19,6 +19,8 @@ final class WatchActiveWorkoutModel {
     // MARK: - UI State
     private(set) var segmentLabel: String = ""
     private(set) var segmentSubLabel: String?
+    private(set) var currentDisplayTitle: String = ""
+    private(set) var nextDisplayTitle: String?
     private(set) var segmentElapsedText: String = "00:00"
     private(set) var totalElapsedText: String = "0:00:00"
     private(set) var paceText: String = "—"
@@ -175,6 +177,8 @@ final class WatchActiveWorkoutModel {
 
         guard let current = engine.currentSegment, let index = engine.currentSegmentIndex else {
             isFinished = engine.isFinished
+            currentDisplayTitle = ""
+            nextDisplayTitle = nil
             goalText = "—"
             goalDeltaText = "—"
             isOverGoal = false
@@ -183,6 +187,8 @@ final class WatchActiveWorkoutModel {
 
         let live = engine.liveMeasurementsSnapshot
         let segElapsed = engine.segmentElapsed(at: now)
+        currentDisplayTitle = displayTitle(for: current, at: index)
+        nextDisplayTitle = nextDisplayTitle(after: index, currentType: current.type)
 
         if let goalSeconds = current.goalDurationSeconds {
             goalText = DurationFormatter.ms(goalSeconds)
@@ -279,6 +285,7 @@ final class WatchActiveWorkoutModel {
         }
         let state = LiveWorkoutState(
             segmentLabel: segmentLabel, segmentSubLabel: segmentSubLabel,
+            currentDisplayTitle: currentDisplayTitle, nextDisplayTitle: nextDisplayTitle,
             segmentElapsedText: segmentElapsedText, totalElapsedText: totalElapsedText,
             paceText: paceText, distanceText: distanceText,
             heartRateText: heartRateText, heartRateZoneRaw: heartRateZone?.rawValue,
@@ -450,5 +457,34 @@ private extension WatchActiveWorkoutModel {
         case .heartRateRelay(let relay):
             syncCoordinator.sendHeartRateRelay(relay)
         }
+    }
+
+    private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {
+        engine.template.segments[..<end].filter { $0.type == type }.count
+    }
+
+    private func displayTitle(for segment: WorkoutSegment, at index: Int) -> String {
+        switch segment.type {
+        case .run:
+            return "RUNNING \(countOfType(.run, upTo: index + 1))"
+        case .roxZone:
+            return "ROX ZONE"
+        case .station:
+            return segment.stationKind?.displayName ?? "Station"
+        }
+    }
+
+    private func nextDisplayTitle(after currentIndex: Int, currentType: SegmentType) -> String? {
+        if engine.template.usesRoxZone {
+            // Rox Zone ON: roxZone 전환 구간에서만 다음 운동 표시
+            guard currentType == .roxZone else { return nil }
+        } else {
+            // Rox Zone OFF: run 구간에서만 다음 운동 표시
+            guard currentType == .run else { return nil }
+        }
+        let nextIndex = currentIndex + 1
+        guard engine.template.segments.indices.contains(nextIndex) else { return nil }
+        let nextSegment = engine.template.segments[nextIndex]
+        return displayTitle(for: nextSegment, at: nextIndex)
     }
 }

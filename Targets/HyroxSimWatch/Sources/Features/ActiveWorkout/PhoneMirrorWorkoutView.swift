@@ -17,96 +17,9 @@ struct PhoneMirrorWorkoutView: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: isLuminanceReduced ? 1 : 0.5)) { _ in
-            VStack(spacing: isLuminanceReduced ? 4 : 6) {
-                if !isLuminanceReduced {
-                    HStack(spacing: 4) {
-                        Image(systemName: "iphone")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(model.isConnected ? .yellow : .red)
-                        Text(model.isConnected ? "LIVE FROM iPHONE" : "DISCONNECTED")
-                            .font(.system(size: 8, weight: .black))
-                            .foregroundStyle(model.isConnected ? .yellow : .red)
-                    }
-                }
-
-                HStack(spacing: 4) {
-                    if !isLuminanceReduced, model.gpsActive {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(model.gpsStrong ? .green : .orange)
-                    }
-                    Text(model.segmentLabel)
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundStyle(displayAccentColor)
-                        .multilineTextAlignment(.center)
-                }
-
-                if let sub = model.segmentSubLabel {
-                    Text(sub)
-                        .font(.system(size: isLuminanceReduced ? 10 : 11, weight: .semibold))
-                        .foregroundStyle(.white.opacity(isLuminanceReduced ? 0.7 : 0.82))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                }
-
-                Text(model.segmentElapsedText)
-                    .font(.system(size: isLuminanceReduced ? 36 : 42, weight: .black, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white)
-                    .minimumScaleFactor(0.66)
-                    .lineLimit(1)
-
-                if isLuminanceReduced {
-                    Text(model.totalElapsedText)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.55))
-
-                    Text(model.goalDeltaText)
-                        .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
-                        .foregroundStyle(goalDeltaColor)
-                } else {
-                    goalBlock
-
-                    Text(model.totalElapsedText)
-                        .font(.system(size: 14, weight: .semibold, design: .rounded).monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.58))
-
-                    middleBlock
-
-                    HStack(spacing: 4) {
-                        Text(model.heartRateText)
-                            .font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
-                            .foregroundStyle(displayHeartColor)
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(displayHeartColor)
-                    }
-                }
-
-                Spacer(minLength: 2)
-
-                if !isLuminanceReduced {
-                    WorkoutControlBar(
-                        isPaused: model.isPaused,
-                        isLastSegment: model.isLastSegment,
-                        accentColor: accentColor,
-                        onTogglePause: {
-                            WKInterfaceDevice.current().play(.click)
-                            model.sendTogglePause()
-                        },
-                        onAdvance: {
-                            WKInterfaceDevice.current().play(model.isLastSegment ? .success : .directionUp)
-                            model.sendAdvance()
-                        },
-                        onEnd: {
-                            WKInterfaceDevice.current().play(.stop)
-                            model.sendEnd()
-                        }
-                    )
-                }
+            GeometryReader { proxy in
+                workoutContent(in: proxy)
             }
-            .padding(.horizontal, 6)
-            .padding(.top, 4)
-            .background(displayBackground.ignoresSafeArea())
         }
         .onAppear {
             model.goalAlertHandler = {
@@ -116,6 +29,110 @@ struct PhoneMirrorWorkoutView: View {
         }
         .onDisappear { model.stopHRSession() }
         .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private func workoutContent(in proxy: GeometryProxy) -> some View {
+        if isLuminanceReduced {
+            metricsPage(in: proxy)
+        } else {
+            TabView {
+                metricsPage(in: proxy)
+
+                WorkoutActionPage(
+                    isPaused: model.isPaused,
+                    onTogglePause: {
+                        WKInterfaceDevice.current().play(.click)
+                        model.sendTogglePause()
+                    },
+                    onEnd: {
+                        WKInterfaceDevice.current().play(.stop)
+                        model.sendEnd()
+                    }
+                )
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .background(displayBackgroundView.ignoresSafeArea())
+        }
+    }
+
+    @ViewBuilder
+    private func metricsPage(in proxy: GeometryProxy) -> some View {
+        let horizontalPadding: CGFloat = proxy.size.width < 190 ? 10 : 12
+        let trailingStatusReserve: CGFloat = isLuminanceReduced ? 16 : 40
+        let topPadding: CGFloat = isLuminanceReduced ? 28 : 34
+        let timerSize: CGFloat = isLuminanceReduced ? 36 : 38
+        let titleSlotHeight: CGFloat = isLuminanceReduced ? 18 : 24
+        let nextSlotHeight: CGFloat = isLuminanceReduced ? 0 : 10
+        let totalSlotHeight: CGFloat = isLuminanceReduced ? 12 : 12
+        let deltaSlotHeight: CGFloat = isLuminanceReduced ? 22 : 26
+        let detailSlotHeight: CGFloat = isLuminanceReduced ? 0 : 20
+        let heartSlotHeight: CGFloat = isLuminanceReduced ? 0 : 20
+        let bottomContentInset: CGFloat = isLuminanceReduced ? 20 : 56
+        let edgeClearance = max(proxy.size.width * 0.06, 10)
+        let horizontalEdgeInset = max(proxy.size.width * 0.18, 28)
+        let routeEndTopInset = max(proxy.safeAreaInsets.top + 72, topPadding + 36)
+
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Text(model.segmentElapsedText)
+                    .font(.system(size: timerSize, weight: .black, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.72)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Color.clear
+                    .frame(width: trailingStatusReserve)
+            }
+            .frame(maxWidth: .infinity, minHeight: timerSize + 6, maxHeight: timerSize + 6)
+
+            totalTimeLine
+                .frame(height: totalSlotHeight)
+
+            Color.clear.frame(height: isLuminanceReduced ? 2 : 2)
+
+            activityTitleBlock(titleSlotHeight: titleSlotHeight, nextSlotHeight: nextSlotHeight)
+
+            Color.clear.frame(height: isLuminanceReduced ? 4 : 6)
+
+            deltaLine(fontSize: isLuminanceReduced ? 18 : 24)
+                .frame(height: deltaSlotHeight)
+
+            if !isLuminanceReduced {
+                Color.clear.frame(height: 6)
+
+                detailLine
+                    .frame(height: detailSlotHeight)
+
+                Color.clear.frame(height: 4)
+
+                heartRateLine
+                    .frame(height: heartSlotHeight)
+            }
+        }
+        .padding(.leading, horizontalPadding)
+        .padding(.trailing, horizontalPadding + trailingStatusReserve)
+        .padding(.top, topPadding)
+        .padding(.bottom, bottomContentInset)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(displayBackgroundView.ignoresSafeArea())
+        .overlay {
+            if !isLuminanceReduced {
+                WorkoutControlBar(
+                    isLastSegment: model.isLastSegment,
+                    accentColor: accentColor,
+                    edgeClearance: edgeClearance,
+                    knobSize: 44,
+                    onAdvance: {
+                        WKInterfaceDevice.current().play(model.isLastSegment ? .success : .directionUp)
+                        model.sendAdvance()
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
     }
 
     private var accentColor: Color {
@@ -130,26 +147,44 @@ struct PhoneMirrorWorkoutView: View {
         isLuminanceReduced ? .white : accentColor
     }
 
-    @ViewBuilder
-    private var middleBlock: some View {
+    private var currentTitleText: String {
+        model.isConnected ? model.currentDisplayTitle : "PHONE DISCONNECTED"
+    }
+
+    private var nextTitleText: String? {
+        guard model.isConnected else { return nil }
+        return model.nextDisplayTitle.map { "NEXT \($0)" }
+    }
+
+    private func activityTitleBlock(titleSlotHeight: CGFloat, nextSlotHeight: CGFloat) -> some View {
+        VStack(spacing: isLuminanceReduced ? 2 : 4) {
+            Text(currentTitleText)
+                .font(.system(size: isLuminanceReduced ? 14 : 18, weight: .bold))
+                .foregroundStyle(titleColor)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
+                .frame(maxWidth: .infinity, minHeight: titleSlotHeight, maxHeight: titleSlotHeight)
+
+            if !isLuminanceReduced {
+                Text(nextTitleText ?? " ")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white.opacity(nextTitleText == nil ? 0 : 0.5))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity, minHeight: nextSlotHeight, maxHeight: nextSlotHeight)
+            }
+        }
+    }
+
+    private var detailText: String? {
         switch model.accentKindRaw {
-        case "run", "roxZone":
-            HStack(spacing: 8) {
-                metricPill(value: model.paceText, label: "PACE", tint: .white)
-                metricPill(value: model.distanceText, label: "DIST", tint: displayAccentColor)
-            }
+        case "run":
+            return model.paceText == "—" ? "PACE —" : "PACE \(model.paceText)"
+        case "roxZone":
+            return nil
         default:
-            VStack(spacing: 4) {
-                Text(model.stationNameText ?? "—")
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundStyle(displayAccentColor)
-                    .multilineTextAlignment(.center)
-                if let target = model.stationTargetText {
-                    Text(target)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.72))
-                }
-            }
+            return model.stationTargetText
         }
     }
 
@@ -168,15 +203,51 @@ struct PhoneMirrorWorkoutView: View {
         isLuminanceReduced ? .white : heartColor
     }
 
-    private var displayBackground: Color {
-        if isLuminanceReduced { return .black }
-        if model.isOverGoal { return Color(red: 0.34, green: 0.06, blue: 0.06) }
+    private var titleColor: Color {
+        if !model.isConnected {
+            return .red
+        }
 
         switch model.accentKindRaw {
-        case "run": return Color(red: 0.05, green: 0.15, blue: 0.3)
-        case "roxZone": return Color(red: 0.25, green: 0.15, blue: 0.0)
-        default: return Color(red: 0.15, green: 0.12, blue: 0.0)
+        case "station":
+            return displayAccentColor
+        case "roxZone":
+            return .white.opacity(0.85)
+        case "run":
+            return displayAccentColor
+        default:
+            return .white.opacity(0.85)
         }
+    }
+
+    private var detailColor: Color {
+        switch model.accentKindRaw {
+        case "run":
+            return .white.opacity(0.86)
+        case "roxZone":
+            return .white.opacity(0.72)
+        default:
+            return .white.opacity(0.84)
+        }
+    }
+
+    @ViewBuilder
+    private var displayBackgroundView: some View {
+        ZStack {
+            Color.black
+            if model.isOverGoal, model.goalText != "—" {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.32, green: 0.04, blue: 0.07).opacity(0.55),
+                        Color(red: 0.12, green: 0.01, blue: 0.02).opacity(0.15)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Color.red.opacity(0.06)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: model.isOverGoal)
     }
 
     private var goalDeltaColor: Color {
@@ -184,40 +255,45 @@ struct PhoneMirrorWorkoutView: View {
         return model.isOverGoal ? .red : .green
     }
 
-    private var goalBlock: some View {
+    private func deltaLine(fontSize: CGFloat) -> some View {
         HStack {
-            VStack(alignment: .leading, spacing: 1) {
-                Text("GOAL")
-                    .font(.system(size: 8, weight: .black))
-                    .foregroundStyle(.white.opacity(0.55))
-                Text(model.goalText)
-                    .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white)
-            }
-            Spacer(minLength: 8)
-            Text(model.goalDeltaText)
-                .font(.system(size: 18, weight: .black, design: .rounded).monospacedDigit())
-                .foregroundStyle(goalDeltaColor)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(Color.white.opacity(model.isOverGoal ? 0.12 : 0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private func metricPill(value: String, label: String, tint: Color) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
-                .foregroundStyle(tint)
-                .minimumScaleFactor(0.7)
-            Text(label)
-                .font(.system(size: 8, weight: .black))
-                .foregroundStyle(.white.opacity(0.52))
+            Spacer()
+            Text(model.goalText == "—" ? " " : model.goalDeltaText)
+                .font(.system(size: fontSize, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(model.goalText == "—" ? .clear : goalDeltaColor)
+            Spacer()
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .background(Color.white.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var detailLine: some View {
+        Text(detailText ?? " ")
+            .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
+            .foregroundStyle(detailText == nil ? .clear : detailColor)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity)
+    }
+
+    private var totalTimeLine: some View {
+        Text("TOTAL \(model.totalElapsedText)")
+            .font(.system(size: 11, weight: .bold, design: .rounded).monospacedDigit())
+            .foregroundStyle(.white.opacity(0.52))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity)
+    }
+
+    private var heartRateLine: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(model.heartRateText == "—" ? .white.opacity(0.4) : displayHeartColor)
+            Text(model.heartRateText)
+                .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(model.heartRateText == "—" ? .white.opacity(0.55) : displayHeartColor)
+        }
+        .frame(height: 22)
     }
 }

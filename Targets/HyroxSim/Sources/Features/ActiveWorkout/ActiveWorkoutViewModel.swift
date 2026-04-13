@@ -19,6 +19,8 @@ public final class ActiveWorkoutViewModel {
     // MARK: - Public state (UI binding)
     public private(set) var segmentLabel: String = ""
     public private(set) var segmentSubLabel: String?
+    public private(set) var currentDisplayTitle: String = ""
+    public private(set) var nextDisplayTitle: String?
     public private(set) var segmentElapsedText: String = "00:00"
     public private(set) var totalElapsedText: String = "0:00:00"
     public private(set) var paceText: String = "—"
@@ -181,6 +183,7 @@ public final class ActiveWorkoutViewModel {
         let gpsActive = gpsStatus != .off
         let state = LiveWorkoutState(
             segmentLabel: segmentLabel, segmentSubLabel: segmentSubLabel,
+            currentDisplayTitle: currentDisplayTitle, nextDisplayTitle: nextDisplayTitle,
             segmentElapsedText: segmentElapsedText, totalElapsedText: totalElapsedText,
             paceText: paceText, distanceText: distanceText,
             heartRateText: heartRateText, heartRateZoneRaw: heartRateZone?.rawValue,
@@ -207,12 +210,16 @@ public final class ActiveWorkoutViewModel {
 
         guard let current = engine.currentSegment, let index = engine.currentSegmentIndex else {
             isFinished = engine.isFinished
+            currentDisplayTitle = ""
+            nextDisplayTitle = nil
             isOverGoal = false
             return
         }
 
         let total = engine.template.segments.count
         let live = engine.liveMeasurementsSnapshot
+        currentDisplayTitle = displayTitle(for: current, at: index)
+        nextDisplayTitle = nextDisplayTitle(after: index, currentType: current.type)
 
         if let goalSeconds = current.goalDurationSeconds {
             goalText = DurationFormatter.ms(goalSeconds)
@@ -300,6 +307,29 @@ public final class ActiveWorkoutViewModel {
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {
         engine.template.segments[..<end].filter { $0.type == type }.count
+    }
+
+    private func displayTitle(for segment: WorkoutSegment, at index: Int) -> String {
+        switch segment.type {
+        case .run:
+            return "RUNNING \(countOfType(.run, upTo: index + 1))"
+        case .roxZone:
+            return "ROX ZONE"
+        case .station:
+            return segment.stationKind?.displayName ?? "Station"
+        }
+    }
+
+    private func nextDisplayTitle(after currentIndex: Int, currentType: SegmentType) -> String? {
+        if engine.template.usesRoxZone {
+            guard currentType == .roxZone else { return nil }
+        } else {
+            guard currentType == .run else { return nil }
+        }
+        let nextIndex = currentIndex + 1
+        guard engine.template.segments.indices.contains(nextIndex) else { return nil }
+        let nextSegment = engine.template.segments[nextIndex]
+        return displayTitle(for: nextSegment, at: nextIndex)
     }
 
     // MARK: - Timer
