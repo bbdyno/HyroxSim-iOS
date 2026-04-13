@@ -24,7 +24,9 @@ final class SlideActionControl: UIControl {
     private let fillView = UIView()
     private let titleLabel = UILabel()
     private let thumbView = UIView()
-    private let thumbImageView = UIImageView(image: UIImage(systemName: "arrow.right"))
+    private let thumbImageView = UIImageView(
+        image: UIImage(systemName: "arrow.right", withConfiguration: UIImage.SymbolConfiguration(weight: .bold))
+    )
 
     private lazy var panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
     private var thumbLeadingConstraint: NSLayoutConstraint!
@@ -33,9 +35,9 @@ final class SlideActionControl: UIControl {
     private var startOffset: CGFloat = 0
     private var currentOffset: CGFloat = 0
 
-    private let horizontalInset: CGFloat = 6
     private let thumbPadding: CGFloat = 6
     private var thumbDiameter: CGFloat { max(52, bounds.height - thumbPadding * 2) }
+    private var horizontalInset: CGFloat { max(6, (bounds.height - thumbDiameter) / 2 + 2) }
     private var maxTravel: CGFloat { max(0, bounds.width - horizontalInset * 2 - thumbDiameter) }
 
     override init(frame: CGRect) {
@@ -62,16 +64,19 @@ final class SlideActionControl: UIControl {
 
     private func setupUI() {
         translatesAutoresizingMaskIntoConstraints = false
+        clipsToBounds = false
         accessibilityTraits.insert(.button)
         accessibilityLabel = title
 
         trackView.backgroundColor = UIColor.white.withAlphaComponent(0.14)
         trackView.layer.borderColor = UIColor.white.withAlphaComponent(0.16).cgColor
         trackView.layer.borderWidth = 1
+        trackView.clipsToBounds = false
         trackView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(trackView)
 
         fillView.backgroundColor = accentColor.withAlphaComponent(0.32)
+        fillView.clipsToBounds = true
         fillView.translatesAutoresizingMaskIntoConstraints = false
         trackView.addSubview(fillView)
 
@@ -95,7 +100,7 @@ final class SlideActionControl: UIControl {
 
         thumbLeadingConstraint = thumbView.leadingAnchor.constraint(
             equalTo: trackView.leadingAnchor,
-            constant: horizontalInset
+            constant: 8
         )
         fillWidthConstraint = fillView.widthAnchor.constraint(equalToConstant: 0)
         thumbWidthConstraint = thumbView.widthAnchor.constraint(equalToConstant: 52)
@@ -121,10 +126,10 @@ final class SlideActionControl: UIControl {
             thumbView.heightAnchor.constraint(equalTo: thumbView.widthAnchor),
             thumbWidthConstraint,
 
-            thumbImageView.centerXAnchor.constraint(equalTo: thumbView.centerXAnchor),
+            thumbImageView.centerXAnchor.constraint(equalTo: thumbView.centerXAnchor, constant: 20),
             thumbImageView.centerYAnchor.constraint(equalTo: thumbView.centerYAnchor),
-            thumbImageView.widthAnchor.constraint(equalToConstant: 20),
-            thumbImageView.heightAnchor.constraint(equalToConstant: 20)
+            thumbImageView.widthAnchor.constraint(equalToConstant: 22),
+            thumbImageView.heightAnchor.constraint(equalToConstant: 22)
         ])
 
         addGestureRecognizer(panGesture)
@@ -141,7 +146,8 @@ final class SlideActionControl: UIControl {
         let progress = maxTravel > 0 ? clamped / maxTravel : 0
         let updates = {
             self.thumbLeadingConstraint.constant = self.horizontalInset + clamped
-            self.fillWidthConstraint.constant = self.horizontalInset + clamped + self.thumbDiameter / 2
+            let thumbTrailing = self.horizontalInset + clamped + self.thumbDiameter
+            self.fillWidthConstraint.constant = thumbTrailing + progress * self.horizontalInset
             self.titleLabel.alpha = max(0.18, 1 - (progress * 1.15))
             self.layoutIfNeeded()
         }
