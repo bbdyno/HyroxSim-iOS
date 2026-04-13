@@ -92,18 +92,16 @@ final class ActiveWorkoutViewController: UIViewController {
 
         segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 92, weight: .black)
         segmentMetric.captionLabel.textColor = UIColor.white.withAlphaComponent(0.45)
-        totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
+        totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 30, weight: .bold)
         totalMetric.captionLabel.textColor = UIColor.white.withAlphaComponent(0.55)
-        totalMetric.widthAnchor.constraint(equalToConstant: 132).isActive = true
 
         infoPrimaryMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
         infoSecondaryMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
         heartMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
 
-        let topRow = UIStackView(arrangedSubviews: [gpsStatusView, totalMetric])
+        let topRow = UIStackView(arrangedSubviews: [gpsStatusView, UIView()])
         topRow.axis = .horizontal
         topRow.alignment = .center
-        topRow.spacing = 16
 
         let goalTextStack = UIStackView(arrangedSubviews: [goalTitleLabel, goalValueLabel])
         goalTextStack.axis = .vertical
@@ -152,6 +150,8 @@ final class ActiveWorkoutViewController: UIViewController {
         contentStack.addArrangedSubview(headerLabel)
         contentStack.addArrangedSubview(subHeaderLabel)
         contentStack.addArrangedSubview(segmentMetric)
+        contentStack.setCustomSpacing(4, after: segmentMetric)
+        contentStack.addArrangedSubview(totalMetric)
         contentStack.addArrangedSubview(goalCard)
         contentStack.addArrangedSubview(infoRow)
         contentStack.addArrangedSubview(heartMetric)
