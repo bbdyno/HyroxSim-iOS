@@ -5,6 +5,7 @@ import HyroxPersistenceApple
 enum PhoneScreenshotScenario: String {
     case home = "ScreenshotPhoneHome"
     case builder = "ScreenshotPhoneBuilder"
+    case pacePlanner = "ScreenshotPhonePacePlanner"
     case history = "ScreenshotPhoneHistory"
     case summary = "ScreenshotPhoneSummary"
     case mirror = "ScreenshotPhoneMirror"
@@ -15,7 +16,7 @@ enum PhoneScreenshotScenario: String {
     }
 
     static var allCases: [PhoneScreenshotScenario] {
-        [.home, .builder, .history, .summary, .mirror]
+        [.home, .builder, .pacePlanner, .history, .summary, .mirror]
     }
 }
 

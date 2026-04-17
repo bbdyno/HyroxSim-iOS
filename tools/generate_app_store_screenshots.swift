@@ -66,6 +66,21 @@ let phoneShots: [MarketingShot] = [
         )
     ),
     .init(
+        slug: "plan-goal-time-with-data-backed-splits",
+        sourceName: "iphone-pace-planner.png",
+        accentHex: 0xFFD84C,
+        en: .init(
+            tag: "PACE PLANNER",
+            title: "Plan Goal Time With Data-Backed Splits",
+            subtitle: "Preview percentile, run pacing, and station targets before the workout begins."
+        ),
+        ko: .init(
+            tag: "페이스 플래너",
+            title: "목표 기록과 구간별 페이스를 미리 설계",
+            subtitle: "완주 목표 시간에 맞춰 퍼센타일과 런, 스테이션 목표를 바로 확인할 수 있습니다."
+        )
+    ),
+    .init(
         slug: "follow-the-workout-live-from-apple-watch",
         sourceName: "iphone-mirror.png",
         accentHex: 0x1EA0FF,
