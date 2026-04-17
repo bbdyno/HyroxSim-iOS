@@ -105,6 +105,10 @@ struct ActiveWorkoutView: View {
                 deltaLine(fontSize: isLuminanceReduced ? 18 : 24)
             }
 
+            if model.totalGoalText != "—" {
+                totalDeltaLine
+            }
+
             if !isLuminanceReduced {
                 if let detail = detailText {
                     Text(detail)
@@ -311,6 +315,24 @@ struct ActiveWorkoutView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(maxWidth: .infinity)
+    }
+
+    private var totalDeltaColor: Color {
+        model.isOverTotalGoal ? .red : .green
+    }
+
+    private var totalDeltaLine: some View {
+        HStack(spacing: 6) {
+            Spacer(minLength: 0)
+            Text("TOTAL")
+                .font(.system(size: 11, weight: .black, design: .rounded))
+                .foregroundStyle(.white.opacity(0.55))
+            Text(model.totalDeltaText)
+                .font(.system(size: isLuminanceReduced ? 16 : 18, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(totalDeltaColor)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var heartRateLine: some View {

@@ -30,6 +30,9 @@ final class WatchActiveWorkoutModel {
     private(set) var goalText: String = "—"
     private(set) var goalDeltaText: String = "—"
     private(set) var isOverGoal: Bool = false
+    private(set) var totalGoalText: String = "—"
+    private(set) var totalDeltaText: String = "—"
+    private(set) var isOverTotalGoal: Bool = false
     private(set) var stationNameText: String?
     private(set) var stationTargetText: String?
     private(set) var accentKind: AccentKind = .run
@@ -172,8 +175,9 @@ final class WatchActiveWorkoutModel {
             endWorkout()
             return
         }
+        let totalElapsed = engine.totalElapsed(at: now)
         segmentElapsedText = DurationFormatter.ms(engine.segmentElapsed(at: now))
-        totalElapsedText = DurationFormatter.hms(engine.totalElapsed(at: now))
+        totalElapsedText = DurationFormatter.hms(totalElapsed)
 
         guard let current = engine.currentSegment, let index = engine.currentSegmentIndex else {
             isFinished = engine.isFinished
@@ -182,6 +186,9 @@ final class WatchActiveWorkoutModel {
             goalText = "—"
             goalDeltaText = "—"
             isOverGoal = false
+            totalGoalText = "—"
+            totalDeltaText = "—"
+            isOverTotalGoal = false
             return
         }
 
@@ -190,19 +197,34 @@ final class WatchActiveWorkoutModel {
         currentDisplayTitle = displayTitle(for: current, at: index)
         nextDisplayTitle = nextDisplayTitle(after: index, currentType: current.type)
 
-        if let goalSeconds = current.goalDurationSeconds {
-            goalText = DurationFormatter.ms(goalSeconds)
-            let delta = segElapsed - goalSeconds
-            goalDeltaText = DurationFormatter.signedMs(delta)
-            isOverGoal = delta >= 0
-            if isOverGoal, alertedGoalSegmentId != current.id {
-                alertedGoalSegmentId = current.id
-                goalAlertHandler?()
-            }
+        // Run/Rox: Run 세그먼트에 Run+Rox 합산 goal 이 저장되어 있고 Rox goal=0.
+        // Rox 진행 중엔 직전 Run 실측 + Rox 경과 vs 합산 goal 로 delta 계산.
+        let goalInfo = resolveGoalAndDelta(currentIndex: index, segElapsed: segElapsed)
+        goalText = goalInfo.goalText
+        goalDeltaText = goalInfo.deltaText
+        isOverGoal = goalInfo.isOver
+        if isOverGoal, goalText != "—", alertedGoalSegmentId != current.id {
+            alertedGoalSegmentId = current.id
+            goalAlertHandler?()
+        }
+
+        // 누적 delta: 완료 세그먼트 + 현재 세그먼트 목표 합산 vs totalElapsed.
+        // Rox는 goal=0(Run에 합산되어 있음)이라 단순 합산으로도 자연스럽게 동작.
+        let wholeGoal: TimeInterval = engine.template.segments
+            .compactMap { $0.goalDurationSeconds }
+            .reduce(0, +)
+        if wholeGoal > 0 {
+            let goalSoFar: TimeInterval = engine.template.segments[0...index]
+                .compactMap { $0.goalDurationSeconds }
+                .reduce(0, +)
+            let delta = totalElapsed - goalSoFar
+            totalGoalText = DurationFormatter.hms(wholeGoal)
+            totalDeltaText = DurationFormatter.signedMs(delta)
+            isOverTotalGoal = delta >= 0
         } else {
-            goalText = "—"
-            goalDeltaText = "—"
-            isOverGoal = false
+            totalGoalText = "—"
+            totalDeltaText = "—"
+            isOverTotalGoal = false
         }
 
         // GPS 거리 부족 시 HKWorkoutBuilder 거리로 폴백
@@ -457,6 +479,49 @@ private extension WatchActiveWorkoutModel {
         case .heartRateRelay(let relay):
             syncCoordinator.sendHeartRateRelay(relay)
         }
+    }
+
+    /// Run/Rox 합산 goal 기준 SEG delta. iOS `ActiveWorkoutViewModel.resolveGoalAndDelta` 와 동일 로직.
+    /// - Run: 자체 goal(Run+Rox 합산) vs segElapsed
+    /// - Rox: 직전 Run 실측 + Rox 경과 vs Run 세그먼트의 합산 goal
+    /// - Station: 자체 goal vs segElapsed
+    func resolveGoalAndDelta(
+        currentIndex: Int, segElapsed: TimeInterval
+    ) -> (goalText: String, deltaText: String, isOver: Bool) {
+        let current = engine.template.segments[currentIndex]
+
+        switch current.type {
+        case .run:
+            guard let goal = current.goalDurationSeconds, goal > 0 else {
+                return ("—", "—", false)
+            }
+            let delta = segElapsed - goal
+            return (DurationFormatter.ms(goal), DurationFormatter.signedMs(delta), delta >= 0)
+
+        case .roxZone:
+            if let prevRecord = findPrecedingRunRecord(before: currentIndex) {
+                let combinedGoal = engine.template.segments[prevRecord.index].goalDurationSeconds ?? 0
+                guard combinedGoal > 0 else { return ("—", "—", false) }
+                let combinedActual = prevRecord.activeDuration + segElapsed
+                let delta = combinedActual - combinedGoal
+                return (DurationFormatter.ms(combinedGoal), DurationFormatter.signedMs(delta), delta >= 0)
+            }
+            return ("—", "—", false)
+
+        case .station:
+            guard let goal = current.goalDurationSeconds, goal > 0 else {
+                return ("—", "—", false)
+            }
+            let delta = segElapsed - goal
+            return (DurationFormatter.ms(goal), DurationFormatter.signedMs(delta), delta >= 0)
+        }
+    }
+
+    func findPrecedingRunRecord(before index: Int) -> SegmentRecord? {
+        for record in engine.records.reversed() {
+            if record.type == .run && record.index < index { return record }
+        }
+        return nil
     }
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {

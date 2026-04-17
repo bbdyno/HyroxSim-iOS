@@ -189,6 +189,18 @@ extension WatchConnectivitySyncCoordinator {
     private func handleLiveMessage(_ msg: [String: Any]) {
         let origin = parseOrigin(msg)
 
+        // 템플릿 즉시 동기화 (폰 → 워치, reachable 시 fast path)
+        if let data = msg[LiveSyncKeys.templateSync] as? Data,
+           let template = try? JSONDecoder().decode(WorkoutTemplate.self, from: data) {
+            if template.isBuiltIn {
+                goalOverrideStore.save(template)
+            } else {
+                try? persistence.upsertTemplate(template)
+            }
+            onReceiveTemplate?(template)
+            return
+        }
+
         // 운동 시작 알림 (폰 → 워치)
         if msg[LiveSyncKeys.workoutStarted] as? Bool == true,
            let data = msg[LiveSyncKeys.templateData] as? Data,

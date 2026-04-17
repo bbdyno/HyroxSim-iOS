@@ -52,6 +52,16 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         let envelope = try SyncEnvelopeCoder.encode(template, kind: .template)
         let dict = try SyncEnvelopeCoder.toDictionary(envelope)
         session.transferUserInfo(dict)
+
+        // 빠른 경로: 워치가 reachable 이면 sendMessage 로 즉시 전송.
+        // transferUserInfo 는 안정 전송용으로 병행 유지. 워치 save() 는 idempotent.
+        if session.isReachable, let data = try? JSONEncoder().encode(template) {
+            session.sendMessage(
+                [LiveSyncKeys.templateSync: data],
+                replyHandler: nil,
+                errorHandler: nil
+            )
+        }
     }
 
     public func sendCompletedWorkout(_ workout: CompletedWorkout) throws {

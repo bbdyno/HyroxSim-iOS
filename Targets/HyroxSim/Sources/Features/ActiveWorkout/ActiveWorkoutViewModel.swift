@@ -30,6 +30,9 @@ public final class ActiveWorkoutViewModel {
     public private(set) var goalText: String = "—"
     public private(set) var goalDeltaText: String = "—"
     public private(set) var isOverGoal: Bool = false
+    public private(set) var totalGoalText: String = "—"
+    public private(set) var totalDeltaText: String = "—"
+    public private(set) var isOverTotalGoal: Bool = false
     public private(set) var stationNameText: String?
     public private(set) var stationTargetText: String?
     public private(set) var accentKind: AccentKind = .run
@@ -213,6 +216,7 @@ public final class ActiveWorkoutViewModel {
             currentDisplayTitle = ""
             nextDisplayTitle = nil
             isOverGoal = false
+            isOverTotalGoal = false
             return
         }
 
@@ -230,6 +234,12 @@ public final class ActiveWorkoutViewModel {
             alertedGoalSegmentId = current.id
             goalAlertHandler?()
         }
+
+        // Cumulative delta vs whole-workout goal.
+        let totalInfo = resolveTotalGoalAndDelta(totalElapsed: totalElapsed, currentIndex: index)
+        totalGoalText = totalInfo.goalText
+        totalDeltaText = totalInfo.deltaText
+        isOverTotalGoal = totalInfo.isOver
 
         switch current.type {
         case .run:
@@ -337,6 +347,25 @@ public final class ActiveWorkoutViewModel {
             let delta = segElapsed - goal
             return (DurationFormatter.ms(goal), DurationFormatter.signedMs(delta), delta >= 0)
         }
+    }
+
+    /// Cumulative delta vs whole-workout goal.
+    /// goalText: total workout goal (h:mm:ss).
+    /// deltaText: totalElapsed − cumulativeGoalThroughCurrentSegment (inclusive).
+    /// Rox has goal=0 (combined into preceding Run), so naive segment-goal sum works.
+    private func resolveTotalGoalAndDelta(
+        totalElapsed: TimeInterval, currentIndex: Int
+    ) -> (goalText: String, deltaText: String, isOver: Bool) {
+        let wholeGoal: TimeInterval = engine.template.segments
+            .compactMap { $0.goalDurationSeconds }
+            .reduce(0, +)
+        guard wholeGoal > 0 else { return ("—", "—", false) }
+
+        let goalSoFar: TimeInterval = engine.template.segments[0...currentIndex]
+            .compactMap { $0.goalDurationSeconds }
+            .reduce(0, +)
+        let delta = totalElapsed - goalSoFar
+        return (DurationFormatter.hms(wholeGoal), DurationFormatter.signedMs(delta), delta >= 0)
     }
 
     private func findPrecedingRunRecord(before index: Int) -> SegmentRecord? {

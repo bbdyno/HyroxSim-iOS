@@ -27,6 +27,11 @@ final class ActiveWorkoutViewController: UIViewController {
     private let goalTitleLabel = UILabel()
     private let goalValueLabel = UILabel()
     private let goalDeltaLabel = UILabel()
+    private let totalTitleLabel = UILabel()
+    private let totalValueLabel = UILabel()
+    private let totalDeltaLabel = UILabel()
+    private let goalDivider = UIView()
+    private let totalGoalRow = UIStackView()
     private let advanceControl = SlideActionControl()
     private let pauseButton = UIButton(type: .system)
     private let endButton = UIButton(type: .system)
@@ -103,24 +108,50 @@ final class ActiveWorkoutViewController: UIViewController {
         topRow.axis = .horizontal
         topRow.alignment = .center
 
-        let goalTextStack = UIStackView(arrangedSubviews: [goalTitleLabel, goalValueLabel])
-        goalTextStack.axis = .vertical
-        goalTextStack.spacing = 2
-
         goalTitleLabel.font = .systemFont(ofSize: 11, weight: .black)
         goalTitleLabel.textColor = UIColor.white.withAlphaComponent(0.55)
-        goalTitleLabel.text = "GOAL"
+        goalTitleLabel.text = "SEG"
+        goalTitleLabel.setContentHuggingPriority(.required, for: .horizontal)
 
-        goalValueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
-        goalValueLabel.textColor = .white
+        goalValueLabel.font = .monospacedDigitSystemFont(ofSize: 18, weight: .bold)
+        goalValueLabel.textColor = UIColor.white.withAlphaComponent(0.9)
 
-        goalDeltaLabel.font = .monospacedDigitSystemFont(ofSize: 30, weight: .black)
+        goalDeltaLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .black)
         goalDeltaLabel.textAlignment = .right
+        goalDeltaLabel.setContentHuggingPriority(.required, for: .horizontal)
 
-        let goalStack = UIStackView(arrangedSubviews: [goalTextStack, goalDeltaLabel])
-        goalStack.axis = .horizontal
-        goalStack.alignment = .center
-        goalStack.spacing = 12
+        let segRow = UIStackView(arrangedSubviews: [goalTitleLabel, goalValueLabel, UIView(), goalDeltaLabel])
+        segRow.axis = .horizontal
+        segRow.alignment = .center
+        segRow.spacing = 10
+
+        totalTitleLabel.font = .systemFont(ofSize: 11, weight: .black)
+        totalTitleLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+        totalTitleLabel.text = "TOTAL"
+        totalTitleLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        totalValueLabel.font = .monospacedDigitSystemFont(ofSize: 18, weight: .bold)
+        totalValueLabel.textColor = UIColor.white.withAlphaComponent(0.9)
+
+        totalDeltaLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .black)
+        totalDeltaLabel.textAlignment = .right
+        totalDeltaLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        totalGoalRow.addArrangedSubview(totalTitleLabel)
+        totalGoalRow.addArrangedSubview(totalValueLabel)
+        totalGoalRow.addArrangedSubview(UIView())
+        totalGoalRow.addArrangedSubview(totalDeltaLabel)
+        totalGoalRow.axis = .horizontal
+        totalGoalRow.alignment = .center
+        totalGoalRow.spacing = 10
+
+        goalDivider.backgroundColor = UIColor.white.withAlphaComponent(0.06)
+        goalDivider.translatesAutoresizingMaskIntoConstraints = false
+        goalDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
+
+        let goalStack = UIStackView(arrangedSubviews: [segRow, goalDivider, totalGoalRow])
+        goalStack.axis = .vertical
+        goalStack.spacing = 8
         goalStack.translatesAutoresizingMaskIntoConstraints = false
 
         goalCard.backgroundColor = UIColor.white.withAlphaComponent(0.08)
@@ -130,10 +161,10 @@ final class ActiveWorkoutViewController: UIViewController {
         goalCard.translatesAutoresizingMaskIntoConstraints = false
         goalCard.addSubview(goalStack)
         NSLayoutConstraint.activate([
-            goalStack.topAnchor.constraint(equalTo: goalCard.topAnchor, constant: 14),
+            goalStack.topAnchor.constraint(equalTo: goalCard.topAnchor, constant: 12),
             goalStack.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor, constant: 16),
             goalStack.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor, constant: -16),
-            goalStack.bottomAnchor.constraint(equalTo: goalCard.bottomAnchor, constant: -14)
+            goalStack.bottomAnchor.constraint(equalTo: goalCard.bottomAnchor, constant: -12)
         ])
 
         let infoRow = UIStackView(arrangedSubviews: [infoPrimaryMetric, infoSecondaryMetric])
@@ -268,13 +299,20 @@ final class ActiveWorkoutViewController: UIViewController {
 
         goalValueLabel.text = viewModel.goalText
         goalDeltaLabel.text = viewModel.goalDeltaText
-        goalDeltaLabel.textColor = goalDeltaColor()
+        goalDeltaLabel.textColor = deltaColor(isOver: viewModel.isOverGoal, isPlaceholder: viewModel.goalText == "—")
         goalCard.backgroundColor = viewModel.isOverGoal
             ? UIColor.systemRed.withAlphaComponent(0.2)
             : UIColor.white.withAlphaComponent(0.08)
         goalCard.layer.borderColor = viewModel.isOverGoal
             ? UIColor.systemRed.withAlphaComponent(0.35).cgColor
             : UIColor.white.withAlphaComponent(0.08).cgColor
+
+        let hasTotal = viewModel.totalGoalText != "—"
+        totalGoalRow.isHidden = !hasTotal
+        goalDivider.isHidden = !hasTotal
+        totalValueLabel.text = viewModel.totalGoalText
+        totalDeltaLabel.text = viewModel.totalDeltaText
+        totalDeltaLabel.textColor = deltaColor(isOver: viewModel.isOverTotalGoal, isPlaceholder: !hasTotal)
 
         switch viewModel.accentKind {
         case .run, .roxZone:
@@ -349,9 +387,9 @@ final class ActiveWorkoutViewController: UIViewController {
         }
     }
 
-    private func goalDeltaColor() -> UIColor {
-        if viewModel.goalText == "—" { return UIColor.white.withAlphaComponent(0.8) }
-        return viewModel.isOverGoal ? UIColor.systemRed : DesignTokens.Color.success
+    private func deltaColor(isOver: Bool, isPlaceholder: Bool) -> UIColor {
+        if isPlaceholder { return UIColor.white.withAlphaComponent(0.8) }
+        return isOver ? UIColor.systemRed : DesignTokens.Color.success
     }
 
     private func colorFor(zone: HeartRateZone?) -> UIColor {
