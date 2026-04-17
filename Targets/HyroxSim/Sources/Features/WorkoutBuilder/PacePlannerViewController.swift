@@ -227,13 +227,15 @@ final class PacePlannerViewController: UIViewController {
 
         container.addSubview(toggle)
         container.addSubview(hint)
+        toggle.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        toggle.setContentCompressionResistancePriority(.required, for: .horizontal)
         NSLayoutConstraint.activate([
             toggle.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             toggle.topAnchor.constraint(equalTo: container.topAnchor),
             toggle.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            toggle.widthAnchor.constraint(equalToConstant: 120),
             hint.leadingAnchor.constraint(equalTo: toggle.trailingAnchor, constant: 10),
             hint.centerYAnchor.constraint(equalTo: toggle.centerYAnchor),
+            hint.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor),
             container.heightAnchor.constraint(equalToConstant: 32)
         ])
 
