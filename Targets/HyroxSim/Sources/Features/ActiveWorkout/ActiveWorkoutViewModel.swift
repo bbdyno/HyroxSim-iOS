@@ -310,49 +310,51 @@ public final class ActiveWorkoutViewModel {
         broadcastLiveState()
     }
 
-    /// For Run/Rox: delta is computed against combined Run+Rox goal.
-    /// Run segment: goal = Run+Rox combined, delta = segElapsed vs goal.
-    /// Rox segment: goal = Run+Rox combined, delta = (prevRunElapsed + roxElapsed) vs goal.
-    /// Station: standard per-segment delta.
+    /// 블록 단위 delta: 블록0 = Run+RoxEntry, 블록1~7 = RoxExit+Run+RoxEntry.
+    /// 블록의 합산 goal 은 Run 세그먼트에 저장되어 있고 Rox=0.
+    /// - Run/Rox: 블록 내 완료 세그먼트 합 + 현재 경과 vs 블록 Run 의 합산 goal
+    /// - Station: 자체 goal vs segElapsed
     private func resolveGoalAndDelta(
         currentIndex: Int, segElapsed: TimeInterval
     ) -> (goalText: String, deltaText: String, isOver: Bool) {
         let current = engine.template.segments[currentIndex]
 
         switch current.type {
-        case .run:
-            // Run goal already contains Run+Rox combined
-            guard let goal = current.goalDurationSeconds, goal > 0 else {
-                return ("—", "—", false)
-            }
-            let delta = segElapsed - goal
-            return (DurationFormatter.ms(goal), DurationFormatter.signedMs(delta), delta >= 0)
-
-        case .roxZone:
-            // Rox delta = (prevRun actual + rox elapsed) vs combined Run+Rox goal
-            if let prevRecord = findPrecedingRunRecord(before: currentIndex) {
-                let combinedGoal = engine.template.segments[prevRecord.index].goalDurationSeconds ?? 0
-                guard combinedGoal > 0 else { return ("—", "—", false) }
-
-                let combinedActual = prevRecord.activeDuration + segElapsed
-                let delta = combinedActual - combinedGoal
-                return (DurationFormatter.ms(combinedGoal), DurationFormatter.signedMs(delta), delta >= 0)
-            }
-            return ("—", "—", false)
-
         case .station:
             guard let goal = current.goalDurationSeconds, goal > 0 else {
                 return ("—", "—", false)
             }
             let delta = segElapsed - goal
             return (DurationFormatter.ms(goal), DurationFormatter.signedMs(delta), delta >= 0)
+
+        case .run, .roxZone:
+            guard let runIndex = owningRunIndex(for: currentIndex) else {
+                return ("—", "—", false)
+            }
+            let start = blockStartIndex(runIndex: runIndex)
+            let end = blockEndIndex(runIndex: runIndex)
+            // 블록 내 모든 세그먼트 goal 합산 (페이스 플래너 후: Run 에 합산·Rox=0, 기본 프리셋: Run+Rox 각각 goal).
+            let combinedGoal: TimeInterval = engine.template.segments[start...end]
+                .compactMap { $0.goalDurationSeconds }
+                .reduce(0, +)
+            guard combinedGoal > 0 else { return ("—", "—", false) }
+
+            var blockActual: TimeInterval = 0
+            for i in start..<currentIndex {
+                if let rec = engine.records.first(where: { $0.index == i }) {
+                    blockActual += rec.activeDuration
+                }
+            }
+            blockActual += segElapsed
+            let delta = blockActual - combinedGoal
+            return (DurationFormatter.ms(combinedGoal), DurationFormatter.signedMs(delta), delta >= 0)
         }
     }
 
     /// Cumulative delta vs whole-workout goal.
     /// goalText: total workout goal (h:mm:ss).
     /// deltaText: totalElapsed − cumulativeGoalThroughCurrentSegment (inclusive).
-    /// Rox has goal=0 (combined into preceding Run), so naive segment-goal sum works.
+    /// RoxExit 중에는 소유 Run(뒤따라오는) 의 goal 도 포함해야 블록 예산이 반영됨.
     private func resolveTotalGoalAndDelta(
         totalElapsed: TimeInterval, currentIndex: Int
     ) -> (goalText: String, deltaText: String, isOver: Bool) {
@@ -361,19 +363,62 @@ public final class ActiveWorkoutViewModel {
             .reduce(0, +)
         guard wholeGoal > 0 else { return ("—", "—", false) }
 
-        let goalSoFar: TimeInterval = engine.template.segments[0...currentIndex]
+        let upTo: Int = {
+            if let owning = owningRunIndex(for: currentIndex) { return max(currentIndex, owning) }
+            return currentIndex
+        }()
+        let goalSoFar: TimeInterval = engine.template.segments[0...upTo]
             .compactMap { $0.goalDurationSeconds }
             .reduce(0, +)
         let delta = totalElapsed - goalSoFar
         return (DurationFormatter.hms(wholeGoal), DurationFormatter.signedMs(delta), delta >= 0)
     }
 
-    private func findPrecedingRunRecord(before index: Int) -> SegmentRecord? {
-        // Look backward through completed records for the most recent run
-        for record in engine.records.reversed() {
-            if record.type == .run && record.index < index { return record }
+    /// 현재 Run/Rox 세그먼트가 속한 블록의 Run 인덱스.
+    /// - Run: 자기 자신
+    /// - RoxEntry (다음이 Station): 바로 앞 Run
+    /// - RoxExit (앞이 Station): 바로 뒤 Run
+    private func owningRunIndex(for index: Int) -> Int? {
+        let segs = engine.template.segments
+        switch segs[index].type {
+        case .run:
+            return index
+        case .roxZone:
+            if index >= 1, segs[index - 1].type == .station {
+                for i in (index + 1)..<segs.count {
+                    if segs[i].type == .run { return i }
+                    if segs[i].type == .station { return nil }
+                }
+                return nil
+            } else {
+                for i in stride(from: index - 1, through: 0, by: -1) {
+                    if segs[i].type == .run { return i }
+                    if segs[i].type == .station { return nil }
+                }
+                return nil
+            }
+        case .station:
+            return nil
         }
-        return nil
+    }
+
+    /// 블록의 첫 세그먼트 인덱스 (RoxExit 가 있으면 그 인덱스, 없으면 Run 인덱스).
+    private func blockStartIndex(runIndex: Int) -> Int {
+        let segs = engine.template.segments
+        if runIndex >= 1, segs[runIndex - 1].type == .roxZone {
+            return runIndex - 1
+        }
+        return runIndex
+    }
+
+    /// 블록의 마지막 세그먼트 인덱스 (RoxEntry 가 있으면 그 인덱스, 없으면 Run 인덱스).
+    private func blockEndIndex(runIndex: Int) -> Int {
+        let segs = engine.template.segments
+        let next = runIndex + 1
+        if next < segs.count, segs[next].type == .roxZone {
+            return next
+        }
+        return runIndex
     }
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {

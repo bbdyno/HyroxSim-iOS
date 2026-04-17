@@ -57,6 +57,16 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("workout-\(workout.id).json")
         try data.write(to: url)
         session.transferFile(url, metadata: nil)
+
+        // 빠른 경로: reachable + 페이로드 작으면 sendMessage 로 즉시 전송. 실패해도 transferFile 이 대체.
+        // WCSession sendMessage 신뢰 상한 ~65kB. 여유있게 48kB 컷.
+        if session.isReachable, data.count < 48_000 {
+            session.sendMessage(
+                [LiveSyncKeys.completedWorkoutData: data],
+                replyHandler: nil,
+                errorHandler: nil
+            )
+        }
     }
 
     public func sendTemplateDeleted(id: UUID) throws {
@@ -198,6 +208,19 @@ extension WatchConnectivitySyncCoordinator {
                 try? persistence.upsertTemplate(template)
             }
             onReceiveTemplate?(template)
+            return
+        }
+
+        // 완료 워크아웃 즉시 동기화 (폰 → 워치, reachable 시 fast path)
+        if let data = msg[LiveSyncKeys.completedWorkoutData] as? Data {
+            do {
+                let envelope = try JSONDecoder().decode(SyncEnvelope.self, from: data)
+                let workout = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
+                try persistence.upsertCompletedWorkout(workout)
+                onReceiveCompletedWorkout?(workout)
+            } catch {
+                print("[Sync] completedWorkoutData decode/save failed: \(error)")
+            }
             return
         }
 

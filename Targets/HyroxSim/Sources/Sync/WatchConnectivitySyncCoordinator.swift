@@ -70,6 +70,14 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("workout-\(workout.id).json")
         try data.write(to: url)
         session.transferFile(url, metadata: nil)
+
+        if session.isReachable, data.count < 48_000 {
+            session.sendMessage(
+                [LiveSyncKeys.completedWorkoutData: data],
+                replyHandler: nil,
+                errorHandler: nil
+            )
+        }
     }
 
     public func sendTemplateDeleted(id: UUID) throws {
@@ -215,6 +223,18 @@ extension WatchConnectivitySyncCoordinator {
         if let data = msg[LiveSyncKeys.heartRateRelay] as? Data,
            let relay = try? JSONDecoder().decode(HeartRateRelay.self, from: data) {
             onHeartRateRelayReceived?(relay)
+            return
+        }
+        // 완료 워크아웃 즉시 동기화 (워치 → 폰, reachable 시 fast path)
+        if let data = msg[LiveSyncKeys.completedWorkoutData] as? Data {
+            do {
+                let envelope = try JSONDecoder().decode(SyncEnvelope.self, from: data)
+                let workout = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
+                try persistence.upsertCompletedWorkout(workout)
+                onReceiveCompletedWorkout?(workout)
+            } catch {
+                print("[Sync] completedWorkoutData decode/save failed: \(error)")
+            }
             return
         }
     }

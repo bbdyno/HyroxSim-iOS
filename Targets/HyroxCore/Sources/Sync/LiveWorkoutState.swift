@@ -124,4 +124,6 @@ public enum LiveSyncKeys {
     public static let heartRateRelay = "heartRateRelay"
     /// 템플릿 즉시 동기화 (reachable 시 sendMessage 경로). transferUserInfo 와 병행.
     public static let templateSync = "templateSync"
+    /// 완료 워크아웃 즉시 동기화 (reachable 시 sendMessage 경로). transferFile 과 병행.
+    public static let completedWorkoutData = "completedWorkoutData"
 }
