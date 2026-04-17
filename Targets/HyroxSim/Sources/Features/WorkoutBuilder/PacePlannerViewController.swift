@@ -27,7 +27,6 @@ final class PacePlannerViewController: UIViewController {
     private let timePicker = UIPickerView()
     private let pctLabel = UILabel()
     private let tierLabel = UILabel()
-    private let rankLabel = UILabel()
     private let resultStack = UIStackView()
     private let footerContainer = UIView()
     private let applyButton = UIButton(type: .system)
@@ -188,11 +187,6 @@ final class PacePlannerViewController: UIViewController {
         pctLabel.textAlignment = .center
         contentStack.addArrangedSubview(pctLabel)
 
-        rankLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        rankLabel.textColor = DesignTokens.Color.textTertiary
-        rankLabel.textAlignment = .center
-        contentStack.addArrangedSubview(rankLabel)
-
         // Time picker (h:m:s)
         timePicker.dataSource = self
         timePicker.delegate = self
@@ -213,7 +207,10 @@ final class PacePlannerViewController: UIViewController {
     private func makeRunModeToggle() -> UIView {
         let container = UIView()
 
-        let toggle = UISegmentedControl(items: ["균등", "실전"])
+        let toggle = UISegmentedControl(items: [
+            Self.L.modeEqual,
+            Self.L.modeAdaptive
+        ])
         toggle.selectedSegmentIndex = runMode == .equal ? 0 : 1
         toggle.addTarget(self, action: #selector(runModeChanged(_:)), for: .valueChanged)
         toggle.selectedSegmentTintColor = DesignTokens.Color.accent
@@ -222,7 +219,7 @@ final class PacePlannerViewController: UIViewController {
         toggle.translatesAutoresizingMaskIntoConstraints = false
 
         let hint = UILabel()
-        hint.text = runMode == .adaptive ? "데이터 기반 Run별 분배" : "Run 1~8 동일 분배"
+        hint.text = Self.L.modeHint(runMode)
         hint.font = .systemFont(ofSize: 11, weight: .medium)
         hint.textColor = DesignTokens.Color.textTertiary
         hint.tag = 100
@@ -313,7 +310,7 @@ final class PacePlannerViewController: UIViewController {
         runMode = sender.selectedSegmentIndex == 0 ? .equal : .adaptive
         // Update hint label
         if let hint = sender.superview?.viewWithTag(100) as? UILabel {
-            hint.text = runMode == .adaptive ? "데이터 기반 Run별 분배" : "Run 1~8 동일 분배"
+            hint.text = Self.L.modeHint(runMode)
         }
         performAnalysis()
     }
@@ -340,10 +337,7 @@ final class PacePlannerViewController: UIViewController {
         tierLabel.text = "\(DurationFormatter.hms(TimeInterval(plan.goalTotalS))) — \(tier)"
         tierLabel.textColor = color
 
-        pctLabel.text = String(format: "Top %.1f%%", pct)
-
-        let estRank = max(1, Int(Double(plan.totalAthletes) * pct / 100))
-        rankLabel.text = "\(formatNumber(plan.totalAthletes))명 중 약 \(formatNumber(estRank))등"
+        pctLabel.text = String(format: Self.L.percentileFormat, pct)
     }
 
     private func buildResult(_ plan: PacePlan) {
@@ -512,19 +506,44 @@ final class PacePlannerViewController: UIViewController {
     }
 
     private func tierColor(_ pct: Double) -> UIColor {
-        if pct <= 1 { return UIColor(red: 1, green: 0.84, blue: 0, alpha: 1) }       // gold
-        if pct <= 3 { return UIColor(white: 0.85, alpha: 1) }                          // silver
-        if pct <= 5 { return UIColor(red: 0.8, green: 0.5, blue: 0.2, alpha: 1) }     // bronze
-        if pct <= 10 { return UIColor(red: 0, green: 0.72, blue: 0.58, alpha: 1) }    // green
-        if pct <= 25 { return UIColor(red: 0.04, green: 0.52, blue: 0.89, alpha: 1) } // blue
-        if pct <= 50 { return UIColor(red: 0.42, green: 0.36, blue: 0.91, alpha: 1) } // purple
-        return UIColor(red: 0.39, green: 0.43, blue: 0.45, alpha: 1)                   // gray
+        // HYROX 블랙+골드 테마에 맞춘 warm→cool 톤 (레퍼런스 사이트의 금/은/동/초록/파랑/보라/회색 팔레트와 의도적으로 차별화)
+        if pct <= 1  { return UIColor(red: 1.00, green: 0.84, blue: 0.00, alpha: 1) } // apex — gold
+        if pct <= 3  { return UIColor(red: 1.00, green: 0.65, blue: 0.15, alpha: 1) } // pro — amber
+        if pct <= 5  { return UIColor(red: 1.00, green: 0.46, blue: 0.36, alpha: 1) } // expert — coral
+        if pct <= 10 { return UIColor(red: 0.95, green: 0.35, blue: 0.55, alpha: 1) } // strong — salmon-pink
+        if pct <= 25 { return UIColor(red: 0.30, green: 0.80, blue: 0.70, alpha: 1) } // solid — mint
+        if pct <= 50 { return UIColor(red: 0.35, green: 0.72, blue: 0.92, alpha: 1) } // steady — cyan
+        if pct <= 75 { return UIColor(red: 0.67, green: 0.60, blue: 0.90, alpha: 1) } // rising — lilac
+        return UIColor(red: 0.55, green: 0.58, blue: 0.62, alpha: 1)                   // starter — neutral gray
     }
 
     private func formatNumber(_ n: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: n)) ?? "\(n)"
+    }
+
+    // MARK: - Localized strings
+
+    fileprivate enum L {
+        static var modeEqual: String {
+            NSLocalizedString("pace_planner.mode.equal", comment: "Equal run-split mode label")
+        }
+        static var modeAdaptive: String {
+            NSLocalizedString("pace_planner.mode.adaptive", comment: "Adaptive (data-based) run-split mode label")
+        }
+        static var percentileFormat: String {
+            NSLocalizedString("pace_planner.percentile.format", comment: "Percentile display, e.g. 'Top 12.3%'")
+        }
+
+        static func modeHint(_ mode: PacePlanner.RunMode) -> String {
+            switch mode {
+            case .adaptive:
+                return NSLocalizedString("pace_planner.mode.hint.adaptive", comment: "Hint for adaptive run-split")
+            case .equal:
+                return NSLocalizedString("pace_planner.mode.hint.equal", comment: "Hint for equal run-split")
+            }
+        }
     }
 }
 

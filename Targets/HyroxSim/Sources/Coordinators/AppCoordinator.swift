@@ -437,6 +437,7 @@ extension AppCoordinator {
     private func persistTemplateChanges(_ template: WorkoutTemplate) {
         if template.isBuiltIn {
             templateGoalOverrideStore.save(template)
+            try? syncCoordinator.sendTemplate(template)
             return
         }
 

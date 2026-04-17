@@ -287,14 +287,14 @@ public struct PacePlanner: Sendable {
     // MARK: - Percentile Tier
 
     public static func tier(for percentile: Double) -> String {
-        if percentile <= 1 { return "ELITE" }
-        if percentile <= 3 { return "WORLD CLASS" }
-        if percentile <= 5 { return "EXCEPTIONAL" }
-        if percentile <= 10 { return "ADVANCED" }
-        if percentile <= 25 { return "COMPETITIVE" }
-        if percentile <= 50 { return "INTERMEDIATE" }
-        if percentile <= 75 { return "DEVELOPING" }
-        return "BEGINNER"
+        if percentile <= 1 { return "APEX" }
+        if percentile <= 3 { return "PRO" }
+        if percentile <= 5 { return "EXPERT" }
+        if percentile <= 10 { return "STRONG" }
+        if percentile <= 25 { return "SOLID" }
+        if percentile <= 50 { return "STEADY" }
+        if percentile <= 75 { return "RISING" }
+        return "STARTER"
     }
 
     /// Level label from benchmark data (optional, for backward compat).

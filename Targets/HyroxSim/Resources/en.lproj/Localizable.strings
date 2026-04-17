@@ -1,0 +1,5 @@
+"pace_planner.mode.equal" = "Equal";
+"pace_planner.mode.adaptive" = "Adaptive";
+"pace_planner.mode.hint.equal" = "Evenly split across 8 runs";
+"pace_planner.mode.hint.adaptive" = "Data-based per-run split";
+"pace_planner.percentile.format" = "Top %.1f%%";

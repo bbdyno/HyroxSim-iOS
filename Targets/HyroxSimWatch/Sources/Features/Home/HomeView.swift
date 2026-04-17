@@ -16,6 +16,8 @@ struct HomeView: View {
     let syncCoordinator: (any SyncCoordinator)?
     @State private var customTemplates: [WorkoutTemplate] = []
     @State private var navigationPath = NavigationPath()
+    @State private var overrideRefresh = 0
+    private let goalOverrideStore = TemplateGoalOverrideStore()
 
     private let accent = Color(red: 1.0, green: 0.84, blue: 0.0)
 
@@ -35,10 +37,12 @@ struct HomeView: View {
 
                     sectionHeader("HYROX PRESETS")
                     ForEach(HyroxPresets.all) { template in
-                        NavigationLink(value: template) {
-                            presetCard(template)
+                        let resolved = goalOverrideStore.resolvedTemplate(from: template)
+                        NavigationLink(value: resolved) {
+                            presetCard(resolved)
                         }
                         .buttonStyle(.plain)
+                        .id("\(template.id)-\(overrideRefresh)")
                     }
 
                     // 히스토리 진입
@@ -75,6 +79,9 @@ struct HomeView: View {
             }
             .onAppear {
                 customTemplates = (try? persistence.fetchAllTemplates()) ?? []
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .hyroxTemplateGoalOverrideUpdated)) { _ in
+                overrideRefresh &+= 1
             }
         }
     }

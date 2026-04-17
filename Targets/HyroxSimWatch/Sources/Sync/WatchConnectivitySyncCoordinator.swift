@@ -15,6 +15,7 @@ import HyroxPersistenceApple
 public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, @unchecked Sendable {
     private let session: WCSession
     private let persistence: PersistenceController
+    private let goalOverrideStore = TemplateGoalOverrideStore()
 
     // MARK: - Background sync callbacks
     public var onReceiveTemplate: ((WorkoutTemplate) -> Void)?
@@ -162,7 +163,13 @@ extension WatchConnectivitySyncCoordinator {
             switch envelope.kind {
             case .template:
                 let t = try SyncEnvelopeCoder.decodeTemplate(envelope)
-                try persistence.upsertTemplate(t)
+                // 빌트인 프리셋은 코드에서 제공하므로 persistence에 저장하지 않고
+                // 사용자 goal override만 division 키로 따로 기록한다.
+                if t.isBuiltIn {
+                    goalOverrideStore.save(t)
+                } else {
+                    try persistence.upsertTemplate(t)
+                }
                 onReceiveTemplate?(t)
             case .completedWorkout:
                 let w = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)

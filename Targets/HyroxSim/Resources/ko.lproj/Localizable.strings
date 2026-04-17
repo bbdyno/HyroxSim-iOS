@@ -1,0 +1,5 @@
+"pace_planner.mode.equal" = "균등";
+"pace_planner.mode.adaptive" = "실전";
+"pace_planner.mode.hint.equal" = "Run 1~8 동일 분배";
+"pace_planner.mode.hint.adaptive" = "데이터 기반 Run별 분배";
+"pace_planner.percentile.format" = "상위 %.1f%%";

@@ -116,15 +116,21 @@ let project = Project(
                     mkdir -p "${APP_BUNDLE}/en.lproj" "${APP_BUNDLE}/ko.lproj"
                     cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/en.lproj/InfoPlist.strings" "${APP_BUNDLE}/en.lproj/InfoPlist.strings"
                     cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/ko.lproj/InfoPlist.strings" "${APP_BUNDLE}/ko.lproj/InfoPlist.strings"
+                    cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/en.lproj/Localizable.strings" "${APP_BUNDLE}/en.lproj/Localizable.strings"
+                    cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/ko.lproj/Localizable.strings" "${APP_BUNDLE}/ko.lproj/Localizable.strings"
                     """,
-                    name: "Copy Localized InfoPlist Strings",
+                    name: "Copy Localized Strings",
                     inputPaths: [
                         "../../Targets/HyroxSim/Resources/en.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSim/Resources/ko.lproj/InfoPlist.strings"
+                        "../../Targets/HyroxSim/Resources/ko.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSim/Resources/en.lproj/Localizable.strings",
+                        "../../Targets/HyroxSim/Resources/ko.lproj/Localizable.strings"
                     ],
                     outputPaths: [
                         "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings"
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/Localizable.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/Localizable.strings"
                     ],
                     basedOnDependencyAnalysis: false
                 )
