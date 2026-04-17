@@ -221,19 +221,14 @@ public final class ActiveWorkoutViewModel {
         currentDisplayTitle = displayTitle(for: current, at: index)
         nextDisplayTitle = nextDisplayTitle(after: index, currentType: current.type)
 
-        if let goalSeconds = current.goalDurationSeconds {
-            goalText = DurationFormatter.ms(goalSeconds)
-            let delta = segElapsed - goalSeconds
-            goalDeltaText = DurationFormatter.signedMs(delta)
-            isOverGoal = delta >= 0
-            if isOverGoal, alertedGoalSegmentId != current.id {
-                alertedGoalSegmentId = current.id
-                goalAlertHandler?()
-            }
-        } else {
-            goalText = "—"
-            goalDeltaText = "—"
-            isOverGoal = false
+        // Delta calculation: Run/Rox uses combined Run+Rox goal vs cumulative elapsed.
+        let goalInfo = resolveGoalAndDelta(currentIndex: index, segElapsed: segElapsed)
+        goalText = goalInfo.goalText
+        goalDeltaText = goalInfo.deltaText
+        isOverGoal = goalInfo.isOver
+        if isOverGoal, alertedGoalSegmentId != current.id {
+            alertedGoalSegmentId = current.id
+            goalAlertHandler?()
         }
 
         switch current.type {
@@ -303,6 +298,53 @@ public final class ActiveWorkoutViewModel {
 
         updateLiveActivity()
         broadcastLiveState()
+    }
+
+    /// For Run/Rox: delta is computed against combined Run+Rox goal.
+    /// Run segment: goal = Run+Rox combined, delta = segElapsed vs goal.
+    /// Rox segment: goal = Run+Rox combined, delta = (prevRunElapsed + roxElapsed) vs goal.
+    /// Station: standard per-segment delta.
+    private func resolveGoalAndDelta(
+        currentIndex: Int, segElapsed: TimeInterval
+    ) -> (goalText: String, deltaText: String, isOver: Bool) {
+        let current = engine.template.segments[currentIndex]
+
+        switch current.type {
+        case .run:
+            // Run goal already contains Run+Rox combined
+            guard let goal = current.goalDurationSeconds, goal > 0 else {
+                return ("—", "—", false)
+            }
+            let delta = segElapsed - goal
+            return (DurationFormatter.ms(goal), DurationFormatter.signedMs(delta), delta >= 0)
+
+        case .roxZone:
+            // Rox delta = (prevRun actual + rox elapsed) vs combined Run+Rox goal
+            if let prevRecord = findPrecedingRunRecord(before: currentIndex) {
+                let combinedGoal = engine.template.segments[prevRecord.index].goalDurationSeconds ?? 0
+                guard combinedGoal > 0 else { return ("—", "—", false) }
+
+                let combinedActual = prevRecord.activeDuration + segElapsed
+                let delta = combinedActual - combinedGoal
+                return (DurationFormatter.ms(combinedGoal), DurationFormatter.signedMs(delta), delta >= 0)
+            }
+            return ("—", "—", false)
+
+        case .station:
+            guard let goal = current.goalDurationSeconds, goal > 0 else {
+                return ("—", "—", false)
+            }
+            let delta = segElapsed - goal
+            return (DurationFormatter.ms(goal), DurationFormatter.signedMs(delta), delta >= 0)
+        }
+    }
+
+    private func findPrecedingRunRecord(before index: Int) -> SegmentRecord? {
+        // Look backward through completed records for the most recent run
+        for record in engine.records.reversed() {
+            if record.type == .run && record.index < index { return record }
+        }
+        return nil
     }
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {

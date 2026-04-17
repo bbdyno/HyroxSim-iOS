@@ -52,6 +52,8 @@ public struct TimeBucket: Codable, Sendable {
     public let count: Int
     public let pctRange: [Double]
     public let avgOverall: Int
+    public let avgRun: Int
+    public let avgRox: Int
     public let avgRunRox: Int
     public let avgPace87: Int
     public let avgStationTotal: Int
@@ -63,6 +65,8 @@ public struct TimeBucket: Codable, Sendable {
         case count
         case pctRange = "pct_range"
         case avgOverall = "avg_overall"
+        case avgRun = "avg_run"
+        case avgRox = "avg_rox"
         case avgRunRox = "avg_run_rox"
         case avgPace87 = "avg_pace_8_7"
         case avgStationTotal = "avg_station_total"
@@ -76,6 +80,8 @@ public struct TimeBucket: Codable, Sendable {
 public struct InterpolatedBucket: Sendable {
     public let pctRange: (Double, Double)
     public let avgOverall: Int
+    public let avgRun: Int
+    public let avgRox: Int
     public let avgRunRox: Int
     public let avgPace87: Int
     public let avgStationTotal: Int
@@ -83,6 +89,11 @@ public struct InterpolatedBucket: Sendable {
 
     /// Midpoint percentile.
     public var percentile: Double { (pctRange.0 + pctRange.1) / 2 }
+
+    /// Fraction of run+rox that is roxzone (0.0-1.0).
+    public var roxFraction: Double {
+        avgRunRox > 0 ? Double(avgRox) / Double(avgRunRox) : 0
+    }
 }
 
 // MARK: - Pace Planner Engine
@@ -123,6 +134,8 @@ public struct PacePlanner: Sendable {
             return InterpolatedBucket(
                 pctRange: (loB.pctRange[0], loB.pctRange[1]),
                 avgOverall: loB.avgOverall,
+                avgRun: loB.avgRun,
+                avgRox: loB.avgRox,
                 avgRunRox: loB.avgRunRox,
                 avgPace87: loB.avgPace87,
                 avgStationTotal: loB.avgStationTotal,
@@ -147,6 +160,8 @@ public struct PacePlanner: Sendable {
                 (Ld(loB.pctRange[1], hiB.pctRange[1]) * 10).rounded() / 10
             ),
             avgOverall: L(loB.avgOverall, hiB.avgOverall),
+            avgRun: L(loB.avgRun, hiB.avgRun),
+            avgRox: L(loB.avgRox, hiB.avgRox),
             avgRunRox: L(loB.avgRunRox, hiB.avgRunRox),
             avgPace87: L(loB.avgPace87, hiB.avgPace87),
             avgStationTotal: L(loB.avgStationTotal, hiB.avgStationTotal),
@@ -264,7 +279,8 @@ public struct PacePlanner: Sendable {
             percentile: bucket.percentile,
             totalAthletes: div.totalAthletes,
             computedTotal: total,
-            mode: mode
+            mode: mode,
+            roxFraction: bucket.roxFraction
         )
     }
 
@@ -313,9 +329,17 @@ public struct PacePlan: Sendable {
     public let computedTotal: Int
     /// Distribution mode used.
     public let mode: PacePlanner.RunMode
+    /// Fraction of run+rox that is roxzone (0.0-1.0), from bucket data.
+    public let roxFraction: Double
 
     /// Total run time.
     public var runTotal: Int { runTimes.reduce(0, +) }
     /// Total station time.
     public var stationTotal: Int { stationTimes.values.reduce(0, +) }
+
+    /// Split a combined run+rox time into (run, rox) using the data-driven fraction.
+    public func splitRunRox(_ combinedS: Int) -> (run: Int, rox: Int) {
+        let rox = Int((Double(combinedS) * roxFraction).rounded())
+        return (combinedS - rox, rox)
+    }
 }

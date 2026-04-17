@@ -420,7 +420,11 @@ final class PacePlannerViewController: UIViewController {
     }
 
     private func applyPlanToTemplate(_ plan: PacePlan) {
+        // Plan's runTimes[i] = Run + Roxzone combined.
+        // Run segment gets the full combined goal. Rox segment gets 0.
+        // Delta calculation: goal(run+rox) - actual(run+rox) → 합산 기준.
         var runIndex = 0
+
         for i in template.segments.indices {
             let seg = template.segments[i]
             switch seg.type {
@@ -448,7 +452,6 @@ final class PacePlannerViewController: UIViewController {
                     }
                 }
             case .roxZone:
-                // Roxzone is included in runTimes (Run + Roxzone), so set 0 for explicit rox segments
                 template.segments[i].goalDurationSeconds = 0
             }
         }

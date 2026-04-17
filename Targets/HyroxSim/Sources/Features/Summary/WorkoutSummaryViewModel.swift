@@ -345,6 +345,8 @@ public final class WorkoutSummaryViewModel {
             ? goalDelta(actual: combinedDuration, goal: combinedGoal)
             : GoalDelta(text: "—", tone: .neutral, seconds: nil)
 
+        // Individual Run/Rox detail items: no delta shown (합산 행에서만 표시)
+        let noDelta = GoalDelta(text: "—", tone: .neutral, seconds: nil)
         let detailItems = records.compactMap { record in
             switch record.type {
             case .run:
@@ -353,7 +355,7 @@ public final class WorkoutSummaryViewModel {
                     title: "Run \(index)",
                     subtitle: DistanceFormatter.short(record.plannedDistanceMeters ?? record.distanceMeters),
                     durationText: DurationFormatter.hms(record.activeDuration),
-                    delta: goalDelta(actual: record.activeDuration, goal: record.goalDurationSeconds),
+                    delta: noDelta,
                     accent: .run
                 )
 
@@ -363,7 +365,7 @@ public final class WorkoutSummaryViewModel {
                     title: "Rox Zone",
                     subtitle: "Transition",
                     durationText: DurationFormatter.hms(record.activeDuration),
-                    delta: goalDelta(actual: record.activeDuration, goal: record.goalDurationSeconds),
+                    delta: noDelta,
                     accent: .roxZone
                 )
 
