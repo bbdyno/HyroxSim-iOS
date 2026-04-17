@@ -259,14 +259,23 @@ final class TemplateDetailViewController: UIViewController {
     }
 
     @objc private func editGoalsTapped() {
-        let vc = WorkoutGoalSetupViewController(
-            template: template,
-            screenTitle: "Edit Goals",
-            confirmButtonTitle: "Save Goals"
-        )
-        vc.delegate = self
+        let rootVC: UIViewController
+        if template.division != nil,
+           let pacePlanner = try? PaceReferenceLoader.loadPacePlanner() {
+            let planner = PacePlannerViewController(template: template, planner: pacePlanner)
+            planner.delegate = self
+            rootVC = planner
+        } else {
+            let goalVC = WorkoutGoalSetupViewController(
+                template: template,
+                screenTitle: "Edit Goals",
+                confirmButtonTitle: "Save Goals"
+            )
+            goalVC.delegate = self
+            rootVC = goalVC
+        }
 
-        let nav = UINavigationController(rootViewController: vc)
+        let nav = UINavigationController(rootViewController: rootVC)
         nav.applyDarkTheme()
         if let sheet = nav.sheetPresentationController {
             sheet.detents = [.large()]
@@ -426,6 +435,22 @@ extension TemplateDetailViewController: WorkoutGoalSetupViewControllerDelegate {
     }
 
     func goalSetupDidConfirm(template: WorkoutTemplate) {
+        self.template = template
+        preservedRoxSegments = template.segments.filter { $0.type == .roxZone }
+        onTemplateUpdated?(template)
+        dismiss(animated: true) {
+            self.rebuildContent()
+        }
+    }
+}
+
+extension TemplateDetailViewController: PacePlannerViewControllerDelegate {
+
+    func pacePlannerDidCancel() {
+        dismiss(animated: true)
+    }
+
+    func pacePlannerDidConfirm(template: WorkoutTemplate) {
         self.template = template
         preservedRoxSegments = template.segments.filter { $0.type == .roxZone }
         onTemplateUpdated?(template)

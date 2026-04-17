@@ -4,162 +4,98 @@
 
 ## 개요
 
-현재 상태: **HYROX 페이스 플래너 기능 설계 단계.** 아직 코드/커밋 없음.
-이전 완료 작업(모듈 분할, 워치↔폰 mirror, station 이름 보존)은 `.codex/handoffs/2026-04-08.md` 참조. 작업 트리 clean.
+현재 상태: **Race Estimator + Pace Planner 기능 구현 완료. 커밋 대기.**
+이전 완료 작업(모듈 분할, 워치↔폰 mirror, station 이름 보존)은 `.codex/handoffs/2026-04-08.md` 참조.
 
-## 기능 목표
+## 이번 세션 완료 작업
 
-Instagram 릴 `https://www.instagram.com/reel/DXJh5dAAZAg/` 참고. 사용자가 목표 완주 시간을 입력하면 31개 세그먼트별 목표 시간을 자동 분배하고, 사용자가 세그먼트별 미세조정으로 본인 레이스 플랜을 짜는 기능.
+### 1. 데이터 수집
 
-현재 앱에 `WorkoutGoalSetupViewController`가 세그먼트별 **수동** 입력만 지원 — 이 앞단에 "목표 총시간 → 데이터 기반 자동 분배" 단계를 추가하는 확장.
+#### hyresult.com 시뮬레이터 스크래핑 (9개 디비전)
+- Playwright 헤드리스로 `www.hyresult.com/simulator` 접속 (robots.txt `Allow: /` 확인)
+- 403 방지 위해 realistic UA + anti-detection 설정
+- DOM 기반 추출: 스테이션별 시간, 퍼센타일, 슬라이더 범위
+- 결과: `Targets/HyroxCore/Resources/PaceReference/v1.json` (hyresult 벤치마크)
 
-## 확정된 제약 / 의사결정
+#### hyrox-predictor.netlify.app 레이스 데이터 (201 이벤트, 685K+ 선수)
+- `data/all_events.json` (84MB) 다운로드 → Python으로 pre-compute
+- Degree-9 polynomial regression (outlier-robust, normalized)
+- 9개 디비전 × (run fit + 9 station fits + percentile snapshots)
+- 결과: `Targets/HyroxCore/Resources/PaceReference/race_model.json` (34KB)
 
-1. **완전 무료**. 유료 API(hyroxresultapi.com $7.99/월) 배제.
-2. **서버리스**. Supabase 등 백엔드 없음. 정적 JSON + 앱 번들/원격 fetch.
-3. **ToS 준수**. `results.hyrox.com` 직접 스크레이핑 금지(robots.txt Disallow).
-4. 분배 데이터는 **정적 JSON 스냅샷** — 앱 번들에 포함하거나 GitHub Pages 등 정적 호스트에서 pull.
-5. iOS 우선, 웹은 후순위(같은 JSON 공유 가능).
+### 2. HyroxCore 모델 계층
 
-## 데이터 소스 조사 결과
+| 파일 | 역할 |
+|---|---|
+| `PaceReference.swift` | hyresult 벤치마크 모델 (level anchors 등) |
+| `PaceDistributor.swift` | 목표 총시간 → 선형 비율 분배 (legacy, 테스트 유지) |
+| `RaceModel.swift` | polynomial regression 모델 + `RacePredictor` |
+| `PaceReferenceLoader.swift` | `loadBundled()`, `loadRaceModel()`, `loadPredictor()` |
 
-| 소스 | robots.txt | 접근성 | 판정 |
-|---|---|---|---|
-| `results.hyrox.com` | `Disallow: /` | 전체 차단 | ❌ 사용 금지 |
-| `www.hyresult.com` | `Allow: /` | **개방** | ✅ 1순위 후보 |
-| `www.hyresult.com/simulator` | 개방 | **Next.js CSR** — SSR은 "Loading data..."만, 실제 데이터는 server action으로 클라에서 페칭. curl로는 불가, **Playwright 등 헤드리스 필수** | 가능하지만 헤드리스 필요 |
-| `hyroxresultapi.com` | - | $7.99/월, OpenAPI 제공, `/simulator/hyresult-benchmarks?dg=...`가 우리가 원하는 데이터 | 유료라 배제 |
-| 공개 기사들 | - | 아래 표 | per-station 일부만 커버 |
-
-### 공개 기사 커버리지
-
-| 기사 | URL | 쓸모 |
-|---|---|---|
-| hyroxy.com | `https://hyroxy.com/hyrox-times/` | **최고 커버리지**. 9개 디비전 중 7개의 per-station 평균, Run total, Roxzone, 레벨별(Elite/Advanced/Strong/Average/Beginner) 총시간. 이번 MVP의 주 소스 |
-| hyroxdatalab.com | `https://hyroxdatalab.com/articles/what-is-a-good-hyrox-time` | Intermediate/Advanced per-station을 성별로만 구분(디비전 단순화). 700K+ 기록 주장. 교차검증용 |
-| hyroxdatalab doubles guide | `https://hyroxdatalab.com/articles/hyrox-doubles-strategy-guide` | Pro Doubles per-station **없음** — 전략 설명만 |
-| roxbase, trainrox, roxhype | - | 데이터는 보유하나 자기 tool 뒤에 숨김, 공개 기사에 per-station 없음 |
-
-### 공개 기사 데이터 공백
-- **Men's Pro Doubles, Women's Pro Doubles** per-station 평균을 공개한 기사는 확인한 바 없음.
-- 총시간 범위는 hyroxy에 있음. 스테이션별은 없음.
-
-## 앱 내부 매핑
-
-앱 enum `HyroxDivision` (`Targets/HyroxCore/Sources/Models/HyroxDivision.swift`):
-- `menOpenSingle`, `menOpenDouble`, `menProSingle`, `menProDouble`
-- `womenOpenSingle`, `womenOpenDouble`, `womenProSingle`, `womenProDouble`
-- `mixedDouble`
-
-`StationKind` (`Targets/HyroxCore/Sources/Models/StationKind.swift`):
-- `.skiErg`, `.sledPush`, `.sledPull`, `.burpeeBroadJumps`, `.rowing`, `.farmersCarry`, `.sandbagLunges`, `.wallBalls`, `.custom(name:)`
-
-`HyroxDivisionSpec` (`Targets/HyroxCore/Sources/Models/HyroxDivisionSpec.swift`)에 디비전별 weight/reps/distance 이미 정리됨. Pace reference는 이 spec에 **평균 시간 / 비율 / 레벨 앵커**만 추가하면 됨.
-
-릴 관찰: Run1=Run2 고정, Run 8로 갈수록 페이스 느려짐 (3:54 → 4:22 /km).
-
-## 스키마 드래프트: `pace-reference.v1.json`
-
-설계 원칙:
-- **비율 + 절대 참조치(reference_total_s)** 병행 → 사용자 목표에 선형 스케일, 향후 multi-level 보간 여지
-- **Run 분배 곡선 별도 보관** — 릴의 per-run 페이스 패턴 수용
-- **level anchors** — Elite/Advanced/Strong/Average/Beginner 총시간 → percentile UI에 활용
-
-```jsonc
-{
-  "schema_version": 1,
-  "updated_at": "2026-04-17",
-  "sources": [
-    { "name": "hyroxy.com", "url": "https://hyroxy.com/hyrox-times/", "retrieved": "2026-04-17" },
-    { "name": "hyroxdatalab.com", "url": "https://hyroxdatalab.com/articles/what-is-a-good-hyrox-time", "retrieved": "2026-04-17" }
-  ],
-  "run_distribution": {
-    "weights": [0.118, 0.118, 0.123, 0.124, 0.126, 0.128, 0.130, 0.133]
-  },
-  "divisions": {
-    "menOpenSingle":    { "reference_total_s": 5310, "run_total_s": 2520, "roxzone_total_s": 436,
-                          "stations": { "skiErg": 270, "sledPush": 180, "sledPull": 307, "burpeeBroadJumps": 345, "rowing": 291, "farmersCarry": 130, "sandbagLunges": 330, "wallBalls": 453 },
-                          "level_total_s": { "elite": 3900, "advanced": 4500, "strong": 5100, "average": 5400, "beginner": 6000 } },
-    "menProSingle":     { "reference_total_s": 4692, "run_total_s": 2144, "roxzone_total_s": 347,
-                          "stations": { "skiErg": 251, "sledPush": 220, "sledPull": 354, "burpeeBroadJumps": 275, "rowing": 269, "farmersCarry": 122, "sandbagLunges": 308, "wallBalls": 408 },
-                          "level_total_s": { "elite": 3600, "advanced": 4080, "strong": 4500, "average": 4950, "beginner": 5400 } },
-    "womenOpenSingle":  { "reference_total_s": 5910, "run_total_s": 2880, "roxzone_total_s": 483,
-                          "stations": { "skiErg": 310, "sledPush": 165, "sledPull": 350, "burpeeBroadJumps": 429, "rowing": 324, "farmersCarry": 136, "sandbagLunges": 326, "wallBalls": 438 },
-                          "level_total_s": { "elite": 4200, "advanced": 5100, "strong": 6000, "average": 6600, "beginner": 7200 } },
-    "womenProSingle":   { "reference_total_s": 5212, "run_total_s": 2436, "roxzone_total_s": 402,
-                          "stations": { "skiErg": 288, "sledPush": 223, "sledPull": 365, "burpeeBroadJumps": 322, "rowing": 302, "farmersCarry": 155, "sandbagLunges": 321, "wallBalls": 401 },
-                          "level_total_s": { "elite": 3900, "advanced": 4500, "strong": 5100, "average": 5700, "beginner": 6000 } },
-    "menOpenDouble":    { "reference_total_s": 4458, "run_total_s": 2474, "roxzone_total_s": 397,
-                          "stations": { "skiErg": 240, "sledPush": 107, "sledPull": 204, "burpeeBroadJumps": 196, "rowing": 268, "farmersCarry": 98, "sandbagLunges": 214, "wallBalls": 272 },
-                          "level_total_s": { "elite": 4200, "advanced": 4800, "strong": 5100, "average": 5400, "beginner": 6000 } },
-    "womenOpenDouble":  { "reference_total_s": 5159, "run_total_s": 2898, "roxzone_total_s": 454,
-                          "stations": { "skiErg": 279, "sledPush": 111, "sledPull": 249, "burpeeBroadJumps": 264, "rowing": 305, "farmersCarry": 112, "sandbagLunges": 224, "wallBalls": 272 },
-                          "level_total_s": { "elite": 4500, "advanced": 5100, "strong": 5700, "average": 6300, "beginner": 6900 } },
-    "mixedDouble":      { "reference_total_s": 4914, "run_total_s": 2719, "roxzone_total_s": 429,
-                          "stations": { "skiErg": 255, "sledPush": 128, "sledPull": 243, "burpeeBroadJumps": 220, "rowing": 283, "farmersCarry": 107, "sandbagLunges": 247, "wallBalls": 292 },
-                          "level_total_s": { "elite": 4320, "advanced": 5040, "strong": 5520, "average": 6000, "beginner": 6600 } },
-    "menProDouble":     { "reference_total_s": 3180,
-                          "level_total_s": { "elite": 2880, "advanced": 2940, "strong": 3150, "average": 3450, "beginner": 3600 },
-                          "stations_estimated_from": "menProSingle ratios + menOpenDouble scale" },
-    "womenProDouble":   { "reference_total_s": 3480,
-                          "level_total_s": { "elite": 3180, "advanced": 3270, "strong": 3480, "average": 3750, "beginner": 3900 },
-                          "stations_estimated_from": "womenProSingle ratios + womenOpenDouble scale" }
-  }
-}
-```
-
-### 분배 엔진 (의사코드)
+### 3. RacePredictor 핵심 알고리즘
 
 ```
-goal_total_s = user input
-scale = goal_total_s / div.reference_total_s
-station_goal[kind] = div.stations[kind] * scale
-run_goal[i]        = div.run_total_s * scale * run_distribution.weights[i]
-roxzone_per_zone   = div.roxzone_total_s * scale / 15   // 15개 roxZone
+input: paceSecondsPerKm (e.g. 310 = 5:10/km)
+targetRunTotal = pace × 8.0 (km)
+estRank = binarySearch(runFit, targetRunTotal) // rank that gives this run time
+stationTime[i] = stationFit[i].evaluate(estRank) // polynomial at that rank
+roxzone = roxzoneFit.evaluate(estRank)
+percentile = estRank / nAthletes × 100
 ```
 
-이후 사용자가 각 세그먼트 +/- 조정 시 나머지 재분배 방식은 UI 단계에서 결정.
+### 4. UI: PacePlannerViewController
 
-### 미확정 파일 배치
-`Targets/HyroxCore/Resources/PaceReference/v1.json` 제안 상태. Tuist resources 등록 + `Bundle.module` 접근 예정.
+- 입력: 러닝 페이스 (min:sec /km) — 숫자패드 입력
+- "Analyze" 버튼 → RacePredictor 예측 실행
+- 결과:
+  - Rank 카드: "Top XX.X%" + "~N / Total athletes"
+  - Total 카드: H:MM:SS + level label + breakdown
+  - 스테이션별 예측 시간 리스트
+- Footer: "Fine-tune" (→ WorkoutGoalSetupVC push) / "Apply Goals" (→ 템플릿에 적용)
+- Division 없는 커스텀 템플릿: 기존 WorkoutGoalSetupVC로 fallback
 
-## 현재 세션 종료 시점의 결정 대기 이슈
+### 5. 테스트
 
-**Pro Doubles 공백을 어떻게 메울지** — 사용자가 "직접 하나하나 다 긁어서 채울 수 없냐"고 질문. 세 가지 경로 제시하고 본인 선택 대기:
+- `PaceReferenceTests` (8개): 벤치마크 데이터 무결성
+- `PaceDistributorTests` (6개): 선형 분배 엔진
+- `RaceModelTests` (6개): regression 모델 로딩/구조
+- `RacePredictorTests` (5개): 예측 정확성, 단조성, 합리성
+- 총 25개 전부 통과
 
-- **A.** `hyresult.com` 시뮬레이터를 **Playwright 헤드리스로 렌더**해서 9개 디비전 전부 긁기. robots.txt 개방이라 합법. 반나절 공수. Pro Doubles `dg` 지원 여부는 직접 돌려봐야 확인. 성공 시 공개 기사 의존 제거.
-- **B.** Pro Doubles 없이 MVP 7개 디비전만 출시, 나중 확장.
-- **C.** Pro Doubles를 Pro Single × Doubles 스케일로 **추정**.
+### 6. Tuist 변경
 
-개인 의견은 **A**였음. 다음 세션에서 사용자 답 받고 진행.
+- `Projects/HyroxCore/Project.swift`: resources 추가 (`PaceReference/**`)
+- `tuist generate` 후 빌드 성공 확인
 
-### A 진행 시 참고
-- hyresult `dg` 파라미터 패턴 불명 — `hpro_m`만 확인됨. 드롭다운 열어서 전체 옵션 수집 필요.
-- 실제 데이터는 Next.js server action으로 페칭 → 페이지 렌더링 후 DOM에서 추출해야 함. 초기 SSR HTML엔 `"Loading data ..."`만 있음.
-- 사이트가 dark mode 고정, React Flight format 사용.
-- 19개 JS chunk 이미 `/tmp/hyresult-chunks/`에 받아둠 (다른 컴퓨터에선 다시 받아야 함). 그중 `e510cb7062c0c902.js`에만 `/simulator` 라우터 링크, 실제 fetch 경로 노출 없음.
+## 파일 변경 목록
+
+### 신규
+- `Targets/HyroxCore/Resources/PaceReference/v1.json`
+- `Targets/HyroxCore/Resources/PaceReference/race_model.json`
+- `Targets/HyroxCore/Sources/Models/PaceReference.swift`
+- `Targets/HyroxCore/Sources/Models/PaceDistributor.swift`
+- `Targets/HyroxCore/Sources/Models/RaceModel.swift`
+- `Targets/HyroxCore/Sources/Models/PaceReferenceLoader.swift`
+- `Targets/HyroxSim/Sources/Features/WorkoutBuilder/PacePlannerViewController.swift`
+- `Targets/HyroxKitTests/Sources/PaceReferenceTests.swift`
+- `Targets/HyroxKitTests/Sources/RacePredictorTests.swift`
+
+### 수정
+- `Projects/HyroxCore/Project.swift` (resources 등록)
+- `Targets/HyroxSim/Sources/Features/WorkoutBuilder/WorkoutBuilderViewController.swift` (goalsTapped → PacePlanner 연결 + delegate)
+- `Targets/HyroxSim/Sources/Features/Home/TemplateDetailViewController.swift` (editGoalsTapped → PacePlanner 연결 + delegate)
 
 ## 남은 Step
 
-1. (결정 필요) Pro Doubles 경로 A/B/C 중 선택
-2. A 선택 시: Playwright 스크립트 작성 → 9 디비전 JSON 생성 → `pace-reference.v1.json` 확정 후 커밋
-3. B/C 선택 시: 위 드래프트 JSON 그대로 확정 후 커밋
-4. `HyroxCore`에 `PaceReference` 모델 + 로더 + `PaceDistributionStrategy` 프로토콜 추가
-5. `HyroxKitTests`에 유닛 테스트
-6. `WorkoutGoalSetupViewController` 앞단에 "목표 시간 입력 → 자동 분배" 화면 추가
-7. 다크 디자인 토큰(`DesignTokens.swift`) 맞춰서 UI
+1. 커밋
+2. (선택) 피커 값 변경 시 실시간 재분석 (현재는 Analyze 버튼 필요)
+3. (선택) 스테이션별 슬라이더 조절 UI (웹 툴처럼)
+4. (선택) 차트/분포 시각화 
+5. watchOS 동기화: 워치에서는 Pace Planner 불필요 (폰에서만 설정)
 
 ## 다른 맥북에서 이어받는 법
 
 1. `git pull`
-2. 이 파일(`.codex/handoffs/latest.md`) 읽기
-3. `CLAUDE.md` 확인 (헤더 규칙, 커밋 규칙)
-4. "남은 Step 1" 부터 — 사용자에게 Pro Doubles 경로 A/B/C 확인받고 이어서 진행
-5. Playwright 필요 시: `pip install playwright && playwright install chromium`. repo 외부 스크래치 폴더에서 실행, 결과만 repo 내 JSON으로 commit
-
-## 메모
-
-- 이 세션에서는 아직 Swift 파일 한 줄도 수정 안 함. 전부 설계/조사 단계.
-- 모든 숫자는 hyroxy.com 2026 benchmarks 기반, 2026-04-17 검색. 출처 URL은 위 "공개 기사 커버리지" 표 참조.
-- hyresult.com robots.txt 개방 상태는 언제든 바뀔 수 있음. A 진행 전 재확인 권장.
-- hyroxresultapi.com은 유료지만 OpenAPI 경로가 깔끔해서 향후 수요 커지면 재검토 가치 있음 (`/simulator/hyresult-benchmarks?dg=...`).
+2. 이 파일 읽기
+3. `tuist install && tuist generate`
+4. `xcodebuild build` / `xcodebuild test`

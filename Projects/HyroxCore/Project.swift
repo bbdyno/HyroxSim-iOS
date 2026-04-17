@@ -23,7 +23,10 @@ let project = Project(
             bundleId: "com.bbdyno.app.HyroxSim.core",
             deploymentTargets: .multiplatform(iOS: "17.0", watchOS: "10.0"),
             infoPlist: .default,
-            sources: ["../../Targets/HyroxCore/Sources/**"]
+            sources: ["../../Targets/HyroxCore/Sources/**"],
+            resources: [
+                "../../Targets/HyroxCore/Resources/PaceReference/**"
+            ]
         )
     ]
 )

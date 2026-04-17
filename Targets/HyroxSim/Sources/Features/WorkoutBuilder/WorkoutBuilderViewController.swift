@@ -241,14 +241,23 @@ final class WorkoutBuilderViewController: UIViewController {
     @objc private func goalsTapped() {
         guard let template = try? viewModel.makeTemplateForStart() else { return }
 
-        let vc = WorkoutGoalSetupViewController(
-            template: template,
-            screenTitle: "Edit Goals",
-            confirmButtonTitle: "Save Goals"
-        )
-        vc.delegate = self
+        let rootVC: UIViewController
+        if template.division != nil,
+           let pacePlanner = try? PaceReferenceLoader.loadPacePlanner() {
+            let planner = PacePlannerViewController(template: template, planner: pacePlanner)
+            planner.delegate = self
+            rootVC = planner
+        } else {
+            let goalVC = WorkoutGoalSetupViewController(
+                template: template,
+                screenTitle: "Edit Goals",
+                confirmButtonTitle: "Save Goals"
+            )
+            goalVC.delegate = self
+            rootVC = goalVC
+        }
 
-        let nav = UINavigationController(rootViewController: vc)
+        let nav = UINavigationController(rootViewController: rootVC)
         nav.applyDarkTheme()
         if let sheet = nav.sheetPresentationController {
             sheet.detents = [.large()]
@@ -445,6 +454,20 @@ extension WorkoutBuilderViewController: WorkoutGoalSetupViewControllerDelegate {
     }
 
     func goalSetupDidConfirm(template: WorkoutTemplate) {
+        viewModel.applyGoalTemplate(template)
+        dismiss(animated: true) {
+            self.applySnapshot()
+        }
+    }
+}
+
+extension WorkoutBuilderViewController: PacePlannerViewControllerDelegate {
+
+    func pacePlannerDidCancel() {
+        dismiss(animated: true)
+    }
+
+    func pacePlannerDidConfirm(template: WorkoutTemplate) {
         viewModel.applyGoalTemplate(template)
         dismiss(animated: true) {
             self.applySnapshot()

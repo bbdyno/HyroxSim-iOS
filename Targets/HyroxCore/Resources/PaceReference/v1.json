@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-04-17",
+  "sources": [
+    {
+      "name": "hyresult.com",
+      "url": "https://www.hyresult.com/simulator",
+      "retrieved": "2026-04-17",
+      "note": "Median (≈50th percentile) benchmark data for all 9 divisions"
+    },
+    {
+      "name": "hyroxy.com",
+      "url": "https://hyroxy.com/hyrox-times/",
+      "retrieved": "2026-04-17",
+      "note": "Level anchors (Elite/Advanced/Strong/Average/Beginner total times)"
+    }
+  ],
+  "run_distribution": {
+    "note": "Progressive fatigue curve — later runs are slightly slower. Weights sum to 1.0.",
+    "weights": [0.118, 0.118, 0.123, 0.124, 0.126, 0.128, 0.130, 0.133]
+  },
+  "divisions": {
+    "menOpenSingle": {
+      "reference_total_s": 5040,
+      "run_total_s": 2480,
+      "roxzone_total_s": 420,
+      "stations": {
+        "skiErg": 260,
+        "sledPush": 170,
+        "sledPull": 290,
+        "burpeeBroadJumps": 320,
+        "rowing": 280,
+        "farmersCarry": 120,
+        "sandbagLunges": 300,
+        "wallBalls": 400
+      },
+      "level_total_s": {
+        "elite": 3900,
+        "advanced": 4500,
+        "strong": 5100,
+        "average": 5400,
+        "beginner": 6000
+      }
+    },
+    "menProSingle": {
+      "reference_total_s": 4620,
+      "run_total_s": 2160,
+      "roxzone_total_s": 350,
+      "stations": {
+        "skiErg": 250,
+        "sledPush": 210,
+        "sledPull": 340,
+        "burpeeBroadJumps": 250,
+        "rowing": 260,
+        "farmersCarry": 120,
+        "sandbagLunges": 290,
+        "wallBalls": 390
+      },
+      "level_total_s": {
+        "elite": 3600,
+        "advanced": 4080,
+        "strong": 4500,
+        "average": 4950,
+        "beginner": 5400
+      }
+    },
+    "womenOpenSingle": {
+      "reference_total_s": 5450,
+      "run_total_s": 2720,
+      "roxzone_total_s": 440,
+      "stations": {
+        "skiErg": 300,
+        "sledPush": 160,
+        "sledPull": 340,
+        "burpeeBroadJumps": 380,
+        "rowing": 320,
+        "farmersCarry": 130,
+        "sandbagLunges": 300,
+        "wallBalls": 360
+      },
+      "level_total_s": {
+        "elite": 4200,
+        "advanced": 5100,
+        "strong": 6000,
+        "average": 6600,
+        "beginner": 7200
+      }
+    },
+    "womenProSingle": {
+      "reference_total_s": 5000,
+      "run_total_s": 2400,
+      "roxzone_total_s": 370,
+      "stations": {
+        "skiErg": 280,
+        "sledPush": 220,
+        "sledPull": 350,
+        "burpeeBroadJumps": 290,
+        "rowing": 290,
+        "farmersCarry": 140,
+        "sandbagLunges": 300,
+        "wallBalls": 360
+      },
+      "level_total_s": {
+        "elite": 3900,
+        "advanced": 4500,
+        "strong": 5100,
+        "average": 5700,
+        "beginner": 6000
+      }
+    },
+    "menOpenDouble": {
+      "reference_total_s": 4360,
+      "run_total_s": 2480,
+      "roxzone_total_s": 380,
+      "stations": {
+        "skiErg": 230,
+        "sledPush": 100,
+        "sledPull": 190,
+        "burpeeBroadJumps": 180,
+        "rowing": 260,
+        "farmersCarry": 90,
+        "sandbagLunges": 200,
+        "wallBalls": 250
+      },
+      "level_total_s": {
+        "elite": 4200,
+        "advanced": 4800,
+        "strong": 5100,
+        "average": 5400,
+        "beginner": 6000
+      }
+    },
+    "womenOpenDouble": {
+      "reference_total_s": 5030,
+      "run_total_s": 2880,
+      "roxzone_total_s": 440,
+      "stations": {
+        "skiErg": 280,
+        "sledPush": 100,
+        "sledPull": 240,
+        "burpeeBroadJumps": 240,
+        "rowing": 300,
+        "farmersCarry": 100,
+        "sandbagLunges": 210,
+        "wallBalls": 240
+      },
+      "level_total_s": {
+        "elite": 4500,
+        "advanced": 5100,
+        "strong": 5700,
+        "average": 6300,
+        "beginner": 6900
+      }
+    },
+    "mixedDouble": {
+      "reference_total_s": 4720,
+      "run_total_s": 2640,
+      "roxzone_total_s": 410,
+      "stations": {
+        "skiErg": 250,
+        "sledPush": 120,
+        "sledPull": 230,
+        "burpeeBroadJumps": 200,
+        "rowing": 280,
+        "farmersCarry": 100,
+        "sandbagLunges": 230,
+        "wallBalls": 260
+      },
+      "level_total_s": {
+        "elite": 4320,
+        "advanced": 5040,
+        "strong": 5520,
+        "average": 6000,
+        "beginner": 6600
+      }
+    },
+    "menProDouble": {
+      "reference_total_s": 4000,
+      "run_total_s": 2160,
+      "roxzone_total_s": 330,
+      "stations": {
+        "skiErg": 220,
+        "sledPush": 120,
+        "sledPull": 240,
+        "burpeeBroadJumps": 150,
+        "rowing": 250,
+        "farmersCarry": 90,
+        "sandbagLunges": 200,
+        "wallBalls": 240
+      },
+      "level_total_s": {
+        "elite": 2880,
+        "advanced": 2940,
+        "strong": 3150,
+        "average": 3450,
+        "beginner": 3600
+      }
+    },
+    "womenProDouble": {
+      "reference_total_s": 4560,
+      "run_total_s": 2480,
+      "roxzone_total_s": 380,
+      "stations": {
+        "skiErg": 260,
+        "sledPush": 130,
+        "sledPull": 260,
+        "burpeeBroadJumps": 200,
+        "rowing": 280,
+        "farmersCarry": 100,
+        "sandbagLunges": 230,
+        "wallBalls": 240
+      },
+      "level_total_s": {
+        "elite": 3180,
+        "advanced": 3270,
+        "strong": 3480,
+        "average": 3750,
+        "beginner": 3900
+      }
+    }
+  }
+}
