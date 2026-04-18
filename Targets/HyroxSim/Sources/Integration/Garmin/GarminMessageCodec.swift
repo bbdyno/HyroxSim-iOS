@@ -26,6 +26,8 @@ public enum GarminMessageCodec {
         public static let hello              = "hello"
         public static let helloAck           = "hello.ack"
         public static let goalSet            = "goal.set"
+        public static let templateUpsert     = "template.upsert"
+        public static let templateDelete     = "template.delete"
         public static let workoutCompleted   = "workout.completed"
         public static let ack                = "ack"
     }
@@ -46,6 +48,72 @@ public enum GarminMessageCodec {
         ]
         if let payload { env[Key.payload] = payload }
         return env
+    }
+
+    /// Serialises a domain `WorkoutTemplate` into the v1 `template.upsert`
+    /// payload shape expected by the watch. Keeps the wire format close to
+    /// the Monkey C dictionary layout so the watch can round-trip it into
+    /// `TemplateStore` without further transformation.
+    public static func encodeTemplateUpsert(_ template: WorkoutTemplate) -> [String: Any] {
+        let segments: [[String: Any?]] = template.segments.map { seg in
+            [
+                "id": seg.id.uuidString,
+                "type": seg.type.rawValue,
+                "distanceMeters": seg.distanceMeters,
+                "goalDurationSeconds": seg.goalDurationSeconds,
+                "stationKind": seg.stationKind.map(stationKindRaw),
+                "stationTarget": seg.stationTarget.map(encodeStationTarget),
+                "weightKg": seg.weightKg,
+                "weightNote": seg.weightNote,
+            ]
+        }
+        let payload: [String: Any?] = [
+            "id": template.id.uuidString,
+            "name": template.name,
+            "division": template.division?.rawValue,
+            "segments": segments,
+            "usesRoxZone": template.usesRoxZone,
+            "createdAtMs": Int64(template.createdAt.timeIntervalSince1970 * 1000),
+            "isBuiltIn": template.isBuiltIn,
+        ]
+        return makeEnvelope(
+            type: MessageType.templateUpsert,
+            payload: payload.compactMapValues { $0 }
+        )
+    }
+
+    public static func encodeTemplateDelete(id: UUID) -> [String: Any] {
+        makeEnvelope(
+            type: MessageType.templateDelete,
+            payload: ["id": id.uuidString]
+        )
+    }
+
+    private static func stationKindRaw(_ kind: StationKind) -> String {
+        switch kind {
+        case .skiErg: return "skiErg"
+        case .sledPush: return "sledPush"
+        case .sledPull: return "sledPull"
+        case .burpeeBroadJumps: return "burpeeBroadJumps"
+        case .rowing: return "rowing"
+        case .farmersCarry: return "farmersCarry"
+        case .sandbagLunges: return "sandbagLunges"
+        case .wallBalls: return "wallBalls"
+        case .custom: return "custom"
+        }
+    }
+
+    private static func encodeStationTarget(_ target: StationTarget) -> [String: Any] {
+        switch target {
+        case .distance(let meters):
+            return ["kind": "distance", "meters": Int(meters)]
+        case .reps(let count):
+            return ["kind": "reps", "count": count]
+        case .duration(let seconds):
+            return ["kind": "duration", "seconds": Int(seconds)]
+        case .none:
+            return ["kind": "none"]
+        }
     }
 
     public static func encodeGoalSet(
