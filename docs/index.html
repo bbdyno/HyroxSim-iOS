@@ -25,6 +25,9 @@
         <div class="language-toggle" aria-label="Language selector">
           <button type="button" class="lang-button is-active" data-lang-button="ko">KR</button>
           <button type="button" class="lang-button" data-lang-button="en">EN</button>
+          <button type="button" class="lang-button" data-lang-button="ja">JP</button>
+          <button type="button" class="lang-button" data-lang-button="zh-Hans">简</button>
+          <button type="button" class="lang-button" data-lang-button="zh-Hant">繁</button>
         </div>
       </div>
     </header>
@@ -39,7 +42,7 @@
             끊김 없이 이어주는 준비 중인 앱입니다.
           </p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#release" data-i18n="hero.primary">출시 준비중</a>
+            <a class="button button-primary" href="#" data-appstore-link target="_blank" rel="noreferrer" data-i18n="hero.primary">App Store에서 다운로드</a>
             <a class="button button-secondary" href="#screens" data-i18n="hero.secondary">실제 화면 보기</a>
           </div>
           <dl class="hero-stats">
@@ -149,15 +152,18 @@
 
       <section class="release-section" id="release">
         <div class="release-card">
-          <p class="eyebrow" data-i18n="release.eyebrow">APP STORE STATUS</p>
-          <h2 data-i18n="release.title">현재 App Store 출시 준비중입니다</h2>
+          <p class="eyebrow" data-i18n="release.eyebrow">APP STORE</p>
+          <h2 data-i18n="release.title">App Store에서 만나보세요</h2>
           <p data-i18n="release.body">
-            앱은 아직 App Store에 공개되지 않았습니다. 출시 준비가 마무리되면 이 페이지를 통해 안내하겠습니다.
+            HYROX SIM은 App Store에 출시되었습니다. 아래 버튼을 통해 바로 다운로드할 수 있습니다.
           </p>
+          <div class="release-cta-row">
+            <a class="button button-primary" href="#" data-appstore-link target="_blank" rel="noreferrer" data-i18n="release.cta">App Store에서 다운로드</a>
+          </div>
           <div class="release-notes">
             <div>
               <span data-i18n="release.note1.label">지원 언어</span>
-              <strong data-i18n="release.note1.value">한국어, English</strong>
+              <strong data-i18n="release.note1.value">한국어, English, 日本語, 简体中文, 繁體中文</strong>
             </div>
             <div>
               <span data-i18n="release.note2.label">대상 플랫폼</span>
