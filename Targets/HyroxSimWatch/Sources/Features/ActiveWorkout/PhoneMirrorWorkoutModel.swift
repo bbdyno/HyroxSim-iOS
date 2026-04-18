@@ -40,6 +40,11 @@ final class PhoneMirrorWorkoutModel {
     private(set) var isConnected: Bool = true
     private(set) var lastStateReceivedAt: Date?
 
+    // 보간용: 마지막 수신 스냅샷의 기준 시각 / elapsed.
+    private var lastBroadcastedAt: Date?
+    private var lastSegmentElapsedSeconds: TimeInterval?
+    private var lastTotalElapsedSeconds: TimeInterval?
+
     let templateName: String
     private let syncCoordinator: any SyncCoordinator
     private let maxHeartRate: Int
@@ -61,8 +66,6 @@ final class PhoneMirrorWorkoutModel {
         segmentSubLabel = state.segmentSubLabel
         currentDisplayTitle = state.currentDisplayTitle
         nextDisplayTitle = state.nextDisplayTitle
-        segmentElapsedText = state.segmentElapsedText
-        totalElapsedText = state.totalElapsedText
         paceText = state.paceText
         distanceText = state.distanceText
         goalText = state.goalText
@@ -77,6 +80,18 @@ final class PhoneMirrorWorkoutModel {
         gpsStrong = state.gpsStrong
         gpsActive = state.gpsActive
 
+        // 보간용 기준값 저장. 타임스탬프/elapsed 있으면 이후 interpolate() 로 로컬 클록 보간.
+        // 없으면 폰이 보낸 포맷 문자열을 그대로 사용 (하위 호환).
+        lastBroadcastedAt = state.broadcastedAt
+        lastSegmentElapsedSeconds = state.segmentElapsedSeconds
+        lastTotalElapsedSeconds = state.totalElapsedSeconds
+        if state.broadcastedAt == nil {
+            segmentElapsedText = state.segmentElapsedText
+            totalElapsedText = state.totalElapsedText
+        } else {
+            interpolate(at: Date())
+        }
+
         // 폰의 HR 텍스트 사용, 워치 자체 HR이 더 최신이면 덮어씀
         if state.heartRateText != "—" {
             heartRateText = state.heartRateText
@@ -87,6 +102,19 @@ final class PhoneMirrorWorkoutModel {
             alertedGoalSegmentIndex = state.currentSegmentIndex
             goalAlertHandler?()
         }
+    }
+
+    /// TimelineView 매 틱에서 호출. 마지막 스냅샷 기준 시각으로부터의 경과를 더해
+    /// 로컬 클록으로 타이머를 재계산 — WCSession 메시지 지연/드랍에도 시간 표시가 정확.
+    func interpolate(at now: Date) {
+        guard
+            let broadcastedAt = lastBroadcastedAt,
+            let segSec = lastSegmentElapsedSeconds,
+            let totalSec = lastTotalElapsedSeconds
+        else { return }
+        let offset = isPaused ? 0 : max(0, now.timeIntervalSince(broadcastedAt))
+        segmentElapsedText = DurationFormatter.ms(segSec + offset)
+        totalElapsedText = DurationFormatter.hms(totalSec + offset)
     }
 
     // MARK: - HR Session (워치 HR → 폰 릴레이)

@@ -309,6 +309,7 @@ final class WatchActiveWorkoutModel {
         case .roxZone: "roxZone"
         case .station: "station"
         }
+        let now = Date()
         let state = LiveWorkoutState(
             segmentLabel: segmentLabel, segmentSubLabel: segmentSubLabel,
             currentDisplayTitle: currentDisplayTitle, nextDisplayTitle: nextDisplayTitle,
@@ -323,7 +324,10 @@ final class WatchActiveWorkoutModel {
             templateName: engine.template.name,
             totalSegmentCount: engine.template.segments.count,
             currentSegmentIndex: engine.currentSegmentIndex ?? 0,
-            origin: .watch
+            origin: .watch,
+            broadcastedAt: now,
+            segmentElapsedSeconds: engine.segmentElapsed(at: now),
+            totalElapsedSeconds: engine.totalElapsed(at: now)
         )
         sendPacket(.liveState(state))
     }

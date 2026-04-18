@@ -17,8 +17,11 @@ struct PhoneMirrorWorkoutView: View {
     let model: PhoneMirrorWorkoutModel
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: isLuminanceReduced ? 1 : 0.5)) { _ in
+        TimelineView(.periodic(from: .now, by: isLuminanceReduced ? 1 : 0.5)) { context in
             WorkoutDisplayView(model: model)
+                .task(id: context.date) {
+                    model.interpolate(at: context.date)
+                }
         }
         .onAppear {
             model.goalAlertHandler = {

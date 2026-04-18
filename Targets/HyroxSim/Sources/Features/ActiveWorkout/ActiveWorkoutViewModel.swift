@@ -185,6 +185,7 @@ public final class ActiveWorkoutViewModel {
         }
         let gpsStrong = gpsStatus == .strong
         let gpsActive = gpsStatus != .off
+        let now = Date()
         let state = LiveWorkoutState(
             segmentLabel: segmentLabel, segmentSubLabel: segmentSubLabel,
             currentDisplayTitle: currentDisplayTitle, nextDisplayTitle: nextDisplayTitle,
@@ -198,7 +199,10 @@ public final class ActiveWorkoutViewModel {
             templateName: engine.template.name,
             totalSegmentCount: engine.template.segments.count,
             currentSegmentIndex: engine.currentSegmentIndex ?? 0,
-            origin: .phone
+            origin: .phone,
+            broadcastedAt: now,
+            segmentElapsedSeconds: engine.segmentElapsed(at: now),
+            totalElapsedSeconds: engine.totalElapsed(at: now)
         )
         syncCoordinator.sendLiveState(state)
     }

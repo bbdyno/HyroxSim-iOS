@@ -64,6 +64,14 @@ public struct LiveWorkoutState: Codable, Sendable {
     public let currentSegmentIndex: Int
     public let origin: WorkoutOrigin
 
+    // MARK: - 보간용 타임스탬프 (수신측 로컬 클록 보간으로 메시지 지연 흡수)
+    /// 송신측이 이 스냅샷을 찍은 시각. 수신측은 `Date().timeIntervalSince(broadcastedAt)` 만큼 더해 표시한다.
+    public let broadcastedAt: Date?
+    /// 스냅샷 시점의 현재 세그먼트 경과 초.
+    public let segmentElapsedSeconds: TimeInterval?
+    /// 스냅샷 시점의 전체 경과 초.
+    public let totalElapsedSeconds: TimeInterval?
+
     public init(
         segmentLabel: String, segmentSubLabel: String?,
         currentDisplayTitle: String, nextDisplayTitle: String?,
@@ -75,7 +83,10 @@ public struct LiveWorkoutState: Codable, Sendable {
         accentKindRaw: String, isPaused: Bool, isFinished: Bool, isLastSegment: Bool,
         gpsStrong: Bool, gpsActive: Bool,
         templateName: String, totalSegmentCount: Int, currentSegmentIndex: Int,
-        origin: WorkoutOrigin = .watch
+        origin: WorkoutOrigin = .watch,
+        broadcastedAt: Date? = nil,
+        segmentElapsedSeconds: TimeInterval? = nil,
+        totalElapsedSeconds: TimeInterval? = nil
     ) {
         self.segmentLabel = segmentLabel
         self.segmentSubLabel = segmentSubLabel
@@ -102,6 +113,9 @@ public struct LiveWorkoutState: Codable, Sendable {
         self.totalSegmentCount = totalSegmentCount
         self.currentSegmentIndex = currentSegmentIndex
         self.origin = origin
+        self.broadcastedAt = broadcastedAt
+        self.segmentElapsedSeconds = segmentElapsedSeconds
+        self.totalElapsedSeconds = totalElapsedSeconds
     }
 }
 
