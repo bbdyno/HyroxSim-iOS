@@ -339,7 +339,7 @@ final class PacePlannerViewController: UIViewController {
         tierLabel.text = "\(DurationFormatter.hms(TimeInterval(plan.goalTotalS))) — \(tier)"
         tierLabel.textColor = color
 
-        pctLabel.text = Self.L.percentileFormat(pct)
+        pctLabel.text = Self.L.percentileFormat(Float(pct))
     }
 
     private func buildResult(_ plan: PacePlan) {
