@@ -13,6 +13,10 @@ extension Notification.Name {
     /// Posted on the watch after a custom (non-built-in) template arrives via sync
     /// and is persisted. HomeView observes this to refresh the saved-templates list.
     public static let hyroxCustomTemplatesUpdated = Notification.Name("com.hyroxsim.customTemplatesUpdated")
+
+    /// Posted on the watch after a completed workout arrives via sync and is persisted.
+    /// WatchHistoryView observes this to refresh its list in real time.
+    public static let hyroxCompletedWorkoutsUpdated = Notification.Name("com.hyroxsim.completedWorkoutsUpdated")
 }
 
 /// watchOS-side WatchConnectivity sync coordinator.
@@ -191,6 +195,7 @@ extension WatchConnectivitySyncCoordinator {
             case .completedWorkout:
                 let w = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
                 try persistence.upsertCompletedWorkout(w)
+                NotificationCenter.default.post(name: .hyroxCompletedWorkoutsUpdated, object: nil)
                 onReceiveCompletedWorkout?(w)
             case .templateDeleted:
                 let id = try SyncEnvelopeCoder.decodeDeletedId(envelope)
@@ -226,6 +231,7 @@ extension WatchConnectivitySyncCoordinator {
                 let envelope = try JSONDecoder().decode(SyncEnvelope.self, from: data)
                 let workout = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
                 try persistence.upsertCompletedWorkout(workout)
+                NotificationCenter.default.post(name: .hyroxCompletedWorkoutsUpdated, object: nil)
                 onReceiveCompletedWorkout?(workout)
             } catch {
                 print("[Sync] completedWorkoutData decode/save failed: \(error)")
@@ -273,6 +279,7 @@ extension WatchConnectivitySyncCoordinator {
             let envelope = try JSONDecoder().decode(SyncEnvelope.self, from: data)
             let workout = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
             try persistence.upsertCompletedWorkout(workout)
+            NotificationCenter.default.post(name: .hyroxCompletedWorkoutsUpdated, object: nil)
             onReceiveCompletedWorkout?(workout)
         } catch {
             print("[Sync] Receive file failed: \(error)")

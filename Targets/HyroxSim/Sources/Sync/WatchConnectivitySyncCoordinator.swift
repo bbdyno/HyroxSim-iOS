@@ -86,6 +86,14 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         session.transferUserInfo(dict)
     }
 
+    /// 폰에 저장된 모든 완료 워크아웃을 워치로 전송. 워치 upsert는 idempotent.
+    public func syncAllCompletedWorkouts() {
+        guard let workouts = try? persistence.fetchAllCompletedWorkouts() else { return }
+        for workout in workouts {
+            try? sendCompletedWorkout(workout)
+        }
+    }
+
     // MARK: - Live workout sync (sendMessage 양방향)
 
     public func sendWorkoutStarted(template: WorkoutTemplate, origin: WorkoutOrigin) {
@@ -127,7 +135,12 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
 
 extension WatchConnectivitySyncCoordinator: WCSessionDelegate {
 
-    nonisolated public func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {}
+    nonisolated public func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
+        guard state == .activated else { return }
+        Task { @MainActor [weak self] in
+            self?.syncAllCompletedWorkouts()
+        }
+    }
     nonisolated public func sessionDidBecomeInactive(_ session: WCSession) {}
     nonisolated public func sessionDidDeactivate(_ session: WCSession) {
         WCSession.default.activate()

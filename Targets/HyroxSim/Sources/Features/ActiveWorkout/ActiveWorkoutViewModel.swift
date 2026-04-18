@@ -468,6 +468,7 @@ public final class ActiveWorkoutViewModel {
         do {
             let completed = try engine.makeCompletedWorkout()
             try persistence.saveCompletedWorkout(completed)
+            try? syncCoordinator?.sendCompletedWorkout(completed)
             syncCoordinator?.sendWorkoutFinished(origin: .phone)
             isFinished = true
             finishHandler?(completed)

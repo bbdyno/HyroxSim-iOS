@@ -57,6 +57,9 @@ struct WatchHistoryView: View {
         .background(Color.black)
         .navigationTitle("History")
         .onAppear { reload() }
+        .onReceive(NotificationCenter.default.publisher(for: .hyroxCompletedWorkoutsUpdated)) { _ in
+            reload()
+        }
     }
 
     private func deleteWorkouts(at offsets: IndexSet) {
