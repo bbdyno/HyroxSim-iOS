@@ -71,6 +71,14 @@ public struct LiveWorkoutState: Codable, Sendable {
     public let segmentElapsedSeconds: TimeInterval?
     /// 스냅샷 시점의 전체 경과 초.
     public let totalElapsedSeconds: TimeInterval?
+    /// 현재 세그먼트/블록의 목표 초 (station: 자체 goal, run/rox: 블록 합산). nil 이면 목표 없음.
+    public let segmentGoalSeconds: TimeInterval?
+    /// 블록 델타의 "현재 세그먼트 이전까지 이미 쓴 시간" 베이스. station 은 0. run/rox 는 블록 내 완료 세그먼트 합.
+    public let segmentGoalActualBaseSeconds: TimeInterval?
+    /// 전체 운동 goal 합. nil 이면 전체 목표 없음.
+    public let totalGoalSeconds: TimeInterval?
+    /// 전체 델타 계산용 — 현재 세그먼트까지 누적 goal (cumulative).
+    public let totalGoalSoFarSeconds: TimeInterval?
 
     public init(
         segmentLabel: String, segmentSubLabel: String?,
@@ -86,7 +94,11 @@ public struct LiveWorkoutState: Codable, Sendable {
         origin: WorkoutOrigin = .watch,
         broadcastedAt: Date? = nil,
         segmentElapsedSeconds: TimeInterval? = nil,
-        totalElapsedSeconds: TimeInterval? = nil
+        totalElapsedSeconds: TimeInterval? = nil,
+        segmentGoalSeconds: TimeInterval? = nil,
+        segmentGoalActualBaseSeconds: TimeInterval? = nil,
+        totalGoalSeconds: TimeInterval? = nil,
+        totalGoalSoFarSeconds: TimeInterval? = nil
     ) {
         self.segmentLabel = segmentLabel
         self.segmentSubLabel = segmentSubLabel
@@ -116,6 +128,10 @@ public struct LiveWorkoutState: Codable, Sendable {
         self.broadcastedAt = broadcastedAt
         self.segmentElapsedSeconds = segmentElapsedSeconds
         self.totalElapsedSeconds = totalElapsedSeconds
+        self.segmentGoalSeconds = segmentGoalSeconds
+        self.segmentGoalActualBaseSeconds = segmentGoalActualBaseSeconds
+        self.totalGoalSeconds = totalGoalSeconds
+        self.totalGoalSoFarSeconds = totalGoalSoFarSeconds
     }
 }
 

@@ -186,6 +186,13 @@ public final class ActiveWorkoutViewModel {
         let gpsStrong = gpsStatus == .strong
         let gpsActive = gpsStatus != .off
         let now = Date()
+        let idx = engine.currentSegmentIndex ?? 0
+        let segGoalRaw = engine.currentSegment != nil
+            ? resolveSegmentGoalRaw(currentIndex: idx)
+            : (goalSeconds: nil as TimeInterval?, actualBase: 0)
+        let totalGoalRaw = engine.currentSegment != nil
+            ? resolveTotalGoalRaw(currentIndex: idx)
+            : (totalGoal: nil as TimeInterval?, goalSoFar: 0)
         let state = LiveWorkoutState(
             segmentLabel: segmentLabel, segmentSubLabel: segmentSubLabel,
             currentDisplayTitle: currentDisplayTitle, nextDisplayTitle: nextDisplayTitle,
@@ -198,11 +205,15 @@ public final class ActiveWorkoutViewModel {
             gpsStrong: gpsStrong, gpsActive: gpsActive,
             templateName: engine.template.name,
             totalSegmentCount: engine.template.segments.count,
-            currentSegmentIndex: engine.currentSegmentIndex ?? 0,
+            currentSegmentIndex: idx,
             origin: .phone,
             broadcastedAt: now,
             segmentElapsedSeconds: engine.segmentElapsed(at: now),
-            totalElapsedSeconds: engine.totalElapsed(at: now)
+            totalElapsedSeconds: engine.totalElapsed(at: now),
+            segmentGoalSeconds: segGoalRaw.goalSeconds,
+            segmentGoalActualBaseSeconds: segGoalRaw.goalSeconds != nil ? segGoalRaw.actualBase : nil,
+            totalGoalSeconds: totalGoalRaw.totalGoal,
+            totalGoalSoFarSeconds: totalGoalRaw.totalGoal != nil ? totalGoalRaw.goalSoFar : nil
         )
         syncCoordinator.sendLiveState(state)
     }
@@ -313,6 +324,48 @@ public final class ActiveWorkoutViewModel {
 
         updateLiveActivity()
         broadcastLiveState()
+    }
+
+    /// 현재 세그먼트/블록의 raw goal + 현재 세그먼트 이전까지의 누적 실행 시간.
+    /// 수신측이 로컬 클록으로 보간할 때 사용. nil 목표면 (nil, 0) 반환.
+    func resolveSegmentGoalRaw(currentIndex: Int) -> (goalSeconds: TimeInterval?, actualBase: TimeInterval) {
+        let current = engine.template.segments[currentIndex]
+        switch current.type {
+        case .station:
+            guard let goal = current.goalDurationSeconds, goal > 0 else { return (nil, 0) }
+            return (goal, 0)
+        case .run, .roxZone:
+            guard let runIndex = owningRunIndex(for: currentIndex) else { return (nil, 0) }
+            let start = blockStartIndex(runIndex: runIndex)
+            let end = blockEndIndex(runIndex: runIndex)
+            let combinedGoal: TimeInterval = engine.template.segments[start...end]
+                .compactMap { $0.goalDurationSeconds }
+                .reduce(0, +)
+            guard combinedGoal > 0 else { return (nil, 0) }
+            var actualBase: TimeInterval = 0
+            for i in start..<currentIndex {
+                if let rec = engine.records.first(where: { $0.index == i }) {
+                    actualBase += rec.activeDuration
+                }
+            }
+            return (combinedGoal, actualBase)
+        }
+    }
+
+    /// 전체 운동 raw goal + 현재 세그먼트까지 누적 goal.
+    func resolveTotalGoalRaw(currentIndex: Int) -> (totalGoal: TimeInterval?, goalSoFar: TimeInterval) {
+        let wholeGoal: TimeInterval = engine.template.segments
+            .compactMap { $0.goalDurationSeconds }
+            .reduce(0, +)
+        guard wholeGoal > 0 else { return (nil, 0) }
+        let upTo: Int = {
+            if let owning = owningRunIndex(for: currentIndex) { return max(currentIndex, owning) }
+            return currentIndex
+        }()
+        let goalSoFar: TimeInterval = engine.template.segments[0...upTo]
+            .compactMap { $0.goalDurationSeconds }
+            .reduce(0, +)
+        return (wholeGoal, goalSoFar)
     }
 
     /// 블록 단위 delta: 블록0 = Run+RoxEntry, 블록1~7 = RoxExit+Run+RoxEntry.

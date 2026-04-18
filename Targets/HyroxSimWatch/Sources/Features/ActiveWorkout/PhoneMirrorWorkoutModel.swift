@@ -29,6 +29,9 @@ final class PhoneMirrorWorkoutModel {
     private(set) var goalText: String = "—"
     private(set) var goalDeltaText: String = "—"
     private(set) var isOverGoal: Bool = false
+    private(set) var totalGoalText: String = "—"
+    private(set) var totalDeltaText: String = "—"
+    private(set) var isOverTotalGoal: Bool = false
     private(set) var stationNameText: String?
     private(set) var stationTargetText: String?
     private(set) var accentKindRaw: String = "run"
@@ -40,10 +43,14 @@ final class PhoneMirrorWorkoutModel {
     private(set) var isConnected: Bool = true
     private(set) var lastStateReceivedAt: Date?
 
-    // 보간용: 마지막 수신 스냅샷의 기준 시각 / elapsed.
+    // 보간용: 마지막 수신 스냅샷의 기준 시각 / elapsed / goal raw.
     private var lastBroadcastedAt: Date?
     private var lastSegmentElapsedSeconds: TimeInterval?
     private var lastTotalElapsedSeconds: TimeInterval?
+    private var lastSegmentGoalSeconds: TimeInterval?
+    private var lastSegmentGoalActualBaseSeconds: TimeInterval?
+    private var lastTotalGoalSeconds: TimeInterval?
+    private var lastTotalGoalSoFarSeconds: TimeInterval?
 
     let templateName: String
     private let syncCoordinator: any SyncCoordinator
@@ -68,9 +75,6 @@ final class PhoneMirrorWorkoutModel {
         nextDisplayTitle = state.nextDisplayTitle
         paceText = state.paceText
         distanceText = state.distanceText
-        goalText = state.goalText
-        goalDeltaText = state.goalDeltaText
-        isOverGoal = state.isOverGoal
         stationNameText = state.stationNameText
         stationTargetText = state.stationTargetText
         accentKindRaw = state.accentKindRaw
@@ -80,14 +84,25 @@ final class PhoneMirrorWorkoutModel {
         gpsStrong = state.gpsStrong
         gpsActive = state.gpsActive
 
-        // 보간용 기준값 저장. 타임스탬프/elapsed 있으면 이후 interpolate() 로 로컬 클록 보간.
+        // 보간용 기준값 저장. 타임스탬프/elapsed/goal raw 있으면 interpolate 가 타이머·델타 전부 재계산.
         // 없으면 폰이 보낸 포맷 문자열을 그대로 사용 (하위 호환).
         lastBroadcastedAt = state.broadcastedAt
         lastSegmentElapsedSeconds = state.segmentElapsedSeconds
         lastTotalElapsedSeconds = state.totalElapsedSeconds
+        lastSegmentGoalSeconds = state.segmentGoalSeconds
+        lastSegmentGoalActualBaseSeconds = state.segmentGoalActualBaseSeconds
+        lastTotalGoalSeconds = state.totalGoalSeconds
+        lastTotalGoalSoFarSeconds = state.totalGoalSoFarSeconds
+
         if state.broadcastedAt == nil {
             segmentElapsedText = state.segmentElapsedText
             totalElapsedText = state.totalElapsedText
+            goalText = state.goalText
+            goalDeltaText = state.goalDeltaText
+            isOverGoal = state.isOverGoal
+            totalGoalText = "—"
+            totalDeltaText = "—"
+            isOverTotalGoal = false
         } else {
             interpolate(at: Date())
         }
@@ -98,14 +113,14 @@ final class PhoneMirrorWorkoutModel {
             heartRateZone = state.heartRateZoneRaw.flatMap { HeartRateZone(rawValue: $0) }
         }
 
-        if state.isOverGoal, alertedGoalSegmentIndex != state.currentSegmentIndex {
+        if isOverGoal, alertedGoalSegmentIndex != state.currentSegmentIndex {
             alertedGoalSegmentIndex = state.currentSegmentIndex
             goalAlertHandler?()
         }
     }
 
     /// TimelineView 매 틱에서 호출. 마지막 스냅샷 기준 시각으로부터의 경과를 더해
-    /// 로컬 클록으로 타이머를 재계산 — WCSession 메시지 지연/드랍에도 시간 표시가 정확.
+    /// 타이머·세그먼트 델타·전체 델타 모두 로컬 클록으로 재계산 — 메시지 지연·드랍에 무관하게 정확.
     func interpolate(at now: Date) {
         guard
             let broadcastedAt = lastBroadcastedAt,
@@ -113,8 +128,33 @@ final class PhoneMirrorWorkoutModel {
             let totalSec = lastTotalElapsedSeconds
         else { return }
         let offset = isPaused ? 0 : max(0, now.timeIntervalSince(broadcastedAt))
-        segmentElapsedText = DurationFormatter.ms(segSec + offset)
-        totalElapsedText = DurationFormatter.hms(totalSec + offset)
+        let segElapsed = segSec + offset
+        let totalElapsed = totalSec + offset
+        segmentElapsedText = DurationFormatter.ms(segElapsed)
+        totalElapsedText = DurationFormatter.hms(totalElapsed)
+
+        if let goalSec = lastSegmentGoalSeconds {
+            let actualBase = lastSegmentGoalActualBaseSeconds ?? 0
+            let delta = (actualBase + segElapsed) - goalSec
+            goalText = DurationFormatter.ms(goalSec)
+            goalDeltaText = DurationFormatter.signedMs(delta)
+            isOverGoal = delta >= 0
+        } else {
+            goalText = "—"
+            goalDeltaText = "—"
+            isOverGoal = false
+        }
+
+        if let totalGoalSec = lastTotalGoalSeconds, let goalSoFar = lastTotalGoalSoFarSeconds {
+            let delta = totalElapsed - goalSoFar
+            totalGoalText = DurationFormatter.hms(totalGoalSec)
+            totalDeltaText = DurationFormatter.signedMs(delta)
+            isOverTotalGoal = delta >= 0
+        } else {
+            totalGoalText = "—"
+            totalDeltaText = "—"
+            isOverTotalGoal = false
+        }
     }
 
     // MARK: - HR Session (워치 HR → 폰 릴레이)
@@ -165,11 +205,6 @@ extension PhoneMirrorWorkoutModel: WorkoutDisplaying {
     var accent: WorkoutDisplayAccent {
         WorkoutDisplayAccent(rawValue: accentKindRaw) ?? .run
     }
-
-    // 폰에서 totalGoal 델타는 아직 전송 안 함 — 생략 표시.
-    var totalGoalText: String { "—" }
-    var totalDeltaText: String { "—" }
-    var isOverTotalGoal: Bool { false }
 
     func advance() { sendAdvance() }
     func togglePause() { sendTogglePause() }
