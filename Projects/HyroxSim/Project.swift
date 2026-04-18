@@ -102,7 +102,14 @@ let project = Project(
                 "NSHealthShareUsageDescription": "HYROX SIM reads your heart rate from HealthKit during workouts.",
                 "NSHealthUpdateUsageDescription": "HYROX SIM saves completed workout results to the Health app.",
                 "UIBackgroundModes": ["location", "audio"],
-                "NSSupportsLiveActivities": true
+                "NSSupportsLiveActivities": true,
+                "LSApplicationQueriesSchemes": ["gcm-ciq"],
+                "CFBundleURLTypes": [
+                    [
+                        "CFBundleURLName": "com.bbdyno.app.HyroxSim.garmin",
+                        "CFBundleURLSchemes": ["ciq-bbdyno-hyroxsim"]
+                    ]
+                ]
             ]),
             sources: ["../../Targets/HyroxSim/Sources/**"],
             resources: [
@@ -116,6 +123,7 @@ let project = Project(
                 .project(target: "HyroxCore", path: "../HyroxCore"),
                 .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple"),
                 .project(target: "HyroxLiveActivityApple", path: "../HyroxLiveActivityApple"),
+                .xcframework(path: "../../Frameworks/ConnectIQ.xcframework"),
                 .target(name: "HyroxSimWidgets"),
                 .target(name: "HyroxSimWatch")
             ],
