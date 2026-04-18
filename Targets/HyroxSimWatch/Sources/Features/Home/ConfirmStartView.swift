@@ -35,7 +35,7 @@ struct ConfirmStartView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Text(resolvedTemplate.division?.displayName ?? resolvedTemplate.name)
+            Text(resolvedTemplate.isBuiltIn ? (resolvedTemplate.division?.displayName ?? resolvedTemplate.name) : resolvedTemplate.name)
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)

@@ -32,7 +32,7 @@ struct SummaryView: View {
                         .foregroundStyle(deltaColor(for: workout.totalDuration - totalGoal))
                 }
 
-                Text(workout.division?.shortName ?? workout.templateName)
+                Text(workout.templateName)
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)

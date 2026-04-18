@@ -26,7 +26,7 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 8) {
                     if !customTemplates.isEmpty {
-                        sectionHeader("MY WORKOUTS")
+                        sectionHeader("SAVED TEMPLATES")
                         ForEach(customTemplates) { t in
                             NavigationLink(value: t) {
                                 presetCard(t)
@@ -83,6 +83,9 @@ struct HomeView: View {
             .onReceive(NotificationCenter.default.publisher(for: .hyroxTemplateGoalOverrideUpdated)) { _ in
                 overrideRefresh &+= 1
             }
+            .onReceive(NotificationCenter.default.publisher(for: .hyroxCustomTemplatesUpdated)) { _ in
+                customTemplates = (try? persistence.fetchAllTemplates()) ?? []
+            }
         }
     }
 
@@ -109,7 +112,7 @@ struct HomeView: View {
                         .cornerRadius(3)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(template.division?.shortName ?? template.name)
+                    Text(template.isBuiltIn ? (template.division?.shortName ?? template.name) : template.name)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(.white)
                         .lineLimit(2)

@@ -9,6 +9,12 @@ import WatchConnectivity
 import HyroxCore
 import HyroxPersistenceApple
 
+extension Notification.Name {
+    /// Posted on the watch after a custom (non-built-in) template arrives via sync
+    /// and is persisted. HomeView observes this to refresh the saved-templates list.
+    public static let hyroxCustomTemplatesUpdated = Notification.Name("com.hyroxsim.customTemplatesUpdated")
+}
+
 /// watchOS-side WatchConnectivity sync coordinator.
 /// 양방향 실시간 운동 동기화 + 템플릿/워크아웃 백그라운드 동기화.
 @MainActor
@@ -179,6 +185,7 @@ extension WatchConnectivitySyncCoordinator {
                     goalOverrideStore.save(t)
                 } else {
                     try persistence.upsertTemplate(t)
+                    NotificationCenter.default.post(name: .hyroxCustomTemplatesUpdated, object: nil)
                 }
                 onReceiveTemplate?(t)
             case .completedWorkout:
@@ -188,6 +195,7 @@ extension WatchConnectivitySyncCoordinator {
             case .templateDeleted:
                 let id = try SyncEnvelopeCoder.decodeDeletedId(envelope)
                 try? persistence.deleteTemplate(id: id)
+                NotificationCenter.default.post(name: .hyroxCustomTemplatesUpdated, object: nil)
                 onReceiveTemplateDeleted?(id)
             }
         } catch {
@@ -206,6 +214,7 @@ extension WatchConnectivitySyncCoordinator {
                 goalOverrideStore.save(template)
             } else {
                 try? persistence.upsertTemplate(template)
+                NotificationCenter.default.post(name: .hyroxCustomTemplatesUpdated, object: nil)
             }
             onReceiveTemplate?(template)
             return

@@ -33,7 +33,7 @@ struct WatchHistoryView: View {
                             SummaryView(workout: workout, onDone: {})
                         } label: {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(workout.division?.shortName ?? workout.templateName)
+                                Text(workout.templateName)
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundStyle(.white)
                                     .lineLimit(2)
