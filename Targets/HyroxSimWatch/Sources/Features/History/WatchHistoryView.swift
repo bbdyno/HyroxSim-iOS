@@ -40,7 +40,7 @@ struct WatchHistoryView: View {
                                 Text(DurationFormatter.hms(workout.totalDuration))
                                     .font(.system(size: 20, weight: .black, design: .rounded).monospacedDigit())
                                     .foregroundStyle(accent)
-                                Text(workout.finishedAt, style: .relative)
+                                Text(RelativeDateFormatter.short(workout.finishedAt))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.gray)
                             }

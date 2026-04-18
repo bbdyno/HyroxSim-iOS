@@ -1,8 +1,8 @@
 //
 //  RelativeDateFormatter.swift
-//  HyroxSim
+//  HyroxCore
 //
-//  Created by bbdyno on 4/7/26.
+//  Created by bbdyno on 4/18/26.
 //
 
 import Foundation
