@@ -178,7 +178,7 @@ final class HomeViewController: UIViewController {
         badge.textColor = DesignTokens.Color.textTertiary
 
         let nameLabel = UILabel()
-        nameLabel.text = workout.division?.shortName ?? workout.templateName
+        nameLabel.text = workout.templateName
         nameLabel.font = .systemFont(ofSize: 17, weight: .bold)
         nameLabel.textColor = .white
 

@@ -192,7 +192,7 @@ private final class HistoryCardCell: UITableViewCell {
     }
 
     func configure(with workout: CompletedWorkout) {
-        divisionLabel.text = workout.division?.shortName ?? workout.templateName
+        divisionLabel.text = workout.templateName
         timeLabel.text = DurationFormatter.hms(workout.totalDuration)
         stationsLabel.text = "\(workout.stationSegments.count) stations · \(workout.segments.count) segments"
         dateLabel.text = RelativeDateFormatter.short(workout.finishedAt)

@@ -112,7 +112,7 @@ public final class WorkoutSummaryViewModel {
     }
 
     public var titleText: String {
-        workout.division?.displayName ?? workout.templateName
+        workout.templateName
     }
 
     public var dateText: String {

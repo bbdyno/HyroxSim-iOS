@@ -128,7 +128,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
 
     private func buildContent() {
         let titleLabel = UILabel()
-        titleLabel.text = template.division?.displayName ?? template.name
+        titleLabel.text = template.isBuiltIn ? (template.division?.displayName ?? template.name) : template.name
         titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
         titleLabel.textColor = .white
         titleLabel.numberOfLines = 0

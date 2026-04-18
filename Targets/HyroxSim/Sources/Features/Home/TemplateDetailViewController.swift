@@ -119,8 +119,8 @@ final class TemplateDetailViewController: UIViewController {
     }
 
     private func rebuildContent() {
-        title = template.division?.shortName ?? template.name
-        titleLabel.text = template.division?.displayName ?? template.name
+        title = template.isBuiltIn ? (template.division?.shortName ?? template.name) : template.name
+        titleLabel.text = template.isBuiltIn ? (template.division?.displayName ?? template.name) : template.name
 
         let stations = template.segments.filter { $0.type == .station }.count
         let runDist = template.segments.filter { $0.type == .run }.compactMap(\.distanceMeters).reduce(0, +)
