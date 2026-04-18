@@ -95,14 +95,15 @@ public final class ActiveWorkoutViewModel {
     public func start() async {
         do {
             try engine.start(at: Date())
+            // 워치 미러를 GPS/HR 준비 대기 없이 즉시 띄우기 위해 센서 start 전에 전송.
+            setupSyncCallbacks()
+            syncCoordinator?.sendWorkoutStarted(template: engine.template, origin: .phone)
             try await locationStream.start()
             try await heartRateStream.start()
             locationTask = engine.attachLocationStream(locationStream)
             heartRateTask = engine.attachHeartRateStream(heartRateStream)
             startDisplayTimer()
             startLiveActivity()
-            setupSyncCallbacks()
-            syncCoordinator?.sendWorkoutStarted(template: engine.template, origin: .phone)
             refresh()
         } catch {
             errorHandler?(error)
