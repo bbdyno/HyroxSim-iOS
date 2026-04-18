@@ -329,9 +329,12 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     }
 
     @objc private func endTapped() {
-        let alert = DarkAlertController(title: "워치 운동 종료?", message: "워치에서 진행 중인 운동이 종료됩니다.")
-        alert.addAction(.init(title: "취소", style: .cancel, handler: nil))
-        alert.addAction(.init(title: "종료", style: .destructive, handler: { [weak self] in
+        let alert = DarkAlertController(
+            title: NSLocalizedString("alert.end_watch_workout.title", comment: ""),
+            message: NSLocalizedString("alert.end_watch_workout.message", comment: "")
+        )
+        alert.addAction(.init(title: NSLocalizedString("button.cancel", comment: ""), style: .cancel, handler: nil))
+        alert.addAction(.init(title: NSLocalizedString("button.end", comment: ""), style: .destructive, handler: { [weak self] in
             self?.delegate?.mirrorSendCommand(.end)
         }))
         present(alert, animated: true)

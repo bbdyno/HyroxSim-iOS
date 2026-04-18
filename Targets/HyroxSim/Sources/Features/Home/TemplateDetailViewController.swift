@@ -91,7 +91,7 @@ final class TemplateDetailViewController: UIViewController {
         separator.backgroundColor = UIColor.white.withAlphaComponent(0.08)
         footerContainer.addSubview(separator)
 
-        startButton.setTitle("Start Workout", for: .normal)
+        startButton.setTitle(NSLocalizedString("button.start_workout", comment: ""), for: .normal)
         startButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
         startButton.setTitleColor(.black, for: .normal)
         startButton.backgroundColor = DesignTokens.Color.accent
@@ -127,7 +127,7 @@ final class TemplateDetailViewController: UIViewController {
         let mins = Int(template.estimatedDurationSeconds / 60)
         metaLabel.text = "\(stations) stations · \(DistanceFormatter.short(runDist)) run · ~\(mins) min"
         goalValueLabel.text = "Goal Total \(DurationFormatter.hms(template.estimatedDurationSeconds))"
-        goalHintLabel.text = "Edit segment targets"
+        goalHintLabel.text = NSLocalizedString("button.edit_segment_targets", comment: "")
 
         roxZoneSwitch.isOn = template.usesRoxZone
         roxSubtitleLabel.text = template.usesRoxZone

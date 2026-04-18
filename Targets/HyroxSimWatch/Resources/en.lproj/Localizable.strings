@@ -1,0 +1,14 @@
+// MARK: - Navigation
+"nav.history" = "History";
+"nav.complete" = "Complete";
+"nav.detail" = "Detail";
+
+// MARK: - Empty states / hints
+"history.empty" = "No records";
+"workout.swipe_back_hint" = "Swipe back";
+
+// MARK: - Buttons
+"button.end_workout" = "End workout";
+
+// MARK: - Alerts
+"alert.end_workout_confirmation.message" = "Use the red control only if you want to stop this session now.";

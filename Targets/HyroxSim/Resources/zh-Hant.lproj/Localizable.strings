@@ -1,0 +1,40 @@
+"pace_planner.mode.equal" = "均等";
+"pace_planner.mode.adaptive" = "實戰";
+"pace_planner.mode.hint.equal" = "Run 1~8 均勻分配";
+"pace_planner.mode.hint.adaptive" = "基於數據的各 Run 分配";
+"pace_planner.percentile.format" = "前 %.1f%%";
+
+// MARK: - Alerts
+"alert.end_workout.title" = "結束訓練?";
+"alert.end_workout.message" = "將立即結束目前的訓練。";
+"alert.end_watch_workout.title" = "結束手錶訓練?";
+"alert.end_watch_workout.message" = "手錶上進行中的訓練將結束。";
+"alert.discard_changes.title" = "放棄變更?";
+"alert.save_template.title" = "儲存範本";
+"alert.save_template.message" = "請輸入名稱";
+"alert.error.title" = "錯誤";
+"alert.end_workout_confirmation.message" = "僅當你要立即停止此訓練時,才使用紅色控制項。";
+
+// MARK: - Buttons
+"button.cancel" = "取消";
+"button.end" = "結束";
+"button.ok" = "好";
+"button.save" = "儲存";
+"button.discard" = "放棄";
+"button.keep_editing" = "繼續編輯";
+"button.start_workout" = "開始訓練";
+"button.end_workout" = "結束訓練";
+"button.finetune" = "微調";
+"button.apply_goals" = "套用目標";
+"button.edit_segment_targets" = "編輯分段目標";
+
+// MARK: - Navigation
+"nav.history" = "歷史";
+"nav.pace_planner" = "配速規劃";
+"nav.complete" = "完成";
+"nav.detail" = "詳情";
+
+// MARK: - Empty states / hints
+"history.empty" = "尚無訓練記錄。\n完成你的第一場 HYROX!";
+"builder.empty" = "點擊下方按鈕新增第一個分段";
+"workout.swipe_back_hint" = "滑動返回";

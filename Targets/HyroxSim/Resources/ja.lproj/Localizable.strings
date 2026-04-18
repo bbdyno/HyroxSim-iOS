@@ -1,0 +1,40 @@
+"pace_planner.mode.equal" = "均等";
+"pace_planner.mode.adaptive" = "実戦";
+"pace_planner.mode.hint.equal" = "Run 1〜8を均等に配分";
+"pace_planner.mode.hint.adaptive" = "データに基づくRun別配分";
+"pace_planner.percentile.format" = "上位 %.1f%%";
+
+// MARK: - Alerts
+"alert.end_workout.title" = "ワークアウトを終了しますか?";
+"alert.end_workout.message" = "現在のセッションをすぐに終了します。";
+"alert.end_watch_workout.title" = "ウォッチのワークアウトを終了しますか?";
+"alert.end_watch_workout.message" = "ウォッチで進行中のワークアウトが終了します。";
+"alert.discard_changes.title" = "変更を破棄しますか?";
+"alert.save_template.title" = "テンプレートを保存";
+"alert.save_template.message" = "名前を入力してください";
+"alert.error.title" = "エラー";
+"alert.end_workout_confirmation.message" = "今すぐセッションを停止したい場合のみ、赤いコントロールを使用してください。";
+
+// MARK: - Buttons
+"button.cancel" = "キャンセル";
+"button.end" = "終了";
+"button.ok" = "OK";
+"button.save" = "保存";
+"button.discard" = "破棄";
+"button.keep_editing" = "編集を続ける";
+"button.start_workout" = "ワークアウト開始";
+"button.end_workout" = "ワークアウト終了";
+"button.finetune" = "微調整";
+"button.apply_goals" = "目標を適用";
+"button.edit_segment_targets" = "セグメントの目標を編集";
+
+// MARK: - Navigation
+"nav.history" = "履歴";
+"nav.pace_planner" = "ペースプランナー";
+"nav.complete" = "完了";
+"nav.detail" = "詳細";
+
+// MARK: - Empty states / hints
+"history.empty" = "ワークアウト履歴がありません。\n最初のHYROXを完走しましょう!";
+"builder.empty" = "下のボタンをタップして最初のセグメントを追加";
+"workout.swipe_back_hint" = "スワイプで戻る";

@@ -1,0 +1,14 @@
+// MARK: - Navigation
+"nav.history" = "기록";
+"nav.complete" = "완료";
+"nav.detail" = "상세";
+
+// MARK: - Empty states / hints
+"history.empty" = "기록 없음";
+"workout.swipe_back_hint" = "스와이프해서 뒤로";
+
+// MARK: - Buttons
+"button.end_workout" = "운동 종료";
+
+// MARK: - Alerts
+"alert.end_workout_confirmation.message" = "지금 세션을 종료하려면 빨간 컨트롤을 사용하세요.";

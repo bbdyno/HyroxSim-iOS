@@ -3,3 +3,38 @@
 "pace_planner.mode.hint.equal" = "Evenly split across 8 runs";
 "pace_planner.mode.hint.adaptive" = "Data-based per-run split";
 "pace_planner.percentile.format" = "Top %.1f%%";
+
+// MARK: - Alerts
+"alert.end_workout.title" = "End workout?";
+"alert.end_workout.message" = "The current session will end immediately.";
+"alert.end_watch_workout.title" = "End watch workout?";
+"alert.end_watch_workout.message" = "The workout running on the watch will end.";
+"alert.discard_changes.title" = "Discard changes?";
+"alert.save_template.title" = "Save template";
+"alert.save_template.message" = "Enter a name";
+"alert.error.title" = "Error";
+"alert.end_workout_confirmation.message" = "Use the red control only if you want to stop this session now.";
+
+// MARK: - Buttons
+"button.cancel" = "Cancel";
+"button.end" = "End";
+"button.ok" = "OK";
+"button.save" = "Save";
+"button.discard" = "Discard";
+"button.keep_editing" = "Keep editing";
+"button.start_workout" = "Start workout";
+"button.end_workout" = "End workout";
+"button.finetune" = "Fine-tune";
+"button.apply_goals" = "Apply goals";
+"button.edit_segment_targets" = "Edit segment targets";
+
+// MARK: - Navigation
+"nav.history" = "History";
+"nav.pace_planner" = "Pace Planner";
+"nav.complete" = "Complete";
+"nav.detail" = "Detail";
+
+// MARK: - Empty states / hints
+"history.empty" = "No workouts yet.\nComplete your first HYROX!";
+"builder.empty" = "Tap a button below to add your first segment";
+"workout.swipe_back_hint" = "Swipe back";

@@ -80,9 +80,12 @@ final class WorkoutBuilderViewController: UIViewController {
     }
 
     @objc private func cancelTapped() {
-        let alert = DarkAlertController(title: "Discard Changes?", message: nil)
-        alert.addAction(.init(title: "Keep Editing", style: .cancel, handler: nil))
-        alert.addAction(.init(title: "Discard", style: .destructive, handler: { [weak self] in
+        let alert = DarkAlertController(
+            title: NSLocalizedString("alert.discard_changes.title", comment: ""),
+            message: nil
+        )
+        alert.addAction(.init(title: NSLocalizedString("button.keep_editing", comment: ""), style: .cancel, handler: nil))
+        alert.addAction(.init(title: NSLocalizedString("button.discard", comment: ""), style: .destructive, handler: { [weak self] in
             self?.delegate?.builderDidCancel()
         }))
         present(alert, animated: true)
@@ -219,12 +222,15 @@ final class WorkoutBuilderViewController: UIViewController {
 
     @objc private func saveTapped() {
         guard viewModel.canSave else { return }
-        let alert = DarkAlertController(title: "Save Template", message: "Enter a name")
+        let alert = DarkAlertController(
+            title: NSLocalizedString("alert.save_template.title", comment: ""),
+            message: NSLocalizedString("alert.save_template.message", comment: "")
+        )
         alert.addTextField { [weak self] tf in
             tf.text = self?.viewModel.name
         }
-        alert.addAction(.init(title: "Cancel", style: .cancel, handler: nil))
-        alert.addAction(.init(title: "Save", style: .normal, handler: { [weak self] in
+        alert.addAction(.init(title: NSLocalizedString("button.cancel", comment: ""), style: .cancel, handler: nil))
+        alert.addAction(.init(title: NSLocalizedString("button.save", comment: ""), style: .normal, handler: { [weak self] in
             guard let self, let name = alert.textField?.text, !name.isEmpty else { return }
             self.viewModel.rename(to: name)
             guard let template = try? self.viewModel.saveAsTemplate() else { return }
@@ -360,7 +366,7 @@ final class WorkoutBuilderViewController: UIViewController {
     }
 
     private func setupEmptyLabel() {
-        emptyLabel.text = "Tap a button below to add your first segment"
+        emptyLabel.text = NSLocalizedString("builder.empty", comment: "")
         emptyLabel.textAlignment = .center
         emptyLabel.numberOfLines = 0
         emptyLabel.font = .systemFont(ofSize: 15, weight: .medium)

@@ -55,7 +55,7 @@ struct SummaryView: View {
             .padding(.vertical, 4)
         }
         .background(Color.black)
-        .navigationTitle(onDone != nil ? "Complete" : "Detail")
+        .navigationTitle(Text(onDone != nil ? "nav.complete" : "nav.detail"))
         .navigationBarBackButtonHidden(onDone != nil)
     }
 

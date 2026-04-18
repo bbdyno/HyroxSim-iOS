@@ -80,6 +80,8 @@ let project = Project(
             infoPlist: .extendingDefault(with: [
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+                "CFBundleDevelopmentRegion": "en",
+                "CFBundleLocalizations": ["en", "ko", "ja", "zh-Hans", "zh-Hant"],
                 "UIApplicationSceneManifest": [
                     "UIApplicationSupportsMultipleScenes": false,
                     "UISceneConfigurations": [
@@ -113,24 +115,36 @@ let project = Project(
                     script: """
                     set -eu
                     APP_BUNDLE="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
-                    mkdir -p "${APP_BUNDLE}/en.lproj" "${APP_BUNDLE}/ko.lproj"
-                    cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/en.lproj/InfoPlist.strings" "${APP_BUNDLE}/en.lproj/InfoPlist.strings"
-                    cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/ko.lproj/InfoPlist.strings" "${APP_BUNDLE}/ko.lproj/InfoPlist.strings"
-                    cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/en.lproj/Localizable.strings" "${APP_BUNDLE}/en.lproj/Localizable.strings"
-                    cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/ko.lproj/Localizable.strings" "${APP_BUNDLE}/ko.lproj/Localizable.strings"
+                    for LANG in en ko ja zh-Hans zh-Hant; do
+                        mkdir -p "${APP_BUNDLE}/${LANG}.lproj"
+                        cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/${LANG}.lproj/InfoPlist.strings" "${APP_BUNDLE}/${LANG}.lproj/InfoPlist.strings"
+                        cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/${LANG}.lproj/Localizable.strings" "${APP_BUNDLE}/${LANG}.lproj/Localizable.strings"
+                    done
                     """,
                     name: "Copy Localized Strings",
                     inputPaths: [
                         "../../Targets/HyroxSim/Resources/en.lproj/InfoPlist.strings",
                         "../../Targets/HyroxSim/Resources/ko.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSim/Resources/ja.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSim/Resources/zh-Hans.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSim/Resources/zh-Hant.lproj/InfoPlist.strings",
                         "../../Targets/HyroxSim/Resources/en.lproj/Localizable.strings",
-                        "../../Targets/HyroxSim/Resources/ko.lproj/Localizable.strings"
+                        "../../Targets/HyroxSim/Resources/ko.lproj/Localizable.strings",
+                        "../../Targets/HyroxSim/Resources/ja.lproj/Localizable.strings",
+                        "../../Targets/HyroxSim/Resources/zh-Hans.lproj/Localizable.strings",
+                        "../../Targets/HyroxSim/Resources/zh-Hant.lproj/Localizable.strings"
                     ],
                     outputPaths: [
                         "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/InfoPlist.strings",
                         "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ja.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hans.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hant.lproj/InfoPlist.strings",
                         "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/Localizable.strings"
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/Localizable.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ja.lproj/Localizable.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hans.lproj/Localizable.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hant.lproj/Localizable.strings"
                     ],
                     basedOnDependencyAnalysis: false
                 )
@@ -160,6 +174,8 @@ let project = Project(
             infoPlist: .extendingDefault(with: [
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+                "CFBundleDevelopmentRegion": "en",
+                "CFBundleLocalizations": ["en", "ko", "ja", "zh-Hans", "zh-Hant"],
                 "WKApplication": true,
                 "NSLocationWhenInUseUsageDescription": "HYROX SIM uses your location during workouts on Apple Watch to measure your running pace and distance.",
                 "NSHealthShareUsageDescription": "HYROX SIM reads your heart rate from HealthKit during workouts on Apple Watch.",
@@ -177,18 +193,36 @@ let project = Project(
                     script: """
                     set -eu
                     APP_BUNDLE="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
-                    mkdir -p "${APP_BUNDLE}/en.lproj" "${APP_BUNDLE}/ko.lproj"
-                    cp "${PROJECT_DIR}/../../Targets/HyroxSimWatch/Resources/en.lproj/InfoPlist.strings" "${APP_BUNDLE}/en.lproj/InfoPlist.strings"
-                    cp "${PROJECT_DIR}/../../Targets/HyroxSimWatch/Resources/ko.lproj/InfoPlist.strings" "${APP_BUNDLE}/ko.lproj/InfoPlist.strings"
+                    for LANG in en ko ja zh-Hans zh-Hant; do
+                        mkdir -p "${APP_BUNDLE}/${LANG}.lproj"
+                        cp "${PROJECT_DIR}/../../Targets/HyroxSimWatch/Resources/${LANG}.lproj/InfoPlist.strings" "${APP_BUNDLE}/${LANG}.lproj/InfoPlist.strings"
+                        cp "${PROJECT_DIR}/../../Targets/HyroxSimWatch/Resources/${LANG}.lproj/Localizable.strings" "${APP_BUNDLE}/${LANG}.lproj/Localizable.strings"
+                    done
                     """,
-                    name: "Copy Localized InfoPlist Strings",
+                    name: "Copy Localized Strings",
                     inputPaths: [
                         "../../Targets/HyroxSimWatch/Resources/en.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSimWatch/Resources/ko.lproj/InfoPlist.strings"
+                        "../../Targets/HyroxSimWatch/Resources/ko.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSimWatch/Resources/ja.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSimWatch/Resources/zh-Hans.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSimWatch/Resources/zh-Hant.lproj/InfoPlist.strings",
+                        "../../Targets/HyroxSimWatch/Resources/en.lproj/Localizable.strings",
+                        "../../Targets/HyroxSimWatch/Resources/ko.lproj/Localizable.strings",
+                        "../../Targets/HyroxSimWatch/Resources/ja.lproj/Localizable.strings",
+                        "../../Targets/HyroxSimWatch/Resources/zh-Hans.lproj/Localizable.strings",
+                        "../../Targets/HyroxSimWatch/Resources/zh-Hant.lproj/Localizable.strings"
                     ],
                     outputPaths: [
                         "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings"
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ja.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hans.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hant.lproj/InfoPlist.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/Localizable.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/Localizable.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ja.lproj/Localizable.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hans.lproj/Localizable.strings",
+                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hant.lproj/Localizable.strings"
                     ],
                     basedOnDependencyAnalysis: false
                 )

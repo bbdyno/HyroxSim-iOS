@@ -1,0 +1,5 @@
+"NSLocationWhenInUseUsageDescription" = "HYROX SIMはワークアウト中のランニングペースと走行距離を測定するために位置情報を使用します。";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "HYROX SIMはワークアウトが続いている間、ランニングペースと走行距離を継続的に測定するために位置情報を使用します。";
+"NSMotionUsageDescription" = "HYROX SIMはワークアウトセッション中の動作解析のためにモーションデータを使用します。";
+"NSHealthShareUsageDescription" = "HYROX SIMはワークアウト中にHealthKitから心拍数を読み取ります。";
+"NSHealthUpdateUsageDescription" = "HYROX SIMは完了したワークアウト結果をヘルスケアアプリに保存します。";

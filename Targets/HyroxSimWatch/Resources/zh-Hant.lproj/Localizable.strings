@@ -1,0 +1,14 @@
+// MARK: - Navigation
+"nav.history" = "歷史";
+"nav.complete" = "完成";
+"nav.detail" = "詳情";
+
+// MARK: - Empty states / hints
+"history.empty" = "尚無記錄";
+"workout.swipe_back_hint" = "滑動返回";
+
+// MARK: - Buttons
+"button.end_workout" = "結束訓練";
+
+// MARK: - Alerts
+"alert.end_workout_confirmation.message" = "僅當你要立即停止此訓練時,才使用紅色控制項。";

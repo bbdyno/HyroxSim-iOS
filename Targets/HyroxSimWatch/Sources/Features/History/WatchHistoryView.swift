@@ -22,7 +22,7 @@ struct WatchHistoryView: View {
                     Image(systemName: "figure.run")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(.gray)
-                    Text("기록 없음")
+                    Text("history.empty")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.gray)
                 }
@@ -55,7 +55,7 @@ struct WatchHistoryView: View {
             }
         }
         .background(Color.black)
-        .navigationTitle("History")
+        .navigationTitle(Text("nav.history"))
         .onAppear { reload() }
         .onReceive(NotificationCenter.default.publisher(for: .hyroxCompletedWorkoutsUpdated)) { _ in
             reload()

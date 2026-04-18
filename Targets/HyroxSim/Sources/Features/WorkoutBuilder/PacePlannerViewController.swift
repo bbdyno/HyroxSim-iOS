@@ -60,7 +60,7 @@ final class PacePlannerViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Pace Planner"
+        title = NSLocalizedString("nav.pace_planner", comment: "")
         view.backgroundColor = DesignTokens.Color.background
         applyDarkNavBarAppearance()
         navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -108,7 +108,7 @@ final class PacePlannerViewController: UIViewController {
         separator.backgroundColor = UIColor.white.withAlphaComponent(0.08)
         footerContainer.addSubview(separator)
 
-        finetuneButton.setTitle("Fine-tune", for: .normal)
+        finetuneButton.setTitle(NSLocalizedString("button.finetune", comment: ""), for: .normal)
         finetuneButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         finetuneButton.setTitleColor(DesignTokens.Color.accent, for: .normal)
         finetuneButton.backgroundColor = DesignTokens.Color.surface
@@ -119,7 +119,7 @@ final class PacePlannerViewController: UIViewController {
         finetuneButton.addTarget(self, action: #selector(finetuneTapped), for: .touchUpInside)
         footerContainer.addSubview(finetuneButton)
 
-        applyButton.setTitle("Apply Goals", for: .normal)
+        applyButton.setTitle(NSLocalizedString("button.apply_goals", comment: ""), for: .normal)
         applyButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
         applyButton.setTitleColor(.black, for: .normal)
         applyButton.backgroundColor = DesignTokens.Color.accent

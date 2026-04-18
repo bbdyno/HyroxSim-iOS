@@ -30,7 +30,7 @@ final class HistoryViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "History"
+        title = NSLocalizedString("nav.history", comment: "")
         view.backgroundColor = DesignTokens.Color.background
         applyDarkNavBarAppearance()
         setupTableView()
@@ -65,7 +65,7 @@ final class HistoryViewController: UIViewController {
     }
 
     private func setupEmptyLabel() {
-        emptyLabel.text = "No workouts yet.\nComplete your first HYROX!"
+        emptyLabel.text = NSLocalizedString("history.empty", comment: "")
         emptyLabel.textAlignment = .center
         emptyLabel.numberOfLines = 0
         emptyLabel.font = .systemFont(ofSize: 15, weight: .medium)

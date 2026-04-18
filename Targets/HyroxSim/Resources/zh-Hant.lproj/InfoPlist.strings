@@ -1,0 +1,5 @@
+"NSLocationWhenInUseUsageDescription" = "HYROX SIM 在訓練中使用位置資訊以測量跑步配速和距離。";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "HYROX SIM 在訓練進行期間使用位置資訊以持續測量跑步配速和距離。";
+"NSMotionUsageDescription" = "HYROX SIM 在訓練期間使用動作資料以支援動作分析。";
+"NSHealthShareUsageDescription" = "HYROX SIM 在訓練期間從 HealthKit 讀取你的心率。";
+"NSHealthUpdateUsageDescription" = "HYROX SIM 將完成的訓練結果儲存到「健康」App。";

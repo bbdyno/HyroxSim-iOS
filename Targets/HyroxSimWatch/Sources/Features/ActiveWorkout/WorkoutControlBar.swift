@@ -206,7 +206,7 @@ struct WorkoutActionPage: View {
                 )
             }
 
-            Text("Swipe back")
+            Text("workout.swipe_back_hint")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white.opacity(0.34))
 
@@ -215,11 +215,11 @@ struct WorkoutActionPage: View {
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.ignoresSafeArea())
-        .confirmationDialog("End Workout?", isPresented: $showEndConfirmation, titleVisibility: .visible) {
-            Button("End Workout", role: .destructive, action: onEnd)
-            Button("Cancel", role: .cancel) {}
+        .confirmationDialog(Text("alert.end_workout.title"), isPresented: $showEndConfirmation, titleVisibility: .visible) {
+            Button(role: .destructive, action: onEnd) { Text("button.end_workout") }
+            Button(role: .cancel) {} label: { Text("button.cancel") }
         } message: {
-            Text("Use the red control only if you want to stop this session now.")
+            Text("alert.end_workout_confirmation.message")
         }
     }
 

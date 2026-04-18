@@ -3,3 +3,38 @@
 "pace_planner.mode.hint.equal" = "Run 1~8 동일 분배";
 "pace_planner.mode.hint.adaptive" = "데이터 기반 Run별 분배";
 "pace_planner.percentile.format" = "상위 %.1f%%";
+
+// MARK: - Alerts
+"alert.end_workout.title" = "운동 종료?";
+"alert.end_workout.message" = "현재 세션을 즉시 종료합니다.";
+"alert.end_watch_workout.title" = "워치 운동 종료?";
+"alert.end_watch_workout.message" = "워치에서 진행 중인 운동이 종료됩니다.";
+"alert.discard_changes.title" = "변경 내용 취소?";
+"alert.save_template.title" = "템플릿 저장";
+"alert.save_template.message" = "이름을 입력하세요";
+"alert.error.title" = "오류";
+"alert.end_workout_confirmation.message" = "지금 세션을 종료하려면 빨간 컨트롤을 사용하세요.";
+
+// MARK: - Buttons
+"button.cancel" = "취소";
+"button.end" = "종료";
+"button.ok" = "확인";
+"button.save" = "저장";
+"button.discard" = "취소";
+"button.keep_editing" = "계속 편집";
+"button.start_workout" = "운동 시작";
+"button.end_workout" = "운동 종료";
+"button.finetune" = "미세 조정";
+"button.apply_goals" = "목표 적용";
+"button.edit_segment_targets" = "세그먼트 목표 편집";
+
+// MARK: - Navigation
+"nav.history" = "기록";
+"nav.pace_planner" = "페이스 플래너";
+"nav.complete" = "완료";
+"nav.detail" = "상세";
+
+// MARK: - Empty states / hints
+"history.empty" = "운동 기록이 없습니다.\n첫 HYROX를 완주해보세요!";
+"builder.empty" = "아래 버튼을 눌러 첫 세그먼트를 추가하세요";
+"workout.swipe_back_hint" = "스와이프해서 뒤로";

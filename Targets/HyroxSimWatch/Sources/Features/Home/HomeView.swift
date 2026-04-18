@@ -54,7 +54,7 @@ struct HomeView: View {
                             Image(systemName: "clock.arrow.circlepath")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(accent)
-                            Text("History")
+                            Text("nav.history")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(.white)
                             Spacer()

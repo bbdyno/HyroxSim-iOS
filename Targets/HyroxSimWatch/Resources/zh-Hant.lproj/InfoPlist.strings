@@ -1,0 +1,3 @@
+"NSLocationWhenInUseUsageDescription" = "HYROX SIM 在 Apple Watch 訓練期間使用位置資訊以測量跑步配速和距離。";
+"NSHealthShareUsageDescription" = "HYROX SIM 在 Apple Watch 訓練期間從 HealthKit 讀取你的心率。";
+"NSHealthUpdateUsageDescription" = "HYROX SIM 將完成的 Apple Watch 訓練結果儲存到「健康」App。";
