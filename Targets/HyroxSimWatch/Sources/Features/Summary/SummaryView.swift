@@ -55,7 +55,7 @@ struct SummaryView: View {
             .padding(.vertical, 4)
         }
         .background(Color.black)
-        .navigationTitle(Text(onDone != nil ? "nav.complete" : "nav.detail"))
+        .navigationTitle(onDone != nil ? HyroxSimWatchStrings.Localizable.Nav.complete : HyroxSimWatchStrings.Localizable.Nav.detail)
         .navigationBarBackButtonHidden(onDone != nil)
     }
 

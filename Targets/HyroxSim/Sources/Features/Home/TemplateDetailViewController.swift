@@ -91,7 +91,7 @@ final class TemplateDetailViewController: UIViewController {
         separator.backgroundColor = UIColor.white.withAlphaComponent(0.08)
         footerContainer.addSubview(separator)
 
-        startButton.setTitle(NSLocalizedString("button.start_workout", comment: ""), for: .normal)
+        startButton.setTitle(HyroxSimStrings.Localizable.Button.startWorkout, for: .normal)
         startButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
         startButton.setTitleColor(.black, for: .normal)
         startButton.backgroundColor = DesignTokens.Color.accent
@@ -126,13 +126,13 @@ final class TemplateDetailViewController: UIViewController {
         let runDist = template.segments.filter { $0.type == .run }.compactMap(\.distanceMeters).reduce(0, +)
         let mins = Int(template.estimatedDurationSeconds / 60)
         metaLabel.text = "\(stations) stations · \(DistanceFormatter.short(runDist)) run · ~\(mins) min"
-        goalValueLabel.text = "Goal Total \(DurationFormatter.hms(template.estimatedDurationSeconds))"
-        goalHintLabel.text = NSLocalizedString("button.edit_segment_targets", comment: "")
+        goalValueLabel.text = HyroxSimStrings.Localizable.Workout.goalTotalFormat(DurationFormatter.hms(template.estimatedDurationSeconds))
+        goalHintLabel.text = HyroxSimStrings.Localizable.Button.editSegmentTargets
 
         roxZoneSwitch.isOn = template.usesRoxZone
         roxSubtitleLabel.text = template.usesRoxZone
-            ? "Auto-inserts transition blocks between each run and station."
-            : "Runs connect directly to stations."
+            ? HyroxSimStrings.Localizable.Roxzone.Subtitle.on
+            : HyroxSimStrings.Localizable.Roxzone.Subtitle.off
 
         rebuildCourseRows()
     }

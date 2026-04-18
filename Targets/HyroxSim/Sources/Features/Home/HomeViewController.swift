@@ -124,8 +124,8 @@ final class HomeViewController: UIViewController {
 
         // Actions
         contentStack.addArrangedSubview(makeSectionHeader("MY WORKOUTS"))
-        contentStack.addArrangedSubview(makeActionRow(title: "Create Custom Workout", icon: "plus.circle.fill", action: #selector(newWorkoutTapped)))
-        contentStack.addArrangedSubview(makeActionRow(title: "Workout History", icon: "clock.arrow.circlepath", action: #selector(historyTapped)))
+        contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.createCustom, icon: "plus.circle.fill", action: #selector(newWorkoutTapped)))
+        contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.history, icon: "clock.arrow.circlepath", action: #selector(historyTapped)))
     }
 
     // MARK: - Carousel (paging snap)

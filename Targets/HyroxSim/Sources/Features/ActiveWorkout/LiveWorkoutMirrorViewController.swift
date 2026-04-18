@@ -330,11 +330,11 @@ final class LiveWorkoutMirrorViewController: UIViewController {
 
     @objc private func endTapped() {
         let alert = DarkAlertController(
-            title: NSLocalizedString("alert.end_watch_workout.title", comment: ""),
-            message: NSLocalizedString("alert.end_watch_workout.message", comment: "")
+            title: HyroxSimStrings.Localizable.Alert.EndWatchWorkout.title,
+            message: HyroxSimStrings.Localizable.Alert.EndWatchWorkout.message
         )
-        alert.addAction(.init(title: NSLocalizedString("button.cancel", comment: ""), style: .cancel, handler: nil))
-        alert.addAction(.init(title: NSLocalizedString("button.end", comment: ""), style: .destructive, handler: { [weak self] in
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.cancel, style: .cancel, handler: nil))
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.end, style: .destructive, handler: { [weak self] in
             self?.delegate?.mirrorSendCommand(.end)
         }))
         present(alert, animated: true)

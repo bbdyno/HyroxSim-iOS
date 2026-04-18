@@ -107,48 +107,10 @@ let project = Project(
             sources: ["../../Targets/HyroxSim/Sources/**"],
             resources: [
                 "../../Targets/HyroxSim/Resources/Assets.xcassets",
-                "../../Targets/HyroxSim/Resources/GoogleService-Info.plist"
+                "../../Targets/HyroxSim/Resources/GoogleService-Info.plist",
+                "../../Targets/HyroxSim/Resources/**/*.strings"
             ],
             entitlements: "../../Targets/HyroxSim/HyroxSim.entitlements",
-            scripts: [
-                .post(
-                    script: """
-                    set -eu
-                    APP_BUNDLE="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
-                    for LANG in en ko ja zh-Hans zh-Hant; do
-                        mkdir -p "${APP_BUNDLE}/${LANG}.lproj"
-                        cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/${LANG}.lproj/InfoPlist.strings" "${APP_BUNDLE}/${LANG}.lproj/InfoPlist.strings"
-                        cp "${PROJECT_DIR}/../../Targets/HyroxSim/Resources/${LANG}.lproj/Localizable.strings" "${APP_BUNDLE}/${LANG}.lproj/Localizable.strings"
-                    done
-                    """,
-                    name: "Copy Localized Strings",
-                    inputPaths: [
-                        "../../Targets/HyroxSim/Resources/en.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSim/Resources/ko.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSim/Resources/ja.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSim/Resources/zh-Hans.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSim/Resources/zh-Hant.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSim/Resources/en.lproj/Localizable.strings",
-                        "../../Targets/HyroxSim/Resources/ko.lproj/Localizable.strings",
-                        "../../Targets/HyroxSim/Resources/ja.lproj/Localizable.strings",
-                        "../../Targets/HyroxSim/Resources/zh-Hans.lproj/Localizable.strings",
-                        "../../Targets/HyroxSim/Resources/zh-Hant.lproj/Localizable.strings"
-                    ],
-                    outputPaths: [
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ja.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hans.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hant.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ja.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hans.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hant.lproj/Localizable.strings"
-                    ],
-                    basedOnDependencyAnalysis: false
-                )
-            ],
             dependencies: [
                 .external(name: "FirebaseCore"),
                 .project(target: "HyroxCore", path: "../HyroxCore"),
@@ -185,48 +147,10 @@ let project = Project(
             ]),
             sources: ["../../Targets/HyroxSimWatch/Sources/**"],
             resources: [
-                "../../Targets/HyroxSimWatch/Resources/Assets.xcassets"
+                "../../Targets/HyroxSimWatch/Resources/Assets.xcassets",
+                "../../Targets/HyroxSimWatch/Resources/**/*.strings"
             ],
             entitlements: "../../Targets/HyroxSimWatch/HyroxSimWatch.entitlements",
-            scripts: [
-                .post(
-                    script: """
-                    set -eu
-                    APP_BUNDLE="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
-                    for LANG in en ko ja zh-Hans zh-Hant; do
-                        mkdir -p "${APP_BUNDLE}/${LANG}.lproj"
-                        cp "${PROJECT_DIR}/../../Targets/HyroxSimWatch/Resources/${LANG}.lproj/InfoPlist.strings" "${APP_BUNDLE}/${LANG}.lproj/InfoPlist.strings"
-                        cp "${PROJECT_DIR}/../../Targets/HyroxSimWatch/Resources/${LANG}.lproj/Localizable.strings" "${APP_BUNDLE}/${LANG}.lproj/Localizable.strings"
-                    done
-                    """,
-                    name: "Copy Localized Strings",
-                    inputPaths: [
-                        "../../Targets/HyroxSimWatch/Resources/en.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSimWatch/Resources/ko.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSimWatch/Resources/ja.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSimWatch/Resources/zh-Hans.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSimWatch/Resources/zh-Hant.lproj/InfoPlist.strings",
-                        "../../Targets/HyroxSimWatch/Resources/en.lproj/Localizable.strings",
-                        "../../Targets/HyroxSimWatch/Resources/ko.lproj/Localizable.strings",
-                        "../../Targets/HyroxSimWatch/Resources/ja.lproj/Localizable.strings",
-                        "../../Targets/HyroxSimWatch/Resources/zh-Hans.lproj/Localizable.strings",
-                        "../../Targets/HyroxSimWatch/Resources/zh-Hant.lproj/Localizable.strings"
-                    ],
-                    outputPaths: [
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ja.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hans.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hant.lproj/InfoPlist.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/en.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ko.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/ja.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hans.lproj/Localizable.strings",
-                        "$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/zh-Hant.lproj/Localizable.strings"
-                    ],
-                    basedOnDependencyAnalysis: false
-                )
-            ],
             dependencies: [
                 .project(target: "HyroxCore", path: "../HyroxCore"),
                 .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple")

@@ -33,6 +33,27 @@
 "nav.pace_planner" = "페이스 플래너";
 "nav.complete" = "완료";
 "nav.detail" = "상세";
+"nav.new_workout" = "새 운동";
+"nav.summary" = "요약";
+
+// MARK: - Home
+"home.action.create_custom" = "커스텀 운동 만들기";
+"home.action.history" = "운동 기록";
+
+// MARK: - Builder
+"builder.start_from_scratch" = "처음부터 만들기";
+
+// MARK: - Station
+"station.add_weight" = "무게 추가";
+
+// MARK: - Goal / Workout formatting
+"workout.goal_total_format" = "목표 총합 %@";
+"summary.goal_format" = "목표 %@";
+"goal_setup.subtitle" = "각 세그먼트 목표를 조정하세요. 형식: MM:SS";
+
+// MARK: - ROX Zone subtitles
+"roxzone.subtitle.on" = "각 런과 스테이션 사이에 전환 블록을 자동으로 삽입합니다.";
+"roxzone.subtitle.off" = "런이 스테이션으로 바로 이어집니다.";
 
 // MARK: - Empty states / hints
 "history.empty" = "운동 기록이 없습니다.\n첫 HYROX를 완주해보세요!";

@@ -33,6 +33,27 @@
 "nav.pace_planner" = "Pace Planner";
 "nav.complete" = "Complete";
 "nav.detail" = "Detail";
+"nav.new_workout" = "New Workout";
+"nav.summary" = "Summary";
+
+// MARK: - Home
+"home.action.create_custom" = "Create Custom Workout";
+"home.action.history" = "Workout History";
+
+// MARK: - Builder
+"builder.start_from_scratch" = "Start from Scratch";
+
+// MARK: - Station
+"station.add_weight" = "Add Weight";
+
+// MARK: - Goal / Workout formatting
+"workout.goal_total_format" = "Goal Total %@";
+"summary.goal_format" = "Goal %@";
+"goal_setup.subtitle" = "Adjust each segment target. Format: MM:SS";
+
+// MARK: - ROX Zone subtitles
+"roxzone.subtitle.on" = "Auto-inserts transition blocks between each run and station.";
+"roxzone.subtitle.off" = "Runs connect directly to stations.";
 
 // MARK: - Empty states / hints
 "history.empty" = "No workouts yet.\nComplete your first HYROX!";

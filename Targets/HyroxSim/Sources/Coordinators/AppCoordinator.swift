@@ -399,10 +399,10 @@ extension AppCoordinator {
 
         vm.errorHandler = { [weak self] error in
             let alert = DarkAlertController(
-                title: NSLocalizedString("alert.error.title", comment: ""),
+                title: HyroxSimStrings.Localizable.Alert.Error.title,
                 message: "\(error)"
             )
-            alert.addAction(.init(title: NSLocalizedString("button.ok", comment: ""), style: .normal, handler: nil))
+            alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
             self?.navigationController.presentedViewController?.present(alert, animated: true)
         }
         vm.finishHandler = { [weak self] completed in

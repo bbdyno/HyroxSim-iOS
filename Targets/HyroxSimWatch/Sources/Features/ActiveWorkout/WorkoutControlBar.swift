@@ -206,7 +206,7 @@ struct WorkoutActionPage: View {
                 )
             }
 
-            Text("workout.swipe_back_hint")
+            Text(HyroxSimWatchStrings.Localizable.Workout.swipeBackHint)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white.opacity(0.34))
 
@@ -215,11 +215,15 @@ struct WorkoutActionPage: View {
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.ignoresSafeArea())
-        .confirmationDialog(Text("alert.end_workout.title"), isPresented: $showEndConfirmation, titleVisibility: .visible) {
-            Button(role: .destructive, action: onEnd) { Text("button.end_workout") }
-            Button(role: .cancel) {} label: { Text("button.cancel") }
+        .confirmationDialog(HyroxSimWatchStrings.Localizable.Button.endWorkout, isPresented: $showEndConfirmation, titleVisibility: .visible) {
+            Button(role: .destructive, action: onEnd) {
+                Text(HyroxSimWatchStrings.Localizable.Button.endWorkout)
+            }
+            Button(role: .cancel) {} label: {
+                Text(HyroxSimWatchStrings.Localizable.Button.cancel)
+            }
         } message: {
-            Text("alert.end_workout_confirmation.message")
+            Text(HyroxSimWatchStrings.Localizable.Alert.EndWorkoutConfirmation.message)
         }
     }
 

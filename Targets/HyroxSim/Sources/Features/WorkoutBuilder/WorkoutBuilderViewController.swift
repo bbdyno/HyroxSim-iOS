@@ -81,11 +81,11 @@ final class WorkoutBuilderViewController: UIViewController {
 
     @objc private func cancelTapped() {
         let alert = DarkAlertController(
-            title: NSLocalizedString("alert.discard_changes.title", comment: ""),
+            title: HyroxSimStrings.Localizable.Alert.DiscardChanges.title,
             message: nil
         )
-        alert.addAction(.init(title: NSLocalizedString("button.keep_editing", comment: ""), style: .cancel, handler: nil))
-        alert.addAction(.init(title: NSLocalizedString("button.discard", comment: ""), style: .destructive, handler: { [weak self] in
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.keepEditing, style: .cancel, handler: nil))
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.discard, style: .destructive, handler: { [weak self] in
             self?.delegate?.builderDidCancel()
         }))
         present(alert, animated: true)
@@ -223,14 +223,14 @@ final class WorkoutBuilderViewController: UIViewController {
     @objc private func saveTapped() {
         guard viewModel.canSave else { return }
         let alert = DarkAlertController(
-            title: NSLocalizedString("alert.save_template.title", comment: ""),
-            message: NSLocalizedString("alert.save_template.message", comment: "")
+            title: HyroxSimStrings.Localizable.Alert.SaveTemplate.title,
+            message: HyroxSimStrings.Localizable.Alert.SaveTemplate.message
         )
         alert.addTextField { [weak self] tf in
             tf.text = self?.viewModel.name
         }
-        alert.addAction(.init(title: NSLocalizedString("button.cancel", comment: ""), style: .cancel, handler: nil))
-        alert.addAction(.init(title: NSLocalizedString("button.save", comment: ""), style: .normal, handler: { [weak self] in
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.cancel, style: .cancel, handler: nil))
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.save, style: .normal, handler: { [weak self] in
             guard let self, let name = alert.textField?.text, !name.isEmpty else { return }
             self.viewModel.rename(to: name)
             guard let template = try? self.viewModel.saveAsTemplate() else { return }
@@ -366,7 +366,7 @@ final class WorkoutBuilderViewController: UIViewController {
     }
 
     private func setupEmptyLabel() {
-        emptyLabel.text = NSLocalizedString("builder.empty", comment: "")
+        emptyLabel.text = HyroxSimStrings.Localizable.Builder.empty
         emptyLabel.textAlignment = .center
         emptyLabel.numberOfLines = 0
         emptyLabel.font = .systemFont(ofSize: 15, weight: .medium)
@@ -392,7 +392,7 @@ final class WorkoutBuilderViewController: UIViewController {
 
     private func updateMeta() {
         summaryLabel.text = metaSummary()
-        goalValueLabel.text = "Goal Total \(DurationFormatter.hms(viewModel.estimatedDurationSeconds))"
+        goalValueLabel.text = HyroxSimStrings.Localizable.Workout.goalTotalFormat(DurationFormatter.hms(viewModel.estimatedDurationSeconds))
         goalHintLabel.text = viewModel.segments.isEmpty ? "Add segments first" : "Edit segment targets"
         goalCard.alpha = viewModel.segments.isEmpty ? 0.45 : 1
         goalCard.isUserInteractionEnabled = !viewModel.segments.isEmpty

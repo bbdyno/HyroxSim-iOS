@@ -142,7 +142,7 @@ final class AddStationSheetViewController: UIViewController {
         stackView.addArrangedSubview(makeSectionLabel("WEIGHT"))
         let weightRow = UIStackView()
         let wLabel = UILabel()
-        wLabel.text = "Add Weight"
+        wLabel.text = HyroxSimStrings.Localizable.Station.addWeight
         wLabel.font = .systemFont(ofSize: 14, weight: .medium)
         wLabel.textColor = .white
         weightRow.addArrangedSubview(wLabel)

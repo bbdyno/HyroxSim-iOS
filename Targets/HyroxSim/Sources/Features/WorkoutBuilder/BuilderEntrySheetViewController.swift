@@ -27,7 +27,7 @@ final class BuilderEntrySheetViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "New Workout"
+        title = HyroxSimStrings.Localizable.Nav.newWorkout
         view.backgroundColor = DesignTokens.Color.background
         applyDarkNavBarAppearance()
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
@@ -99,7 +99,7 @@ extension BuilderEntrySheetViewController: UITableViewDataSource, UITableViewDel
             cell.accessoryView = chevron
         } else {
             var config = UIListContentConfiguration.cell()
-            config.text = "Start from Scratch"
+            config.text = HyroxSimStrings.Localizable.Builder.startFromScratch
             config.textProperties.font = .systemFont(ofSize: 16, weight: .bold)
             config.textProperties.color = DesignTokens.Color.accent
             config.image = UIImage(systemName: "plus.circle.fill")

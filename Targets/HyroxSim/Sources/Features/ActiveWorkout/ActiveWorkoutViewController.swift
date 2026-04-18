@@ -271,11 +271,11 @@ final class ActiveWorkoutViewController: UIViewController {
 
     @objc private func endTapped() {
         let alert = DarkAlertController(
-            title: NSLocalizedString("alert.end_workout.title", comment: ""),
-            message: NSLocalizedString("alert.end_workout.message", comment: "")
+            title: HyroxSimStrings.Localizable.Alert.EndWorkout.title,
+            message: HyroxSimStrings.Localizable.Alert.EndWorkout.message
         )
-        alert.addAction(.init(title: NSLocalizedString("button.cancel", comment: ""), style: .cancel, handler: nil))
-        alert.addAction(.init(title: NSLocalizedString("button.end", comment: ""), style: .destructive, handler: { [weak self] in
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.cancel, style: .cancel, handler: nil))
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.end, style: .destructive, handler: { [weak self] in
             self?.viewModel.endWorkout()
         }))
         present(alert, animated: true)

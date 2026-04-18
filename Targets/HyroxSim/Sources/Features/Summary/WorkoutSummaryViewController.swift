@@ -42,7 +42,7 @@ final class WorkoutSummaryViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Summary"
+        title = HyroxSimStrings.Localizable.Nav.summary
         view.backgroundColor = DesignTokens.Color.background
         navigationItem.largeTitleDisplayMode = .never
         navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -171,7 +171,7 @@ final class WorkoutSummaryViewController: UIViewController {
         deltaLabel.isHidden = viewModel.totalGoalText == "—"
 
         let goalLabel = UILabel()
-        goalLabel.text = "Goal \(viewModel.totalGoalText)"
+        goalLabel.text = HyroxSimStrings.Localizable.Summary.goalFormat(viewModel.totalGoalText)
         goalLabel.font = .systemFont(ofSize: 10, weight: .bold)
         goalLabel.textColor = DesignTokens.Color.textSecondary
         goalLabel.textAlignment = .center

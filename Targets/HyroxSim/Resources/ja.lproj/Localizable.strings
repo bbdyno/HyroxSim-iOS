@@ -33,6 +33,27 @@
 "nav.pace_planner" = "ペースプランナー";
 "nav.complete" = "完了";
 "nav.detail" = "詳細";
+"nav.new_workout" = "新しいワークアウト";
+"nav.summary" = "サマリー";
+
+// MARK: - Home
+"home.action.create_custom" = "カスタムワークアウトを作成";
+"home.action.history" = "ワークアウト履歴";
+
+// MARK: - Builder
+"builder.start_from_scratch" = "最初から作成";
+
+// MARK: - Station
+"station.add_weight" = "ウェイトを追加";
+
+// MARK: - Goal / Workout formatting
+"workout.goal_total_format" = "目標合計 %@";
+"summary.goal_format" = "目標 %@";
+"goal_setup.subtitle" = "各セグメントの目標を調整。形式: MM:SS";
+
+// MARK: - ROX Zone subtitles
+"roxzone.subtitle.on" = "各ランとステーションの間に遷移ブロックを自動で挿入します。";
+"roxzone.subtitle.off" = "ランからステーションへ直接つながります。";
 
 // MARK: - Empty states / hints
 "history.empty" = "ワークアウト履歴がありません。\n最初のHYROXを完走しましょう!";

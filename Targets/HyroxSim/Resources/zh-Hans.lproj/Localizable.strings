@@ -33,6 +33,27 @@
 "nav.pace_planner" = "配速规划";
 "nav.complete" = "完成";
 "nav.detail" = "详情";
+"nav.new_workout" = "新建训练";
+"nav.summary" = "总结";
+
+// MARK: - Home
+"home.action.create_custom" = "创建自定义训练";
+"home.action.history" = "训练历史";
+
+// MARK: - Builder
+"builder.start_from_scratch" = "从头开始";
+
+// MARK: - Station
+"station.add_weight" = "添加重量";
+
+// MARK: - Goal / Workout formatting
+"workout.goal_total_format" = "目标总计 %@";
+"summary.goal_format" = "目标 %@";
+"goal_setup.subtitle" = "调整每个分段目标。格式:MM:SS";
+
+// MARK: - ROX Zone subtitles
+"roxzone.subtitle.on" = "在每次跑步与分段之间自动插入过渡块。";
+"roxzone.subtitle.off" = "跑步直接连接到分段。";
 
 // MARK: - Empty states / hints
 "history.empty" = "尚无训练记录。\n完成你的第一场 HYROX!";

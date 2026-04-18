@@ -8,6 +8,7 @@
 "workout.swipe_back_hint" = "Swipe back";
 
 // MARK: - Buttons
+"button.cancel" = "Cancel";
 "button.end_workout" = "End workout";
 
 // MARK: - Alerts

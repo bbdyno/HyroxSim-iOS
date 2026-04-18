@@ -60,7 +60,7 @@ final class PacePlannerViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = NSLocalizedString("nav.pace_planner", comment: "")
+        title = HyroxSimStrings.Localizable.Nav.pacePlanner
         view.backgroundColor = DesignTokens.Color.background
         applyDarkNavBarAppearance()
         navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -108,7 +108,7 @@ final class PacePlannerViewController: UIViewController {
         separator.backgroundColor = UIColor.white.withAlphaComponent(0.08)
         footerContainer.addSubview(separator)
 
-        finetuneButton.setTitle(NSLocalizedString("button.finetune", comment: ""), for: .normal)
+        finetuneButton.setTitle(HyroxSimStrings.Localizable.Button.finetune, for: .normal)
         finetuneButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         finetuneButton.setTitleColor(DesignTokens.Color.accent, for: .normal)
         finetuneButton.backgroundColor = DesignTokens.Color.surface
@@ -119,7 +119,7 @@ final class PacePlannerViewController: UIViewController {
         finetuneButton.addTarget(self, action: #selector(finetuneTapped), for: .touchUpInside)
         footerContainer.addSubview(finetuneButton)
 
-        applyButton.setTitle(NSLocalizedString("button.apply_goals", comment: ""), for: .normal)
+        applyButton.setTitle(HyroxSimStrings.Localizable.Button.applyGoals, for: .normal)
         applyButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
         applyButton.setTitleColor(.black, for: .normal)
         applyButton.backgroundColor = DesignTokens.Color.accent
@@ -339,7 +339,7 @@ final class PacePlannerViewController: UIViewController {
         tierLabel.text = "\(DurationFormatter.hms(TimeInterval(plan.goalTotalS))) — \(tier)"
         tierLabel.textColor = color
 
-        pctLabel.text = String(format: Self.L.percentileFormat, pct)
+        pctLabel.text = Self.L.percentileFormat(pct)
     }
 
     private func buildResult(_ plan: PacePlan) {
@@ -528,22 +528,17 @@ final class PacePlannerViewController: UIViewController {
     // MARK: - Localized strings
 
     fileprivate enum L {
-        static var modeEqual: String {
-            NSLocalizedString("pace_planner.mode.equal", comment: "Equal run-split mode label")
-        }
-        static var modeAdaptive: String {
-            NSLocalizedString("pace_planner.mode.adaptive", comment: "Adaptive (data-based) run-split mode label")
-        }
-        static var percentileFormat: String {
-            NSLocalizedString("pace_planner.percentile.format", comment: "Percentile display, e.g. 'Top 12.3%'")
+        static var modeEqual: String { HyroxSimStrings.Localizable.PacePlanner.Mode.equal }
+        static var modeAdaptive: String { HyroxSimStrings.Localizable.PacePlanner.Mode.adaptive }
+
+        static func percentileFormat(_ percent: Float) -> String {
+            HyroxSimStrings.Localizable.PacePlanner.Percentile.format(percent)
         }
 
         static func modeHint(_ mode: PacePlanner.RunMode) -> String {
             switch mode {
-            case .adaptive:
-                return NSLocalizedString("pace_planner.mode.hint.adaptive", comment: "Hint for adaptive run-split")
-            case .equal:
-                return NSLocalizedString("pace_planner.mode.hint.equal", comment: "Hint for equal run-split")
+            case .adaptive: return HyroxSimStrings.Localizable.PacePlanner.Mode.Hint.adaptive
+            case .equal: return HyroxSimStrings.Localizable.PacePlanner.Mode.Hint.equal
             }
         }
     }

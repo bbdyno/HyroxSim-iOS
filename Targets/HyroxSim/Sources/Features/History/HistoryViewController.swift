@@ -30,7 +30,7 @@ final class HistoryViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = NSLocalizedString("nav.history", comment: "")
+        title = HyroxSimStrings.Localizable.Nav.history
         view.backgroundColor = DesignTokens.Color.background
         applyDarkNavBarAppearance()
         setupTableView()
@@ -65,7 +65,7 @@ final class HistoryViewController: UIViewController {
     }
 
     private func setupEmptyLabel() {
-        emptyLabel.text = NSLocalizedString("history.empty", comment: "")
+        emptyLabel.text = HyroxSimStrings.Localizable.History.empty
         emptyLabel.textAlignment = .center
         emptyLabel.numberOfLines = 0
         emptyLabel.font = .systemFont(ofSize: 15, weight: .medium)

@@ -8,6 +8,7 @@
 "workout.swipe_back_hint" = "スワイプで戻る";
 
 // MARK: - Buttons
+"button.cancel" = "キャンセル";
 "button.end_workout" = "ワークアウト終了";
 
 // MARK: - Alerts

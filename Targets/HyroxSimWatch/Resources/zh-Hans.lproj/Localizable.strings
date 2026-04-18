@@ -8,6 +8,7 @@
 "workout.swipe_back_hint" = "滑动返回";
 
 // MARK: - Buttons
+"button.cancel" = "取消";
 "button.end_workout" = "结束训练";
 
 // MARK: - Alerts

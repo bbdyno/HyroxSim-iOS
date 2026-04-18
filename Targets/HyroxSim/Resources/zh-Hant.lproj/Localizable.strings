@@ -33,6 +33,27 @@
 "nav.pace_planner" = "配速規劃";
 "nav.complete" = "完成";
 "nav.detail" = "詳情";
+"nav.new_workout" = "新增訓練";
+"nav.summary" = "總結";
+
+// MARK: - Home
+"home.action.create_custom" = "建立自訂訓練";
+"home.action.history" = "訓練歷史";
+
+// MARK: - Builder
+"builder.start_from_scratch" = "從頭開始";
+
+// MARK: - Station
+"station.add_weight" = "新增重量";
+
+// MARK: - Goal / Workout formatting
+"workout.goal_total_format" = "目標總計 %@";
+"summary.goal_format" = "目標 %@";
+"goal_setup.subtitle" = "調整每個分段目標。格式:MM:SS";
+
+// MARK: - ROX Zone subtitles
+"roxzone.subtitle.on" = "在每次跑步與分段之間自動插入過渡區塊。";
+"roxzone.subtitle.off" = "跑步直接連接到分段。";
 
 // MARK: - Empty states / hints
 "history.empty" = "尚無訓練記錄。\n完成你的第一場 HYROX!";

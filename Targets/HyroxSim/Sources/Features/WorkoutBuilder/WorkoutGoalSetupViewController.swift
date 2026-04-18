@@ -135,7 +135,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
         contentStack.addArrangedSubview(titleLabel)
 
         let subtitleLabel = UILabel()
-        subtitleLabel.text = "Adjust each segment target. Format: MM:SS"
+        subtitleLabel.text = HyroxSimStrings.Localizable.GoalSetup.subtitle
         subtitleLabel.font = .systemFont(ofSize: 13, weight: .medium)
         subtitleLabel.textColor = DesignTokens.Color.textSecondary
         subtitleLabel.numberOfLines = 0
@@ -238,7 +238,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
         let total = template.segments.indices.reduce(0.0) { partial, index in
             partial + (parsedDuration(for: goalFields[index]?.text) ?? template.segments[index].goalDurationSeconds ?? defaultGoal(for: template.segments[index]))
         }
-        totalGoalLabel.text = "Goal Total \(DurationFormatter.hms(total))"
+        totalGoalLabel.text = HyroxSimStrings.Localizable.Workout.goalTotalFormat(DurationFormatter.hms(total))
     }
 
     private func rowTitle(for segment: WorkoutSegment, at index: Int) -> String {

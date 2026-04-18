@@ -50,22 +50,23 @@ struct HomeView: View {
                     NavigationLink {
                         WatchHistoryView(persistence: persistence)
                     } label: {
-                        HStack {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(accent)
-                            Text("nav.history")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.white)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Color.white.opacity(0.3))
-                        }
-                        .padding(.vertical, 10)
-                        .overlay(alignment: .bottom) {
-                            Divider()
-                                .overlay(Color.white.opacity(0.08))
+                        VStack(spacing: 0) {
+                            HStack {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(accent)
+                                Text(HyroxSimWatchStrings.Localizable.Nav.history)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.white.opacity(0.3))
+                            }
+                            .padding(.vertical, 10)
+                            Rectangle()
+                                .fill(Color.white.opacity(0.08))
+                                .frame(height: 0.5)
                         }
                     }
                     .buttonStyle(.plain)
