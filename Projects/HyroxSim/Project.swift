@@ -43,9 +43,7 @@ let iosAppBaseSettings: SettingsDictionary = automaticSigningBase
 let watchAppBaseSettings: SettingsDictionary = manualDevelopmentSigningBase
     .merging(versionSettings) { _, new in new }
     .merging([
-        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim WatchOS Provisioning",
-        "SUPPORTED_PLATFORMS": "watchsimulator watchos",
-        "TARGETED_DEVICE_FAMILY": "4"
+        "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim WatchOS Provisioning"
     ]) { _, new in new }
 
 let widgetBaseSettings: SettingsDictionary = manualDevelopmentSigningBase

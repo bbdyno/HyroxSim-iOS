@@ -9,26 +9,15 @@ import Foundation
 
 public enum RelativeDateFormatter {
 
-    /// 앱 번들의 preferred localization 을 기준으로 포매터를 만든다.
-    /// iOS 앱별 언어 설정을 바꿔도 시스템 Locale.current 는 그대로라, 앱 UI 언어와 일치시키려면
-    /// Bundle.main.preferredLocalizations 를 사용해야 한다.
-    private static func currentFormatter() -> Foundation.RelativeDateTimeFormatter {
+    /// Returns a relative date string like "5 min. ago", "yesterday", "Mar 5".
+    /// 앱의 Bundle preferred localization 을 기준으로 매 호출마다 포매터를 새로 구성.
+    /// (캐시를 두지 않는 이유: Swift 6 엄격 동시성에서 static 가변 캐시가 데이터 레이스 원인이 됨.
+    /// RelativeDateTimeFormatter 생성 비용은 UI 렌더 비용 대비 무시 가능.)
+    public static func short(_ date: Date) -> String {
         let localeIdentifier = Bundle.main.preferredLocalizations.first ?? "en"
-        let cached = Self.cached
-        if cached?.localeIdentifier == localeIdentifier {
-            return cached!.formatter
-        }
         let formatter = Foundation.RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         formatter.locale = Locale(identifier: localeIdentifier)
-        Self.cached = (localeIdentifier, formatter)
-        return formatter
-    }
-
-    nonisolated(unsafe) private static var cached: (localeIdentifier: String, formatter: Foundation.RelativeDateTimeFormatter)?
-
-    /// Returns a relative date string like "5 min. ago", "yesterday", "Mar 5"
-    public static func short(_ date: Date) -> String {
-        currentFormatter().localizedString(for: date, relativeTo: Date())
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
