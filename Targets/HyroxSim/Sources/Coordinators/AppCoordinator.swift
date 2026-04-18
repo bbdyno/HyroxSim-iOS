@@ -372,6 +372,7 @@ extension AppCoordinator: WorkoutBuilderViewControllerDelegate {
     func builderDidSaveTemplate(_ template: WorkoutTemplate) {
         try? syncCoordinator.sendTemplate(template)
         navigationController.dismiss(animated: true)
+        refreshHomeIfVisible()
     }
 }
 
