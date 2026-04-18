@@ -382,6 +382,21 @@ final class WatchActiveWorkoutModel {
     }
 }
 
+// MARK: - WorkoutDisplaying
+
+extension WatchActiveWorkoutModel: WorkoutDisplaying {
+    var accent: WorkoutDisplayAccent {
+        switch accentKind {
+        case .run: return .run
+        case .roxZone: return .roxZone
+        case .station: return .station
+        }
+    }
+
+    /// 워치 자체 운동은 항상 "연결" 상태. 폰 연결 여부와 무관하게 엔진은 로컬에서 돈다.
+    var isConnected: Bool { true }
+}
+
 // MARK: - Remote Sync
 
 private extension WatchActiveWorkoutModel {

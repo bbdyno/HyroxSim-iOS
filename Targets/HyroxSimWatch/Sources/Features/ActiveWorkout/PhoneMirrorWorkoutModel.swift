@@ -130,3 +130,20 @@ final class PhoneMirrorWorkoutModel {
 
     func setConnected(_ connected: Bool) { isConnected = connected }
 }
+
+// MARK: - WorkoutDisplaying
+
+extension PhoneMirrorWorkoutModel: WorkoutDisplaying {
+    var accent: WorkoutDisplayAccent {
+        WorkoutDisplayAccent(rawValue: accentKindRaw) ?? .run
+    }
+
+    // 폰에서 totalGoal 델타는 아직 전송 안 함 — 생략 표시.
+    var totalGoalText: String { "—" }
+    var totalDeltaText: String { "—" }
+    var isOverTotalGoal: Bool { false }
+
+    func advance() { sendAdvance() }
+    func togglePause() { sendTogglePause() }
+    func endWorkout() { sendEnd() }
+}
