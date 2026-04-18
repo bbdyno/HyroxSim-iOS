@@ -35,6 +35,7 @@ final class PresetCardCell: UICollectionViewCell {
         containerView.layer.cornerRadius = DesignTokens.Radius.card
         containerView.layer.borderWidth = 1
         containerView.layer.borderColor = UIColor.white.withAlphaComponent(0.06).cgColor
+        containerView.clipsToBounds = true
         contentView.addSubview(containerView)
         NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
