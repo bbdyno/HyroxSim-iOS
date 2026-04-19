@@ -14,14 +14,19 @@ final class AppServices {
     let persistence: PersistenceController
     let syncCoordinator: WatchConnectivitySyncCoordinator
     let workoutMirrorController: WorkoutMirrorController
+    let garminImportService: GarminImportService
 
     private var isStarted = false
 
     init() throws {
         let screenshotMode = PhoneScreenshotSeeder.isEnabled
-        self.persistence = try PersistenceController(inMemory: screenshotMode)
+        let persistence = try PersistenceController(inMemory: screenshotMode)
+        self.persistence = persistence
         self.syncCoordinator = WatchConnectivitySyncCoordinator(persistence: persistence)
         self.workoutMirrorController = WorkoutMirrorController()
+        self.garminImportService = GarminImportService(
+            makePersistence: { persistence }
+        )
         if screenshotMode {
             PhoneScreenshotSeeder.seed(into: persistence)
         }
@@ -32,5 +37,6 @@ final class AppServices {
         isStarted = true
         syncCoordinator.activate()
         workoutMirrorController.activate()
+        garminImportService.start()
     }
 }

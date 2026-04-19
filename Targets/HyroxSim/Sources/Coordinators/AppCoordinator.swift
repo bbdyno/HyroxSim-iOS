@@ -324,6 +324,11 @@ extension AppCoordinator: HomeViewControllerDelegate {
         navigationController.pushViewController(vc, animated: true)
     }
 
+    func homeDidTapGarminPairing() {
+        let vc = GarminPairingViewController()
+        navigationController.pushViewController(vc, animated: true)
+    }
+
     func homeDidSelectRecent(_ workout: CompletedWorkout) {
         showSummary(for: workout, fromHistory: true)
     }

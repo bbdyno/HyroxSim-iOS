@@ -36,6 +36,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             let coord = AppCoordinator(window: window, services: services)
             self.coordinator = coord
             coord.start()
+            for context in connectionOptions.urlContexts {
+                _ = GarminBridge.shared.handle(url: context.url)
+            }
         } else {
             let error = appDelegate.startupError ?? NSError(
                 domain: "HyroxSim.SceneDelegate",
@@ -47,6 +50,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             window.rootViewController = vc
             window.makeKeyAndVisible()
             assertionFailure("Failed to start coordinator: \(error)")
+        }
+    }
+
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        for context in URLContexts {
+            _ = GarminBridge.shared.handle(url: context.url)
         }
     }
 }

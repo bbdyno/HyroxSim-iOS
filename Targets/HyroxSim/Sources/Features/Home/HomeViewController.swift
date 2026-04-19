@@ -13,6 +13,7 @@ protocol HomeViewControllerDelegate: AnyObject {
     func homeDidSelectTemplate(_ template: WorkoutTemplate)
     func homeDidTapNewWorkout()
     func homeDidTapHistory()
+    func homeDidTapGarminPairing()
     func homeDidSelectRecent(_ workout: CompletedWorkout)
 }
 
@@ -126,6 +127,10 @@ final class HomeViewController: UIViewController {
         contentStack.addArrangedSubview(makeSectionHeader("MY WORKOUTS"))
         contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.createCustom, icon: "plus.circle.fill", action: #selector(newWorkoutTapped)))
         contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.history, icon: "clock.arrow.circlepath", action: #selector(historyTapped)))
+
+        // Settings
+        contentStack.addArrangedSubview(makeSectionHeader(HyroxSimStrings.Localizable.Home.Section.settings))
+        contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.garminPairing, icon: "applewatch.radiowaves.left.and.right", action: #selector(garminPairingTapped)))
     }
 
     // MARK: - Carousel (paging snap)
@@ -338,6 +343,7 @@ final class HomeViewController: UIViewController {
 
     @objc private func newWorkoutTapped() { delegate?.homeDidTapNewWorkout() }
     @objc private func historyTapped() { delegate?.homeDidTapHistory() }
+    @objc private func garminPairingTapped() { delegate?.homeDidTapGarminPairing() }
     @objc private func customTemplateTapped(_ sender: UIButton) {
         guard sender.tag < viewModel.customTemplates.count else { return }
         delegate?.homeDidSelectTemplate(viewModel.customTemplates[sender.tag])

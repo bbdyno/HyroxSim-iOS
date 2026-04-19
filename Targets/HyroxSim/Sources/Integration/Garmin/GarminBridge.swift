@@ -24,6 +24,11 @@ public final class GarminBridge: NSObject {
 
     public private(set) var connectedDevice: IQDevice?
 
+    /// True once a device has been connected. Used as a precondition by
+    /// sync services that refuse to transmit until the user has completed
+    /// pairing in Garmin Connect Mobile.
+    public var isPaired: Bool { connectedDevice != nil }
+
     public var onMessageReceived: (([String: Any]) -> Void)?
     public var onDeviceStatusChanged: ((IQDeviceStatus) -> Void)?
 
@@ -117,6 +122,7 @@ extension GarminBridge: IQAppMessageDelegate {
 public final class GarminBridge {
     public static let shared = GarminBridge()
     public var onMessageReceived: (([String: Any]) -> Void)?
+    public var isPaired: Bool { false }
 
     private init() {}
     public func bootstrap(urlScheme: String) {

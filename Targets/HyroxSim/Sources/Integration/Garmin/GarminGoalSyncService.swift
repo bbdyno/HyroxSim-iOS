@@ -25,12 +25,19 @@ public final class GarminGoalSyncService {
     /// in the template (typically 31 for the HYROX preset). If the caller
     /// only has an aggregate time, pass `targetTotalMs` and let the watch
     /// fall back to its `PaceReference` split.
+    public enum Result {
+        case sent
+        case notPaired
+    }
+
+    @discardableResult
     public func sendGoal(
         division: HyroxDivision,
         templateName: String,
         targetTotalMs: Int64,
         targetSegmentsMs: [Int64]
-    ) {
+    ) -> Result {
+        guard bridge.isPaired else { return .notPaired }
         let envelope = GarminMessageCodec.encodeGoalSet(
             division: division,
             templateName: templateName,
@@ -38,5 +45,6 @@ public final class GarminGoalSyncService {
             targetSegmentsMs: targetSegmentsMs
         )
         bridge.sendEnvelope(envelope)
+        return .sent
     }
 }

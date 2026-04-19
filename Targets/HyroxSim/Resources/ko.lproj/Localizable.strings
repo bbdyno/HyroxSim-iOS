@@ -39,6 +39,8 @@
 // MARK: - Home
 "home.action.create_custom" = "커스텀 운동 만들기";
 "home.action.history" = "운동 기록";
+"home.section.settings" = "설정";
+"home.action.garmin_pairing" = "가민 워치 연결";
 
 // MARK: - Builder
 "builder.start_from_scratch" = "처음부터 만들기";

@@ -39,6 +39,8 @@
 // MARK: - Home
 "home.action.create_custom" = "カスタムワークアウトを作成";
 "home.action.history" = "ワークアウト履歴";
+"home.section.settings" = "設定";
+"home.action.garmin_pairing" = "Garmin時計を接続";
 
 // MARK: - Builder
 "builder.start_from_scratch" = "最初から作成";

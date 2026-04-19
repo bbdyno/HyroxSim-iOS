@@ -39,6 +39,8 @@
 // MARK: - Home
 "home.action.create_custom" = "创建自定义训练";
 "home.action.history" = "训练历史";
+"home.section.settings" = "设置";
+"home.action.garmin_pairing" = "连接 Garmin 手表";
 
 // MARK: - Builder
 "builder.start_from_scratch" = "从头开始";

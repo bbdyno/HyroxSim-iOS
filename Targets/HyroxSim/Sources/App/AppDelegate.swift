@@ -21,6 +21,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     ) -> Bool {
         FirebaseApp.configure()
 
+        GarminBridge.shared.bootstrap(urlScheme: "ciq-bbdyno-hyroxsim")
+
         do {
             let services = try AppServices()
             services.start()

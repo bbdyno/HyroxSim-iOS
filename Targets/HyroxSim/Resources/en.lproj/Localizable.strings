@@ -39,6 +39,8 @@
 // MARK: - Home
 "home.action.create_custom" = "Create Custom Workout";
 "home.action.history" = "Workout History";
+"home.section.settings" = "SETTINGS";
+"home.action.garmin_pairing" = "Pair Garmin Watch";
 
 // MARK: - Builder
 "builder.start_from_scratch" = "Start from Scratch";
