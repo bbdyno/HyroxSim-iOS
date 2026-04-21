@@ -21,6 +21,7 @@ public final class AppCoordinator {
     let persistence: PersistenceController
     private let syncCoordinator: WatchConnectivitySyncCoordinator
     private let workoutMirrorController: WorkoutMirrorController
+    private let garminTemplateSyncService: GarminTemplateSyncService
     private let templateGoalOverrideStore = TemplateGoalOverrideStore()
     private let forceDisconnectedMirrorUITest = ProcessInfo.processInfo.arguments.contains("UITestWatchMirrorDisconnected")
 
@@ -36,6 +37,7 @@ public final class AppCoordinator {
         self.persistence = services.persistence
         self.syncCoordinator = services.syncCoordinator
         self.workoutMirrorController = services.workoutMirrorController
+        self.garminTemplateSyncService = services.garminTemplateSyncService
 
         // Global dark nav bar appearance
         let navAppearance = UINavigationBarAppearance()
@@ -428,6 +430,7 @@ extension AppCoordinator: WorkoutBuilderViewControllerDelegate {
 
     func builderDidSaveTemplate(_ template: WorkoutTemplate) {
         try? syncCoordinator.sendTemplate(template)
+        garminTemplateSyncService.push(template)
         presentationHost.dismiss(animated: true)
         refreshHomeIfVisible()
     }
@@ -503,11 +506,13 @@ extension AppCoordinator {
         if template.isBuiltIn {
             templateGoalOverrideStore.save(template)
             try? syncCoordinator.sendTemplate(template)
+            garminTemplateSyncService.push(template)
             return
         }
 
         try? persistence.upsertTemplate(template)
         try? syncCoordinator.sendTemplate(template)
+        garminTemplateSyncService.push(template)
         refreshHomeIfVisible()
     }
 }

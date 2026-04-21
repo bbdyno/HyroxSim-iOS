@@ -15,6 +15,7 @@ final class AppServices {
     let syncCoordinator: WatchConnectivitySyncCoordinator
     let workoutMirrorController: WorkoutMirrorController
     let garminImportService: GarminImportService
+    let garminTemplateSyncService: GarminTemplateSyncService
 
     private var isStarted = false
 
@@ -27,6 +28,7 @@ final class AppServices {
         self.garminImportService = GarminImportService(
             makePersistence: { persistence }
         )
+        self.garminTemplateSyncService = GarminTemplateSyncService()
         if screenshotMode {
             PhoneScreenshotSeeder.seed(into: persistence)
         }
