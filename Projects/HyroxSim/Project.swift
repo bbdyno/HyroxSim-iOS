@@ -81,6 +81,12 @@ let project = Project(
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "CFBundleDevelopmentRegion": "en",
+                // Literal, not $(PRODUCT_NAME): ConnectIQ SDK reads this at
+                // runtime to build the GCM device-selection URL
+                // (hostDisplayName). Build-setting expansion gets stripped
+                // from extendingDefault so the result was missing, which
+                // caused GCM to silently reject the picker request.
+                "CFBundleDisplayName": "HyroxSim",
                 "CFBundleLocalizations": ["en", "ko", "ja", "zh-Hans", "zh-Hant"],
                 "UIApplicationSceneManifest": [
                     "UIApplicationSupportsMultipleScenes": false,
@@ -101,7 +107,9 @@ let project = Project(
                 "NSMotionUsageDescription": "HYROX SIM uses motion data to support movement analysis during workout sessions.",
                 "NSHealthShareUsageDescription": "HYROX SIM reads your heart rate from HealthKit during workouts.",
                 "NSHealthUpdateUsageDescription": "HYROX SIM saves completed workout results to the Health app.",
-                "UIBackgroundModes": ["location", "audio"],
+                "NSBluetoothAlwaysUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
+                "NSBluetoothPeripheralUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
+                "UIBackgroundModes": ["location", "audio", "bluetooth-central"],
                 "NSSupportsLiveActivities": true,
                 "LSApplicationQueriesSchemes": ["gcm-ciq"],
                 "CFBundleURLTypes": [

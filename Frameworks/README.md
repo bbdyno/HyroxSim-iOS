@@ -38,4 +38,4 @@ tuist install && tuist generate
 
 ### Info.plist 의존 (이미 반영됨)
 
-`LSApplicationQueriesSchemes`의 `gcm-ciq`와 URL scheme `ciq-bbdyno-hyroxsim`이 Project.swift에 등록되어 있습니다. Garmin Connect Mobile 앱 핸드오프에 필요.
+`LSApplicationQueriesSchemes`의 `gcm-ciq`, URL scheme `ciq-bbdyno-hyroxsim`, `CFBundleDisplayName`이 `Project.swift`에 등록되어 있습니다. Garmin Connect Mobile 앱 핸드오프와 디바이스 선택에 필요합니다.

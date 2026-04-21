@@ -23,31 +23,32 @@ public final class GarminPairingViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         overrideUserInterfaceStyle = .dark
-        navigationItem.title = "Garmin"
+        navigationItem.title = HyroxSimStrings.Localizable.Garmin.Pairing.title
         configureLayout()
+        GarminBridge.shared.onConnectedDeviceChanged = { [weak self] _ in
+            Task { @MainActor in self?.refreshStatus() }
+        }
+        refreshStatus()
+    }
+
+    public override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         refreshStatus()
     }
 
     private func configureLayout() {
-        titleLabel.text = "가민 워치 연결"
+        titleLabel.text = HyroxSimStrings.Localizable.Garmin.Pairing.header
         titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
         titleLabel.textColor = .label
         titleLabel.textAlignment = .center
 
-        bodyLabel.text = """
-        가민 워치로 HYROX 운동을 기록하려면:
-
-        1. 폰에 "Garmin Connect" 앱이 설치·로그인되어 있어야 합니다
-        2. 워치가 Garmin Connect에 이미 페어링되어 있어야 합니다
-        3. Connect IQ Store에서 HyroxSim 워치앱 설치
-        4. 아래 "기기 선택" 버튼으로 연결
-        """
+        bodyLabel.text = HyroxSimStrings.Localizable.Garmin.Pairing.instructions
         bodyLabel.font = .systemFont(ofSize: 14)
         bodyLabel.textColor = .secondaryLabel
         bodyLabel.numberOfLines = 0
 
         var buttonConfig = UIButton.Configuration.filled()
-        buttonConfig.title = "기기 선택"
+        buttonConfig.title = HyroxSimStrings.Localizable.Garmin.Pairing.button
         buttonConfig.baseBackgroundColor = UIColor(red: 1.0, green: 0.843, blue: 0.0, alpha: 1.0)
         buttonConfig.baseForegroundColor = .black
         pairButton.configuration = buttonConfig
@@ -78,9 +79,15 @@ public final class GarminPairingViewController: UIViewController {
 
     private func refreshStatus() {
         #if canImport(ConnectIQ)
-        statusLabel.text = "SDK 활성화됨"
+        if let name = GarminBridge.shared.connectedDeviceName {
+            statusLabel.text = "✓ \(name)"
+            statusLabel.textColor = UIColor(red: 0.0, green: 0.85, blue: 0.4, alpha: 1.0)
+        } else {
+            statusLabel.text = HyroxSimStrings.Localizable.Garmin.Pairing.Status.ready
+            statusLabel.textColor = .tertiaryLabel
+        }
         #else
-        statusLabel.text = "ConnectIQ.xcframework 미연결 — Frameworks/README.md 참조"
+        statusLabel.text = HyroxSimStrings.Localizable.Garmin.Pairing.Status.missingFramework
         #endif
     }
 }

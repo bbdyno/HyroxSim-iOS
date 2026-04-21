@@ -17,6 +17,7 @@ import Foundation
 
 #if canImport(ConnectIQ)
 import ConnectIQ
+import UIKit
 
 public final class GarminBridge: NSObject {
 
@@ -28,9 +29,13 @@ public final class GarminBridge: NSObject {
     /// sync services that refuse to transmit until the user has completed
     /// pairing in Garmin Connect Mobile.
     public var isPaired: Bool { connectedDevice != nil }
+    public var connectedDeviceName: String? { connectedDevice?.friendlyName }
 
     public var onMessageReceived: (([String: Any]) -> Void)?
     public var onDeviceStatusChanged: ((IQDeviceStatus) -> Void)?
+    /// Fired whenever the connected device changes (pairing success, user
+    /// unpairs, etc.). `nil` device = disconnected.
+    public var onConnectedDeviceChanged: ((IQDevice?) -> Void)?
 
     private let sdk = ConnectIQ.sharedInstance()
     private let deviceStore = GarminDeviceStore()
@@ -43,19 +48,32 @@ public final class GarminBridge: NSObject {
     /// Call from `AppDelegate.application(_:didFinishLaunchingWithOptions:)`.
     /// Passing a URL scheme registers us with the Garmin Connect Mobile app.
     public func bootstrap(urlScheme: String) {
+        // CFBundleDisplayName is mandatory — the SDK embeds it into the
+        // gcm-ciq:// URL as `hostDisplayName`. Empty/missing value causes
+        // GCM to silently reject the device-selection request (picker never
+        // appears). Assert on debug builds so regressions are caught early.
+        let displayName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String) ?? ""
+        assert(!displayName.isEmpty, "CFBundleDisplayName must be set for Garmin device selection to work")
+        // Use the 3-arg variant that sets a CBCentralManager restoration
+        // identifier. The official Garmin example always uses this form;
+        // the 2-arg variant skips BLE state restoration and can leave the
+        // device picker unresponsive on iOS 17+.
         sdk?.initialize(
             withUrlScheme: urlScheme,
-            uiOverrideDelegate: nil
+            uiOverrideDelegate: self,
+            stateRestorationIdentifier: "HyroxSimCIQ"
         )
         restoreLastDevice()
     }
 
-    /// Delegate this from `application(_:open:options:)`.
+    /// Delegate this from `application(_:open:options:)` or SceneDelegate's
+    /// openURLContexts. Returns `true` when the URL was a ConnectIQ
+    /// device-selection response (regardless of whether a device was chosen).
     public func handle(url: URL) -> Bool {
         guard let devices = sdk?.parseDeviceSelectionResponse(from: url) else {
             return false
         }
-        if let device = devices.first {
+        if let device = devices.first as? IQDevice {
             connect(to: device)
         }
         return true
@@ -74,6 +92,7 @@ public final class GarminBridge: NSObject {
         if let app = trackedApp {
             sdk?.register(forAppMessages: app, delegate: self)
         }
+        onConnectedDeviceChanged?(device)
     }
 
     public func sendEnvelope(_ envelope: [String: Any]) {
@@ -108,6 +127,12 @@ extension GarminBridge: IQDeviceEventDelegate {
     }
 }
 
+extension GarminBridge: IQUIOverrideDelegate {
+    public func needsToInstallConnectMobile() {
+        sdk?.showAppStoreForConnectMobile()
+    }
+}
+
 extension GarminBridge: IQAppMessageDelegate {
     public func receivedMessage(_ message: Any, from app: IQApp) {
         guard let dict = message as? [String: Any] else { return }
@@ -122,7 +147,9 @@ extension GarminBridge: IQAppMessageDelegate {
 public final class GarminBridge {
     public static let shared = GarminBridge()
     public var onMessageReceived: (([String: Any]) -> Void)?
+    public var onConnectedDeviceChanged: ((Any?) -> Void)?
     public var isPaired: Bool { false }
+    public var connectedDeviceName: String? { nil }
 
     private init() {}
     public func bootstrap(urlScheme: String) {
