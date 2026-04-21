@@ -39,8 +39,33 @@
 // MARK: - Home
 "home.action.create_custom" = "커스텀 운동 만들기";
 "home.action.history" = "운동 기록";
-"home.section.settings" = "설정";
-"home.action.garmin_pairing" = "가민 워치 연결";
+
+// MARK: - Tab Bar
+"tab.home" = "홈";
+"tab.settings" = "설정";
+
+// MARK: - Settings Screen
+"settings.title" = "설정";
+"settings.section.device" = "기기";
+"settings.row.garmin" = "가민 워치";
+"settings.row.garmin.subtitle.connected" = "연결됨";
+"settings.row.garmin.subtitle.disconnected" = "연결 안 됨";
+"settings.section.about" = "정보";
+"settings.row.github" = "GitHub";
+"settings.row.github.subtitle" = "GitHub에서 소스 보기";
+"settings.row.opensource" = "오픈소스 라이선스";
+"settings.row.version" = "앱 버전";
+
+// MARK: - Garmin Pairing
+"garmin.pairing.title" = "가민";
+"garmin.pairing.header" = "가민 워치 연결";
+"garmin.pairing.instructions" = "가민 워치로 HYROX 운동을 기록하려면:\n\n1. 폰에 Garmin Connect 앱 설치 · 로그인\n2. 워치를 Garmin Connect에 페어링\n3. Connect IQ Store에서 HyroxSim 워치앱 설치\n4. 아래 \"기기 선택\" 버튼으로 연결";
+"garmin.pairing.button" = "기기 선택";
+"garmin.pairing.status.ready" = "SDK 준비됨";
+"garmin.pairing.status.missing_framework" = "ConnectIQ.xcframework 연결 안됨";
+
+// MARK: - Open Source
+"opensource.title" = "오픈소스 라이선스";
 
 // MARK: - Builder
 "builder.start_from_scratch" = "처음부터 만들기";

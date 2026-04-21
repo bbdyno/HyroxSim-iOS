@@ -13,16 +13,26 @@ import HyroxPersistenceApple
 public final class AppCoordinator {
 
     private let window: UIWindow
+    /// Home-tab nav controller. Named `navigationController` for legacy
+    /// compatibility — all push destinations (Detail, History, etc.) live here.
     private let navigationController: UINavigationController
+    private let settingsNavigationController: UINavigationController
+    private let tabBarController: UITabBarController
     let persistence: PersistenceController
     private let syncCoordinator: WatchConnectivitySyncCoordinator
     private let workoutMirrorController: WorkoutMirrorController
     private let templateGoalOverrideStore = TemplateGoalOverrideStore()
     private let forceDisconnectedMirrorUITest = ProcessInfo.processInfo.arguments.contains("UITestWatchMirrorDisconnected")
 
+    /// All modal presentations (builder sheet, live mirror) use the tab bar
+    /// as host so they work regardless of which tab is foregrounded.
+    private var presentationHost: UIViewController { tabBarController }
+
     init(window: UIWindow, services: AppServices) {
         self.window = window
         self.navigationController = UINavigationController()
+        self.settingsNavigationController = UINavigationController()
+        self.tabBarController = UITabBarController()
         self.persistence = services.persistence
         self.syncCoordinator = services.syncCoordinator
         self.workoutMirrorController = services.workoutMirrorController
@@ -36,17 +46,43 @@ public final class AppCoordinator {
             .foregroundColor: UIColor.white,
             .font: UIFont.systemFont(ofSize: 34, weight: .black)
         ]
-        navigationController.navigationBar.standardAppearance = navAppearance
-        navigationController.navigationBar.scrollEdgeAppearance = navAppearance
-        navigationController.navigationBar.compactAppearance = navAppearance
-        navigationController.navigationBar.tintColor = DesignTokens.Color.accent
-        navigationController.navigationBar.prefersLargeTitles = true
+        for nav in [navigationController, settingsNavigationController] {
+            nav.navigationBar.standardAppearance = navAppearance
+            nav.navigationBar.scrollEdgeAppearance = navAppearance
+            nav.navigationBar.compactAppearance = navAppearance
+            nav.navigationBar.tintColor = DesignTokens.Color.accent
+            nav.navigationBar.prefersLargeTitles = true
+        }
+
+        // Tab bar appearance (dark + gold accent)
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithOpaqueBackground()
+        tabAppearance.backgroundColor = DesignTokens.Color.background
+        tabBarController.tabBar.standardAppearance = tabAppearance
+        tabBarController.tabBar.scrollEdgeAppearance = tabAppearance
+        tabBarController.tabBar.tintColor = DesignTokens.Color.accent
+        tabBarController.tabBar.unselectedItemTintColor = DesignTokens.Color.textSecondary
     }
 
     public func start() {
         let homeVC = makeHomeViewController()
         navigationController.viewControllers = [homeVC]
-        window.rootViewController = navigationController
+        navigationController.tabBarItem = UITabBarItem(
+            title: HyroxSimStrings.Localizable.Tab.home,
+            image: UIImage(systemName: "house.fill"),
+            tag: 0
+        )
+
+        let settingsVC = makeSettingsViewController()
+        settingsNavigationController.viewControllers = [settingsVC]
+        settingsNavigationController.tabBarItem = UITabBarItem(
+            title: HyroxSimStrings.Localizable.Tab.settings,
+            image: UIImage(systemName: "gearshape.fill"),
+            tag: 1
+        )
+
+        tabBarController.viewControllers = [navigationController, settingsNavigationController]
+        window.rootViewController = tabBarController
         window.makeKeyAndVisible()
 
         syncCoordinator.onReceiveCompletedWorkout = { [weak self] _ in
@@ -143,12 +179,12 @@ public final class AppCoordinator {
         let vc = LiveWorkoutMirrorViewController()
         vc.delegate = self
         liveMirrorVC = vc
-        navigationController.present(vc, animated: true)
+        presentationHost.present(vc, animated: true)
     }
 
     private func dismissLiveMirror() {
         guard let liveMirrorVC else {
-            navigationController.dismiss(animated: true)
+            presentationHost.dismiss(animated: true)
             refreshHomeIfVisible()
             return
         }
@@ -268,6 +304,12 @@ public final class AppCoordinator {
         return vc
     }
 
+    private func makeSettingsViewController() -> UIViewController {
+        let vc = SettingsViewController()
+        vc.delegate = self
+        return vc
+    }
+
     private func makeHistoryViewController() -> UIViewController {
         let vm = HistoryViewModel(persistence: persistence)
         let vc = HistoryViewController(viewModel: vm)
@@ -292,7 +334,7 @@ public final class AppCoordinator {
         if let sheet = nav.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
         }
-        navigationController.present(nav, animated: true)
+        presentationHost.present(nav, animated: true)
     }
 
     private func presentBuilder(startingFrom template: WorkoutTemplate?, animated: Bool = true) {
@@ -303,7 +345,7 @@ public final class AppCoordinator {
         let nav = UINavigationController(rootViewController: vc)
         nav.applyDarkTheme()
         nav.modalPresentationStyle = .formSheet
-        navigationController.present(nav, animated: animated)
+        presentationHost.present(nav, animated: animated)
     }
 }
 
@@ -324,13 +366,23 @@ extension AppCoordinator: HomeViewControllerDelegate {
         navigationController.pushViewController(vc, animated: true)
     }
 
-    func homeDidTapGarminPairing() {
-        let vc = GarminPairingViewController()
-        navigationController.pushViewController(vc, animated: true)
-    }
-
     func homeDidSelectRecent(_ workout: CompletedWorkout) {
         showSummary(for: workout, fromHistory: true)
+    }
+}
+
+// MARK: - SettingsViewControllerDelegate
+
+extension AppCoordinator: SettingsViewControllerDelegate {
+
+    func settingsDidTapGarminPairing() {
+        let vc = GarminPairingViewController()
+        settingsNavigationController.pushViewController(vc, animated: true)
+    }
+
+    func settingsDidTapOpenSource() {
+        let vc = OpenSourceLicensesViewController()
+        settingsNavigationController.pushViewController(vc, animated: true)
     }
 }
 
@@ -348,13 +400,13 @@ extension AppCoordinator: HistoryViewControllerDelegate {
 extension AppCoordinator: BuilderEntrySheetDelegate {
 
     func builderEntryDidSelectPreset(_ template: WorkoutTemplate) {
-        navigationController.dismiss(animated: true) { [self] in
+        presentationHost.dismiss(animated: true) { [self] in
             presentBuilder(startingFrom: template)
         }
     }
 
     func builderEntryDidSelectScratch() {
-        navigationController.dismiss(animated: true) { [self] in
+        presentationHost.dismiss(animated: true) { [self] in
             presentBuilder(startingFrom: nil)
         }
     }
@@ -365,18 +417,18 @@ extension AppCoordinator: BuilderEntrySheetDelegate {
 extension AppCoordinator: WorkoutBuilderViewControllerDelegate {
 
     func builderDidCancel() {
-        navigationController.dismiss(animated: true)
+        presentationHost.dismiss(animated: true)
     }
 
     func builderDidRequestStart(template: WorkoutTemplate) {
-        navigationController.dismiss(animated: true) { [self] in
+        presentationHost.dismiss(animated: true) { [self] in
             startWorkout(template: template)
         }
     }
 
     func builderDidSaveTemplate(_ template: WorkoutTemplate) {
         try? syncCoordinator.sendTemplate(template)
-        navigationController.dismiss(animated: true)
+        presentationHost.dismiss(animated: true)
         refreshHomeIfVisible()
     }
 }
@@ -408,7 +460,7 @@ extension AppCoordinator {
                 message: "\(error)"
             )
             alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
-            self?.navigationController.presentedViewController?.present(alert, animated: true)
+            self?.presentationHost.presentedViewController?.present(alert, animated: true)
         }
         vm.finishHandler = { [weak self] completed in
             self?.dismissWorkout(showingSummaryFor: completed)
@@ -418,11 +470,11 @@ extension AppCoordinator {
         }
 
         vc.modalPresentationStyle = .fullScreen
-        navigationController.present(vc, animated: true)
+        presentationHost.present(vc, animated: true)
     }
 
     private func dismissWorkout(showingSummaryFor workout: CompletedWorkout?) {
-        navigationController.dismiss(animated: true) { [self] in
+        presentationHost.dismiss(animated: true) { [self] in
             if let workout {
                 showSummary(for: workout, fromHistory: false)
             }
@@ -439,7 +491,7 @@ extension AppCoordinator {
             // After workout: present modally (no "back" destination — builder was dismissed)
             let nav = UINavigationController(rootViewController: vc)
             nav.applyDarkTheme()
-            navigationController.present(nav, animated: animated)
+            presentationHost.present(nav, animated: animated)
         }
     }
 
@@ -465,8 +517,8 @@ extension AppCoordinator {
 extension AppCoordinator: WorkoutSummaryViewControllerDelegate {
 
     func summaryDidTapDone() {
-        if navigationController.presentedViewController != nil {
-            navigationController.dismiss(animated: true)
+        if presentationHost.presentedViewController != nil {
+            presentationHost.dismiss(animated: true)
         } else {
             navigationController.popViewController(animated: true)
         }

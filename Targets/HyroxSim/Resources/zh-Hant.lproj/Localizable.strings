@@ -39,8 +39,33 @@
 // MARK: - Home
 "home.action.create_custom" = "建立自訂訓練";
 "home.action.history" = "訓練歷史";
-"home.section.settings" = "設定";
-"home.action.garmin_pairing" = "連接 Garmin 手錶";
+
+// MARK: - Tab Bar
+"tab.home" = "主頁";
+"tab.settings" = "設定";
+
+// MARK: - Settings Screen
+"settings.title" = "設定";
+"settings.section.device" = "裝置";
+"settings.row.garmin" = "Garmin 手錶";
+"settings.row.garmin.subtitle.connected" = "已連接";
+"settings.row.garmin.subtitle.disconnected" = "未連接";
+"settings.section.about" = "關於";
+"settings.row.github" = "GitHub";
+"settings.row.github.subtitle" = "於 GitHub 查看原始碼";
+"settings.row.opensource" = "開放原始碼授權";
+"settings.row.version" = "應用程式版本";
+
+// MARK: - Garmin Pairing
+"garmin.pairing.title" = "Garmin";
+"garmin.pairing.header" = "連接 Garmin 手錶";
+"garmin.pairing.instructions" = "使用 Garmin 手錶記錄 HYROX 訓練:\n\n1. 在此手機安裝並登入 Garmin Connect\n2. 將手錶與 Garmin Connect 配對\n3. 從 Connect IQ 商店安裝 HyroxSim 手錶應用\n4. 點擊下方「選擇裝置」按鈕";
+"garmin.pairing.button" = "選擇裝置";
+"garmin.pairing.status.ready" = "SDK 就緒";
+"garmin.pairing.status.missing_framework" = "未連結 ConnectIQ.xcframework";
+
+// MARK: - Open Source
+"opensource.title" = "開放原始碼授權";
 
 // MARK: - Builder
 "builder.start_from_scratch" = "從頭開始";

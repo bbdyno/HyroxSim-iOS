@@ -39,8 +39,33 @@
 // MARK: - Home
 "home.action.create_custom" = "Create Custom Workout";
 "home.action.history" = "Workout History";
-"home.section.settings" = "SETTINGS";
-"home.action.garmin_pairing" = "Pair Garmin Watch";
+
+// MARK: - Tab Bar
+"tab.home" = "Home";
+"tab.settings" = "Settings";
+
+// MARK: - Settings Screen
+"settings.title" = "Settings";
+"settings.section.device" = "DEVICE";
+"settings.row.garmin" = "Garmin Watch";
+"settings.row.garmin.subtitle.connected" = "Connected";
+"settings.row.garmin.subtitle.disconnected" = "Not connected";
+"settings.section.about" = "ABOUT";
+"settings.row.github" = "GitHub";
+"settings.row.github.subtitle" = "View source on GitHub";
+"settings.row.opensource" = "Open Source Licenses";
+"settings.row.version" = "App Version";
+
+// MARK: - Garmin Pairing
+"garmin.pairing.title" = "Garmin";
+"garmin.pairing.header" = "Pair Garmin Watch";
+"garmin.pairing.instructions" = "To record HYROX workouts with your Garmin watch:\n\n1. Install Garmin Connect on this phone and sign in\n2. Pair your watch with Garmin Connect\n3. Install HyroxSim from the Connect IQ Store\n4. Tap Select Device below";
+"garmin.pairing.button" = "Select Device";
+"garmin.pairing.status.ready" = "SDK Ready";
+"garmin.pairing.status.missing_framework" = "ConnectIQ.xcframework not linked";
+
+// MARK: - Open Source
+"opensource.title" = "Open Source Licenses";
 
 // MARK: - Builder
 "builder.start_from_scratch" = "Start from Scratch";

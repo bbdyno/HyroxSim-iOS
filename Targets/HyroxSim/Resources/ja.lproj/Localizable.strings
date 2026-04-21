@@ -39,8 +39,33 @@
 // MARK: - Home
 "home.action.create_custom" = "カスタムワークアウトを作成";
 "home.action.history" = "ワークアウト履歴";
-"home.section.settings" = "設定";
-"home.action.garmin_pairing" = "Garmin時計を接続";
+
+// MARK: - Tab Bar
+"tab.home" = "ホーム";
+"tab.settings" = "設定";
+
+// MARK: - Settings Screen
+"settings.title" = "設定";
+"settings.section.device" = "デバイス";
+"settings.row.garmin" = "Garmin時計";
+"settings.row.garmin.subtitle.connected" = "接続済み";
+"settings.row.garmin.subtitle.disconnected" = "未接続";
+"settings.section.about" = "情報";
+"settings.row.github" = "GitHub";
+"settings.row.github.subtitle" = "GitHubでソースを表示";
+"settings.row.opensource" = "オープンソースライセンス";
+"settings.row.version" = "アプリバージョン";
+
+// MARK: - Garmin Pairing
+"garmin.pairing.title" = "Garmin";
+"garmin.pairing.header" = "Garmin時計を接続";
+"garmin.pairing.instructions" = "Garmin時計でHYROXワークアウトを記録するには:\n\n1. このスマホにGarmin Connectアプリをインストール・ログイン\n2. 時計をGarmin Connectとペアリング\n3. Connect IQ StoreからHyroxSim時計アプリをインストール\n4. 下の「デバイス選択」ボタンで接続";
+"garmin.pairing.button" = "デバイス選択";
+"garmin.pairing.status.ready" = "SDK準備完了";
+"garmin.pairing.status.missing_framework" = "ConnectIQ.xcframework未リンク";
+
+// MARK: - Open Source
+"opensource.title" = "オープンソースライセンス";
 
 // MARK: - Builder
 "builder.start_from_scratch" = "最初から作成";
