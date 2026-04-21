@@ -19,6 +19,7 @@ import HyroxPersistenceApple
 /// `source` is tracked by `WorkoutSource.garmin` but requires the
 /// `StoredWorkout` migration described in the repo handoff to persist —
 /// until then the record is saved with default `source=.watch`.
+@MainActor
 public final class GarminImportService {
 
     private let bridge: GarminBridge
@@ -26,7 +27,7 @@ public final class GarminImportService {
 
     public init(
         bridge: GarminBridge = .shared,
-        makePersistence: @escaping () -> PersistenceController = { PersistenceController() }
+        makePersistence: @escaping () -> PersistenceController
     ) {
         self.bridge = bridge
         self.makePersistence = makePersistence
@@ -34,7 +35,9 @@ public final class GarminImportService {
 
     public func start() {
         bridge.onMessageReceived = { [weak self] envelope in
-            self?.handle(envelope: envelope)
+            Task { @MainActor in
+                self?.handle(envelope: envelope)
+            }
         }
     }
 

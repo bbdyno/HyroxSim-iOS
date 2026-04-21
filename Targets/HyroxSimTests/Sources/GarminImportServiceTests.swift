@@ -10,6 +10,7 @@ import HyroxCore
 import HyroxPersistenceApple
 @testable import HyroxSim
 
+@MainActor
 final class GarminImportServiceTests: XCTestCase {
 
     func test_handleWorkoutCompleted_persistsWorkout() throws {

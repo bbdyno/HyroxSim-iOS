@@ -143,13 +143,13 @@ public enum GarminMessageCodec {
             (envelope[Key.type] as? String) == MessageType.workoutCompleted,
             let payload = envelope[Key.payload] as? [String: Any],
             let idString = payload["id"] as? String,
-            let id = UUID(uuidString: idString) ?? UUID().uuidStringStable,
             let templateName = payload["templateName"] as? String,
             let startedAtMs = payload["startedAtMs"] as? Int64,
             let finishedAtMs = payload["finishedAtMs"] as? Int64,
             let rawSegments = payload["segments"] as? [[String: Any]]
         else { return nil }
 
+        let id = UUID(uuidString: idString) ?? UUID()
         let division = (payload["division"] as? String).flatMap(HyroxDivision.init(rawValue:))
         let segments = rawSegments.compactMap(decodeSegment(_:))
 
@@ -201,8 +201,4 @@ public enum GarminMessageCodec {
             goalDurationSeconds: dict["goalDurationSeconds"] as? Double
         )
     }
-}
-
-private extension UUID {
-    static var uuidStringStable: UUID? { UUID() }
 }
