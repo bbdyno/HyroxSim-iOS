@@ -14,6 +14,7 @@
 //  procedure. Downstream call sites must also use `#if canImport`.
 
 import Foundation
+import os
 
 #if canImport(ConnectIQ)
 import ConnectIQ
@@ -22,6 +23,8 @@ import UIKit
 public final class GarminBridge: NSObject {
 
     public static let shared = GarminBridge()
+
+    private let logger = Logger(subsystem: "com.bbdyno.app.HyroxSim", category: "Garmin")
 
     public private(set) var connectedDevice: IQDevice?
 
@@ -93,15 +96,31 @@ public final class GarminBridge: NSObject {
             sdk?.register(forAppMessages: app, delegate: self)
         }
         onConnectedDeviceChanged?(device)
+        logger.info("registered device=\(device.friendlyName ?? "?", privacy: .public) — waiting for characteristics discovery")
+    }
+
+    public func sendHello() {
+        let appVersion = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "0.0.0"
+        sendEnvelope(GarminMessageCodec.makeEnvelope(
+            type: GarminMessageCodec.MessageType.hello,
+            payload: ["phone_os": "ios", "app_version": appVersion]
+        ))
     }
 
     public func sendEnvelope(_ envelope: [String: Any]) {
-        guard let app = trackedApp else { return }
+        guard let app = trackedApp else {
+            logger.warning("sendEnvelope dropped — no paired device")
+            return
+        }
+        let type = (envelope[GarminMessageCodec.Key.type] as? String) ?? "?"
+        logger.info("TX t=\(type, privacy: .public)")
         sdk?.sendMessage(
             envelope,
             to: app,
             progress: nil,
-            completion: nil
+            completion: { [weak self] result in
+                self?.logger.info("TX result t=\(type, privacy: .public) r=\(result.rawValue)")
+            }
         )
     }
 
@@ -123,7 +142,13 @@ public final class GarminBridge: NSObject {
 
 extension GarminBridge: IQDeviceEventDelegate {
     public func deviceStatusChanged(_ device: IQDevice, status: IQDeviceStatus) {
+        logger.info("device status \(device.friendlyName ?? "?", privacy: .public)=\(status.rawValue)")
         onDeviceStatusChanged?(status)
+    }
+
+    public func deviceCharacteristicsDiscovered(_ device: IQDevice) {
+        logger.info("characteristics discovered \(device.friendlyName ?? "?", privacy: .public) — sending hello")
+        sendHello()
     }
 }
 
@@ -135,7 +160,12 @@ extension GarminBridge: IQUIOverrideDelegate {
 
 extension GarminBridge: IQAppMessageDelegate {
     public func receivedMessage(_ message: Any, from app: IQApp) {
-        guard let dict = message as? [String: Any] else { return }
+        guard let dict = message as? [String: Any] else {
+            logger.warning("RX dropped — non-dict payload")
+            return
+        }
+        let type = (dict[GarminMessageCodec.Key.type] as? String) ?? "?"
+        logger.info("RX t=\(type, privacy: .public)")
         onMessageReceived?(dict)
     }
 }
