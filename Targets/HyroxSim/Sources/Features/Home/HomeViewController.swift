@@ -11,6 +11,7 @@ import HyroxCore
 @MainActor
 protocol HomeViewControllerDelegate: AnyObject {
     func homeDidSelectTemplate(_ template: WorkoutTemplate)
+    func homeDidRequestDeleteTemplate(_ template: WorkoutTemplate)
     func homeDidTapNewWorkout()
     func homeDidTapHistory()
     func homeDidSelectRecent(_ workout: CompletedWorkout)
@@ -315,6 +316,7 @@ final class HomeViewController: UIViewController {
         button.tag = index
         button.addTarget(self, action: #selector(customTemplateTapped(_:)), for: .touchUpInside)
         button.translatesAutoresizingMaskIntoConstraints = false
+        button.addInteraction(UIContextMenuInteraction(delegate: self))
 
         let container = UIView()
         container.addSubview(button)
@@ -325,6 +327,26 @@ final class HomeViewController: UIViewController {
             button.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         return container
+    }
+
+    private func confirmDeleteCustomTemplate(_ template: WorkoutTemplate) {
+        let alert = DarkAlertController(
+            title: HyroxSimStrings.Localizable.Alert.DeleteTemplate.title,
+            message: HyroxSimStrings.Localizable.Alert.DeleteTemplate.message(template.name)
+        )
+        alert.addAction(.init(
+            title: HyroxSimStrings.Localizable.Button.cancel,
+            style: .cancel,
+            handler: nil
+        ))
+        alert.addAction(.init(
+            title: HyroxSimStrings.Localizable.Button.delete,
+            style: .destructive,
+            handler: { [weak self] in
+                self?.delegate?.homeDidRequestDeleteTemplate(template)
+            }
+        ))
+        present(alert, animated: true)
     }
 
     private func customTemplateSummary(for template: WorkoutTemplate) -> String {
@@ -341,6 +363,36 @@ final class HomeViewController: UIViewController {
     @objc private func customTemplateTapped(_ sender: UIButton) {
         guard sender.tag < viewModel.customTemplates.count else { return }
         delegate?.homeDidSelectTemplate(viewModel.customTemplates[sender.tag])
+    }
+}
+
+// MARK: - UIContextMenuInteractionDelegate
+
+extension HomeViewController: UIContextMenuInteractionDelegate {
+
+    func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        configurationForMenuAtLocation location: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        // 길게 누른 행에 대응하는 템플릿을 그 시점의 viewModel snapshot에서 캡처.
+        // 메뉴가 떠 있는 동안 customTemplates가 갱신되어 인덱스가 어긋나도
+        // 캡처된 값으로 동작하므로 안전.
+        guard
+            let button = interaction.view as? UIButton,
+            button.tag >= 0,
+            button.tag < viewModel.customTemplates.count
+        else { return nil }
+        let template = viewModel.customTemplates[button.tag]
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            let delete = UIAction(
+                title: HyroxSimStrings.Localizable.Button.delete,
+                image: UIImage(systemName: "trash"),
+                attributes: .destructive
+            ) { _ in
+                self?.confirmDeleteCustomTemplate(template)
+            }
+            return UIMenu(title: template.name, children: [delete])
+        }
     }
 }
 

@@ -359,6 +359,10 @@ extension AppCoordinator: HomeViewControllerDelegate {
         showTemplateDetail(template)
     }
 
+    func homeDidRequestDeleteTemplate(_ template: WorkoutTemplate) {
+        deleteCustomTemplate(template)
+    }
+
     func homeDidTapNewWorkout() {
         presentBuilderEntry()
     }
@@ -515,6 +519,17 @@ extension AppCoordinator {
         garminTemplateSyncService.push(template)
         refreshHomeIfVisible()
     }
+
+    /// 커스텀 템플릿 삭제 — 폰 SwiftData + 워치(WatchConnectivity) + 가민(ConnectIQ).
+    /// 빌트인 프리셋은 영속화되어 있지 않으므로 호출 측에서 걸러져야 함.
+    /// 모든 외부 sink(`try?`/`silent drop`) 처리 — 한쪽이 실패해도 나머지는 진행.
+    fileprivate func deleteCustomTemplate(_ template: WorkoutTemplate) {
+        guard !template.isBuiltIn else { return }
+        try? persistence.deleteTemplate(id: template.id)
+        try? syncCoordinator.sendTemplateDeleted(id: template.id)
+        garminTemplateSyncService.delete(id: template.id)
+        refreshHomeIfVisible()
+    }
 }
 
 // MARK: - WorkoutSummaryViewControllerDelegate
@@ -537,6 +552,12 @@ extension AppCoordinator: TemplateDetailViewControllerDelegate {
     func templateDetailDidTapStart(_ template: WorkoutTemplate) {
         navigationController.popViewController(animated: false)
         startWorkout(template: template)
+    }
+
+    func templateDetailDidRequestDelete(_ template: WorkoutTemplate) {
+        // detail은 push로 띄워졌으므로 먼저 pop. 이후 sink에서 홈을 즉시 새로고침.
+        navigationController.popViewController(animated: true)
+        deleteCustomTemplate(template)
     }
 }
 

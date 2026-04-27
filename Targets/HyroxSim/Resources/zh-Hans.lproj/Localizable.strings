@@ -14,6 +14,8 @@
 "alert.save_template.message" = "请输入名称";
 "alert.error.title" = "错误";
 "alert.end_workout_confirmation.message" = "仅当你要立即停止此训练时,才使用红色控件。";
+"alert.delete_template.title" = "删除模板?";
+"alert.delete_template.message" = "将从此手机、手表与 Garmin 中删除「%@」。";
 
 // MARK: - Buttons
 "button.cancel" = "取消";
@@ -21,6 +23,7 @@
 "button.ok" = "确定";
 "button.save" = "保存";
 "button.discard" = "放弃";
+"button.delete" = "删除";
 "button.keep_editing" = "继续编辑";
 "button.start_workout" = "开始训练";
 "button.end_workout" = "结束训练";

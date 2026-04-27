@@ -11,6 +11,7 @@ import HyroxCore
 @MainActor
 protocol TemplateDetailViewControllerDelegate: AnyObject {
     func templateDetailDidTapStart(_ template: WorkoutTemplate)
+    func templateDetailDidRequestDelete(_ template: WorkoutTemplate)
 }
 
 final class TemplateDetailViewController: UIViewController {
@@ -53,6 +54,41 @@ final class TemplateDetailViewController: UIViewController {
         setupScrollView()
         buildContent()
         rebuildContent()
+        setupNavBarItems()
+    }
+
+    private func setupNavBarItems() {
+        // 빌트인 프리셋은 코드에 박혀 있어 삭제 불가. 커스텀 템플릿만 삭제 노출.
+        guard !template.isBuiltIn else { return }
+        let item = UIBarButtonItem(
+            image: UIImage(systemName: "trash"),
+            style: .plain,
+            target: self,
+            action: #selector(deleteTapped)
+        )
+        item.tintColor = .systemRed
+        navigationItem.rightBarButtonItem = item
+    }
+
+    @objc private func deleteTapped() {
+        let alert = DarkAlertController(
+            title: HyroxSimStrings.Localizable.Alert.DeleteTemplate.title,
+            message: HyroxSimStrings.Localizable.Alert.DeleteTemplate.message(template.name)
+        )
+        alert.addAction(.init(
+            title: HyroxSimStrings.Localizable.Button.cancel,
+            style: .cancel,
+            handler: nil
+        ))
+        alert.addAction(.init(
+            title: HyroxSimStrings.Localizable.Button.delete,
+            style: .destructive,
+            handler: { [weak self] in
+                guard let self else { return }
+                self.delegate?.templateDetailDidRequestDelete(self.template)
+            }
+        ))
+        present(alert, animated: true)
     }
 
     // MARK: - Layout

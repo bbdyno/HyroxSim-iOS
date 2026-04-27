@@ -14,6 +14,8 @@
 "alert.save_template.message" = "이름을 입력하세요";
 "alert.error.title" = "오류";
 "alert.end_workout_confirmation.message" = "지금 세션을 종료하려면 빨간 컨트롤을 사용하세요.";
+"alert.delete_template.title" = "템플릿 삭제?";
+"alert.delete_template.message" = "“%@”를 폰, 워치, 가민에서 모두 제거합니다.";
 
 // MARK: - Buttons
 "button.cancel" = "취소";
@@ -21,6 +23,7 @@
 "button.ok" = "확인";
 "button.save" = "저장";
 "button.discard" = "취소";
+"button.delete" = "삭제";
 "button.keep_editing" = "계속 편집";
 "button.start_workout" = "운동 시작";
 "button.end_workout" = "운동 종료";

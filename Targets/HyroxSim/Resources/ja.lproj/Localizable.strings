@@ -14,6 +14,8 @@
 "alert.save_template.message" = "名前を入力してください";
 "alert.error.title" = "エラー";
 "alert.end_workout_confirmation.message" = "今すぐセッションを停止したい場合のみ、赤いコントロールを使用してください。";
+"alert.delete_template.title" = "テンプレートを削除しますか?";
+"alert.delete_template.message" = "「%@」をスマホ、ウォッチ、Garminからすべて削除します。";
 
 // MARK: - Buttons
 "button.cancel" = "キャンセル";
@@ -21,6 +23,7 @@
 "button.ok" = "OK";
 "button.save" = "保存";
 "button.discard" = "破棄";
+"button.delete" = "削除";
 "button.keep_editing" = "編集を続ける";
 "button.start_workout" = "ワークアウト開始";
 "button.end_workout" = "ワークアウト終了";

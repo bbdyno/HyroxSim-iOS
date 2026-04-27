@@ -14,6 +14,8 @@
 "alert.save_template.message" = "Enter a name";
 "alert.error.title" = "Error";
 "alert.end_workout_confirmation.message" = "Use the red control only if you want to stop this session now.";
+"alert.delete_template.title" = "Delete template?";
+"alert.delete_template.message" = "“%@” will be removed from this phone, your watch, and Garmin.";
 
 // MARK: - Buttons
 "button.cancel" = "Cancel";
@@ -21,6 +23,7 @@
 "button.ok" = "OK";
 "button.save" = "Save";
 "button.discard" = "Discard";
+"button.delete" = "Delete";
 "button.keep_editing" = "Keep editing";
 "button.start_workout" = "Start workout";
 "button.end_workout" = "End workout";

@@ -14,6 +14,8 @@
 "alert.save_template.message" = "請輸入名稱";
 "alert.error.title" = "錯誤";
 "alert.end_workout_confirmation.message" = "僅當你要立即停止此訓練時,才使用紅色控制項。";
+"alert.delete_template.title" = "刪除範本?";
+"alert.delete_template.message" = "將從此手機、手錶與 Garmin 中刪除「%@」。";
 
 // MARK: - Buttons
 "button.cancel" = "取消";
@@ -21,6 +23,7 @@
 "button.ok" = "好";
 "button.save" = "儲存";
 "button.discard" = "放棄";
+"button.delete" = "刪除";
 "button.keep_editing" = "繼續編輯";
 "button.start_workout" = "開始訓練";
 "button.end_workout" = "結束訓練";
