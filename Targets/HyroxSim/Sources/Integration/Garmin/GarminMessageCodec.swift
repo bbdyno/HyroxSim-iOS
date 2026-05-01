@@ -25,6 +25,7 @@ public enum GarminMessageCodec {
     public enum MessageType {
         public static let hello              = "hello"
         public static let helloAck           = "hello.ack"
+        public static let syncRequest        = "sync.request"
         public static let goalSet            = "goal.set"
         public static let templateUpsert     = "template.upsert"
         public static let templateDelete     = "template.delete"

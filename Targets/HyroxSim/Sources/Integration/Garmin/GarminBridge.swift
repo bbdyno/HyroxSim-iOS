@@ -178,7 +178,13 @@ extension GarminBridge: IQAppMessageDelegate {
         }
         let type = (dict[GarminMessageCodec.Key.type] as? String) ?? "?"
         logger.info("RX t=\(type, privacy: .public)")
-        if type == GarminMessageCodec.MessageType.helloAck {
+        // Both signals mean "watch app is alive and ready to receive
+        // state". hello.ack is the response to our outbound hello;
+        // sync.request is the watch's unsolicited boot ping for the
+        // case where iOS was already foreground+BLE-connected and never
+        // emitted a hello in the first place.
+        if type == GarminMessageCodec.MessageType.helloAck
+                || type == GarminMessageCodec.MessageType.syncRequest {
             onHelloAck?()
         }
         onMessageReceived?(dict)
