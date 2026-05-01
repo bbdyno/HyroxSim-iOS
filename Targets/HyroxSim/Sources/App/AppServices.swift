@@ -45,15 +45,25 @@ final class AppServices {
 
     // hello.ack from the watch is our only confirmation that the watch app
     // is open and has accepted pairing. CIQ does not buffer messages for an
-    // offline watch app, so any `template.upsert` sent before the watch app
-    // was opened was silently dropped — re-push the full template list here
-    // so anything created pre-pairing finally lands.
+    // offline watch app, so any `template.upsert` / `goal.set` sent before
+    // the watch app was opened was silently dropped — re-push everything
+    // here so state created pre-pairing finally lands.
     private func wireGarminPostPairingResync() {
+        let overrideStore = TemplateGoalOverrideStore()
         GarminBridge.shared.onHelloAck = { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
-                let templates = (try? self.persistence.fetchAllTemplates()) ?? []
-                self.garminTemplateSyncService.pushAll(templates)
+                // Custom user templates: full push (template.upsert + goal.set).
+                let customs = (try? self.persistence.fetchAllTemplates()) ?? []
+                self.garminTemplateSyncService.pushAll(customs)
+                // Built-in HYROX presets: goal-only re-push so user-saved
+                // PacePlanner targets survive a re-pair. The watch
+                // generates the preset structure itself, so we deliberately
+                // skip template.upsert to keep MY WORKOUTS clean.
+                for preset in HyroxPresets.all {
+                    let resolved = overrideStore.resolvedTemplate(from: preset)
+                    self.garminTemplateSyncService.pushGoal(for: resolved)
+                }
             }
         }
     }
