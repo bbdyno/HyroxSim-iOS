@@ -144,6 +144,13 @@ extension GarminBridge: IQDeviceEventDelegate {
     public func deviceStatusChanged(_ device: IQDevice, status: IQDeviceStatus) {
         logger.info("device status \(device.friendlyName ?? "?", privacy: .public)=\(status.rawValue)")
         onDeviceStatusChanged?(status)
+        // `deviceCharacteristicsDiscovered` only fires once per BLE session,
+        // and CIQ does not queue app messages while the watch app is closed.
+        // Resending hello on every reconnect gives the watch a fresh chance
+        // to record pairing once the user opens the app on their watch.
+        if status == .connected {
+            sendHello()
+        }
     }
 
     public func deviceCharacteristicsDiscovered(_ device: IQDevice) {
@@ -187,6 +194,7 @@ public final class GarminBridge {
     }
     public func handle(url: URL) -> Bool { false }
     public func requestDeviceSelection() {}
+    public func sendHello() {}
     public func sendEnvelope(_ envelope: [String: Any]) {}
 }
 

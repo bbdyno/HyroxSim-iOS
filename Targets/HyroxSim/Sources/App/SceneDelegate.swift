@@ -58,4 +58,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             _ = GarminBridge.shared.handle(url: context.url)
         }
     }
+
+    // The CIQ phone-app message channel does not buffer for an offline watch
+    // app, so a hello sent while the watch app was closed is lost. The iOS
+    // app coming to the foreground is our best signal that the user is
+    // about to (or just did) open the watch app — resend hello here so the
+    // watch's PairingStore flips on the very first message.
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        GarminBridge.shared.sendHello()
+    }
 }
