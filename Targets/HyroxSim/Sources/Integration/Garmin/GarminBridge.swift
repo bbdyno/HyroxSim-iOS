@@ -39,6 +39,11 @@ public final class GarminBridge: NSObject {
     /// Fired whenever the connected device changes (pairing success, user
     /// unpairs, etc.). `nil` device = disconnected.
     public var onConnectedDeviceChanged: ((IQDevice?) -> Void)?
+    /// Fired when the watch responds with `hello.ack`. This is the only
+    /// signal we have that the watch app is actually running and has
+    /// processed our hello — use it to (re)push state the watch needs but
+    /// can have missed: existing custom templates, the active goal, etc.
+    public var onHelloAck: (() -> Void)?
 
     private let sdk = ConnectIQ.sharedInstance()
     private let deviceStore = GarminDeviceStore()
@@ -173,6 +178,9 @@ extension GarminBridge: IQAppMessageDelegate {
         }
         let type = (dict[GarminMessageCodec.Key.type] as? String) ?? "?"
         logger.info("RX t=\(type, privacy: .public)")
+        if type == GarminMessageCodec.MessageType.helloAck {
+            onHelloAck?()
+        }
         onMessageReceived?(dict)
     }
 }
@@ -185,6 +193,7 @@ public final class GarminBridge {
     public static let shared = GarminBridge()
     public var onMessageReceived: (([String: Any]) -> Void)?
     public var onConnectedDeviceChanged: ((Any?) -> Void)?
+    public var onHelloAck: (() -> Void)?
     public var isPaired: Bool { false }
     public var connectedDeviceName: String? { nil }
 

@@ -40,5 +40,21 @@ final class AppServices {
         syncCoordinator.activate()
         workoutMirrorController.activate()
         garminImportService.start()
+        wireGarminPostPairingResync()
+    }
+
+    // hello.ack from the watch is our only confirmation that the watch app
+    // is open and has accepted pairing. CIQ does not buffer messages for an
+    // offline watch app, so any `template.upsert` sent before the watch app
+    // was opened was silently dropped — re-push the full template list here
+    // so anything created pre-pairing finally lands.
+    private func wireGarminPostPairingResync() {
+        GarminBridge.shared.onHelloAck = { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                let templates = (try? self.persistence.fetchAllTemplates()) ?? []
+                self.garminTemplateSyncService.pushAll(templates)
+            }
+        }
     }
 }
