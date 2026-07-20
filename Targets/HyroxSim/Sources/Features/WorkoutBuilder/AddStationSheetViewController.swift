@@ -49,6 +49,7 @@ final class AddStationSheetViewController: UIViewController {
     private let weightSwitch = UISwitch()
     private let weightField = UITextField()
     private let weightNoteField = UITextField()
+    private let saveButton = UIButton(type: .system)
 
     init(mode: AddStationMode) {
         self.mode = mode
@@ -78,6 +79,7 @@ final class AddStationSheetViewController: UIViewController {
         applyDarkNavBarAppearance()
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
         setupUI()
+        setupKeyboardHandling()
         populateFromState()
     }
 
@@ -86,22 +88,30 @@ final class AddStationSheetViewController: UIViewController {
     private func setupUI() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollView)
+        saveButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(saveButton)
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            scrollView.bottomAnchor.constraint(equalTo: saveButton.topAnchor, constant: -12),
+            saveButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            saveButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            saveButton.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -12),
+            saveButton.heightAnchor.constraint(equalToConstant: 44)
         ])
+        scrollView.keyboardDismissMode = .interactive
 
         stackView.axis = .vertical
         stackView.spacing = 12
         stackView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(stackView)
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 16),
-            stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -16)
+            stackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 16),
+            stackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 20),
+            stackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -20),
+            stackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -16),
+            stackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -40)
         ])
 
         // Station Kind
@@ -136,6 +146,7 @@ final class AddStationSheetViewController: UIViewController {
         targetField.textAlignment = .center
         targetField.applyDarkStyle()
         targetField.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        targetField.accessibilityIdentifier = "stationEditor.targetField"
         stackView.addArrangedSubview(targetField)
 
         // Weight
@@ -156,24 +167,67 @@ final class AddStationSheetViewController: UIViewController {
         weightField.applyDarkStyle()
         weightField.heightAnchor.constraint(equalToConstant: 40).isActive = true
         weightField.isHidden = true
+        weightField.accessibilityIdentifier = "stationEditor.weightField"
         stackView.addArrangedSubview(weightField)
 
         weightNoteField.placeholder = "Note (e.g., per hand)"
         weightNoteField.applyDarkStyle()
         weightNoteField.heightAnchor.constraint(equalToConstant: 40).isActive = true
         weightNoteField.isHidden = true
+        weightNoteField.accessibilityIdentifier = "stationEditor.weightNoteField"
         stackView.addArrangedSubview(weightNoteField)
 
         // Save
-        let saveBtn = UIButton(type: .system)
-        saveBtn.setTitle(mode.isEdit ? "Save Changes" : "Add to Workout", for: .normal)
-        saveBtn.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
-        saveBtn.setTitleColor(.black, for: .normal)
-        saveBtn.backgroundColor = DesignTokens.Color.accent
-        saveBtn.layer.cornerRadius = 22
-        saveBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
-        saveBtn.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
-        stackView.addArrangedSubview(saveBtn)
+        saveButton.setTitle(mode.isEdit ? "Save Changes" : "Add to Workout", for: .normal)
+        saveButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+        saveButton.setTitleColor(.black, for: .normal)
+        saveButton.backgroundColor = DesignTokens.Color.accent
+        saveButton.layer.cornerRadius = 22
+        saveButton.accessibilityIdentifier = "stationEditor.saveButton"
+        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+    }
+
+    private func setupKeyboardHandling() {
+        let toolbar = UIToolbar()
+        toolbar.barStyle = .black
+        toolbar.tintColor = DesignTokens.Color.accent
+        toolbar.items = [
+            UIBarButtonItem(systemItem: .flexibleSpace),
+            UIBarButtonItem(systemItem: .done, primaryAction: UIAction { [weak self] _ in
+                self?.view.endEditing(true)
+            })
+        ]
+        toolbar.sizeToFit()
+
+        for field in [targetField, weightField, weightNoteField] {
+            field.inputAccessoryView = toolbar
+            field.addTarget(self, action: #selector(fieldEditingDidBegin(_:)), for: .editingDidBegin)
+        }
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardDidShow),
+            name: UIResponder.keyboardDidShowNotification,
+            object: nil
+        )
+    }
+
+    @objc private func fieldEditingDidBegin(_ field: UITextField) {
+        DispatchQueue.main.async { [weak self, weak field] in
+            guard let self, let field else { return }
+            self.scrollToVisible(field)
+        }
+    }
+
+    @objc private func keyboardDidShow() {
+        guard let activeField = [targetField, weightField, weightNoteField].first(where: \.isFirstResponder) else { return }
+        scrollToVisible(activeField)
+    }
+
+    private func scrollToVisible(_ field: UITextField) {
+        view.layoutIfNeeded()
+        let fieldRect = field.convert(field.bounds, to: scrollView).insetBy(dx: 0, dy: -12)
+        scrollView.scrollRectToVisible(fieldRect, animated: true)
     }
 
     private func makeSectionLabel(_ text: String) -> UILabel {
@@ -185,15 +239,26 @@ final class AddStationSheetViewController: UIViewController {
     }
 
     private func populateFromState() {
-        targetField.text = "\(Int(targetValue))"
+        targetField.text = formattedTargetValue()
         if let w = weightKg {
             weightSwitch.isOn = true
             weightField.isHidden = false
-            weightField.text = "\(Int(w))"
+            weightField.text = LocalizedDecimalFormatter.string(from: w)
             weightNoteField.isHidden = false
             weightNoteField.text = weightNote
         }
         updateKindSelection()
+    }
+
+    private func formattedTargetValue() -> String {
+        switch targetType {
+        case .reps:
+            return "\(Int(targetValue))"
+        case .distance, .duration:
+            return LocalizedDecimalFormatter.string(from: targetValue)
+        case .none:
+            return ""
+        }
     }
 
     private func updateKindSelection() {
@@ -219,7 +284,7 @@ final class AddStationSheetViewController: UIViewController {
         case .none: targetType = .none; targetValue = 0
         }
         targetSegmented.selectedSegmentIndex = targetType.rawValue
-        targetField.text = targetType == .none ? "" : "\(Int(targetValue))"
+        targetField.text = formattedTargetValue()
         updateKindSelection()
     }
 
@@ -234,7 +299,8 @@ final class AddStationSheetViewController: UIViewController {
     }
 
     @objc private func saveTapped() {
-        let val = Double(targetField.text ?? "") ?? targetValue
+        view.endEditing(true)
+        let val = LocalizedDecimalFormatter.value(from: targetField.text ?? "") ?? targetValue
         let target: StationTarget
         switch targetType {
         case .distance: target = .distance(meters: val)
@@ -244,7 +310,7 @@ final class AddStationSheetViewController: UIViewController {
         }
         var wKg: Double?; var wNote: String?
         if weightSwitch.isOn {
-            wKg = Double(weightField.text ?? "")
+            wKg = LocalizedDecimalFormatter.value(from: weightField.text ?? "")
             wNote = weightNoteField.text?.isEmpty == true ? nil : weightNoteField.text
         }
         delegate?.addStation(.station(selectedKind, target: target, weightKg: wKg, weightNote: wNote), mode: mode)

@@ -320,12 +320,16 @@ final class WorkoutBuilderViewController: UIViewController {
             case .station:
                 let name = seg.stationKind?.displayName ?? "Station"
                 config.text = "\(num). \(name) — \(seg.stationTarget?.formatted ?? "")"
-                if let w = seg.weightKg { config.secondaryText = "\(Int(w)) kg" + (seg.weightNote.map { " \($0)" } ?? "") }
+                if let w = seg.weightKg {
+                    config.secondaryText = "\(LocalizedDecimalFormatter.string(from: w)) kg"
+                        + (seg.weightNote.map { " \($0)" } ?? "")
+                }
                 config.textProperties.color = DesignTokens.Color.stationAccent
             }
             config.textProperties.font = .systemFont(ofSize: 14, weight: .medium)
             config.secondaryTextProperties.color = DesignTokens.Color.textTertiary
             cell.contentConfiguration = config
+            cell.accessibilityIdentifier = "workoutBuilder.segment.\(idx)"
             cell.accessories = [.reorder(displayed: .always)]
 
             var bg = UIBackgroundConfiguration.listPlainCell()
