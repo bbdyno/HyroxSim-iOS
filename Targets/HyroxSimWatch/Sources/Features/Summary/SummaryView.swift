@@ -69,7 +69,7 @@ struct SummaryView: View {
         HStack(spacing: 4) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 10, weight: .bold))
-            Text("Save failed — retrying next launch")
+            Text(HyroxSimWatchStrings.Localizable.Summary.saveFailed)
                 .font(.system(size: 11, weight: .bold))
                 .multilineTextAlignment(.leading)
         }

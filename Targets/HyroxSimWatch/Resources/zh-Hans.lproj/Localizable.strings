@@ -13,3 +13,8 @@
 
 // MARK: - Alerts
 "alert.end_workout_confirmation.message" = "仅当你要立即停止此训练时,才使用红色控件。";
+
+// MARK: - Phone mirror / recovery
+"mirror.stale" = "未收到手机更新";
+"mirror.close" = "关闭镜像";
+"summary.save_failed" = "保存失败 — 下次启动时重试";

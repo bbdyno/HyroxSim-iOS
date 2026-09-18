@@ -13,3 +13,8 @@
 
 // MARK: - Alerts
 "alert.end_workout_confirmation.message" = "今すぐセッションを停止したい場合のみ、赤いコントロールを使用してください。";
+
+// MARK: - Phone mirror / recovery
+"mirror.stale" = "iPhoneからの更新がありません";
+"mirror.close" = "ミラーを閉じる";
+"summary.save_failed" = "保存に失敗 — 次回起動時に再試行";

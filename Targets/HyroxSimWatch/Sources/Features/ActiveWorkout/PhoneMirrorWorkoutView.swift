@@ -46,7 +46,7 @@ struct PhoneMirrorWorkoutView: View {
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(.red)
 
-            Text("No updates from phone")
+            Text(HyroxSimWatchStrings.Localizable.Mirror.stale)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
@@ -55,7 +55,7 @@ struct PhoneMirrorWorkoutView: View {
                 WKInterfaceDevice.current().play(.stop)
                 model.closeMirror()
             } label: {
-                Text("Close Mirror")
+                Text(HyroxSimWatchStrings.Localizable.Mirror.close)
                     .font(.system(size: 14, weight: .bold))
             }
             .buttonStyle(.borderedProminent)
