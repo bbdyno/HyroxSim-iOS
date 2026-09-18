@@ -41,6 +41,8 @@ final class WatchActiveWorkoutModel {
     private(set) var isLastSegment: Bool = false
     private(set) var gpsStrong: Bool = false  // simple on/off for watch (compact)
     private(set) var gpsActive: Bool = true
+    /// 로컬 저장 실패 여부. 요약 화면 경고 표시용 (결과는 체크포인트로 남아 다음 실행에서 재시도).
+    private(set) var didFailToSave: Bool = false
 
     enum AccentKind { case run, roxZone, station }
 
@@ -54,17 +56,21 @@ final class WatchActiveWorkoutModel {
     private let syncCoordinator: (any SyncCoordinator)?
     private let maxHeartRate: Int
 
-    private var displayTask: Task<Void, Never>?
-    private var locationTask: Task<Void, Never>?
-    private var heartRateTask: Task<Void, Never>?
-    private var sensorStartupTask: Task<Void, Never>?
-    private var mirroringTask: Task<Void, Never>?
+    // Task 핸들은 관찰 대상이 아니다. @ObservationIgnored 여야 nonisolated deinit 에서 취소할 수 있다.
+    @ObservationIgnored private var displayTask: Task<Void, Never>?
+    @ObservationIgnored private var locationTask: Task<Void, Never>?
+    @ObservationIgnored private var heartRateTask: Task<Void, Never>?
+    @ObservationIgnored private var sensorStartupTask: Task<Void, Never>?
+    @ObservationIgnored private var mirroringTask: Task<Void, Never>?
     private var segmentStartHKDistance: Double = 0
     private var isMirroringActive = false
     private var didStart = false
     private var lastRemoteCommand: (command: WorkoutCommand, at: Date)?
     private var uiTestAutoEndDeadline: Date?
     private var alertedGoalSegmentId: UUID?
+    private var workoutStartedAt: Date?
+    private let checkpointStore = WorkoutCheckpointStore.shared
+    private let checkpointId = UUID()
 
     var finishHandler: ((CompletedWorkout) -> Void)?
     var errorHandler: ((Error) -> Void)?
@@ -84,6 +90,15 @@ final class WatchActiveWorkoutModel {
         self.maxHeartRate = maxHeartRate
     }
 
+    /// 모델이 해제되면 브로드캐스트 루프와 센서 태스크도 함께 끝낸다 — 좀비 태스크 방지.
+    deinit {
+        displayTask?.cancel()
+        sensorStartupTask?.cancel()
+        locationTask?.cancel()
+        heartRateTask?.cancel()
+        mirroringTask?.cancel()
+    }
+
     /// TimelineView에서 매 틱마다 호출 — UI 갱신용
     @discardableResult
     func triggerRefresh() -> Bool {
@@ -97,7 +112,11 @@ final class WatchActiveWorkoutModel {
         guard !didStart else { return }
         didStart = true
         do {
-            try engine.start(at: Date())
+            let startedAt = Date()
+            try engine.start(at: startedAt)
+            workoutStartedAt = startedAt
+            WatchLocalWorkoutActivity.shared.begin()
+            saveCheckpoint()
             if uiTestAutoEndDeadline == nil,
                ProcessInfo.processInfo.arguments.contains("UITestAutoEndWatchWorkout") {
                 uiTestAutoEndDeadline = Date().addingTimeInterval(6)
@@ -139,6 +158,7 @@ final class WatchActiveWorkoutModel {
             try engine.advance(at: Date())
             segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
             refresh()
+            saveCheckpoint()
             if engine.isFinished {
                 Task { await finishAndSave() }
             }
@@ -156,6 +176,7 @@ final class WatchActiveWorkoutModel {
             }
             isPaused.toggle()
             refresh()
+            saveCheckpoint()
         } catch { errorHandler?(error) }
     }
 
@@ -346,15 +367,39 @@ final class WatchActiveWorkoutModel {
     /// UI 갱신은 TimelineView가 담당. 이 타이머는 백그라운드 브로드캐스트 전용.
     /// TimelineView가 보이지 않을 때도 폰에 실시간 전송을 유지하기 위해 필요.
     private func startDisplayTimer() {
-        displayTask = Task { [weak self] in
+        displayTask?.cancel()
+        displayTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
-                await MainActor.run { self?.broadcastLiveState() }
+                // 모델이 해제되면 루프도 즉시 끝낸다 — 해제 후 브로드캐스트가 남지 않도록.
+                guard let self else { break }
+                broadcastLiveState()
             }
         }
     }
 
+    /// 진행 상황을 파일에 남겨 크래시·강제 종료 시 다음 실행에서 복구할 수 있게 한다.
+    /// `finishedAt` 이 있으면 정상 종료 후 저장 실패 케이스 — 다음 실행에서 저장을 재시도한다.
+    private func saveCheckpoint(finishedAt: Date? = nil, id: UUID? = nil) {
+        guard let workoutStartedAt else { return }
+        checkpointStore.save(
+            WorkoutCheckpoint(
+                id: id ?? checkpointId,
+                templateName: engine.template.name,
+                division: engine.template.division,
+                startedAt: workoutStartedAt,
+                updatedAt: Date(),
+                segments: engine.records,
+                isFinished: finishedAt != nil,
+                finishedAt: finishedAt
+            )
+        )
+    }
+
     private func finishAndSave() async {
+        // 어떤 경로로 끝나도 로컬 운동 플래그는 반드시 해제한다.
+        defer { WatchLocalWorkoutActivity.shared.end() }
+
         syncCoordinator?.sendWorkoutFinished(origin: .watch)
         if isMirroringActive {
             Task { [workoutSession] in
@@ -368,15 +413,43 @@ final class WatchActiveWorkoutModel {
         }
         cleanup()
         workoutSession.stop()
+
+        let completed: CompletedWorkout
         do {
-            let completed = try engine.makeCompletedWorkout()
-            try persistence.saveCompletedWorkout(completed)
-            try? syncCoordinator?.sendCompletedWorkout(completed)
-            isFinished = true
-            finishHandler?(completed)
+            completed = try engine.makeCompletedWorkout()
         } catch {
+            // 엔진 상태가 어긋나도 운동 화면에 갇히면 안 된다. 기록해 둔 구간으로 결과를 만든다.
+            errorHandler?(error)
+            completed = CompletedWorkout(
+                id: checkpointId,
+                templateName: engine.template.name,
+                division: engine.template.division,
+                startedAt: workoutStartedAt ?? engine.records.first?.startedAt ?? Date(),
+                finishedAt: engine.records.last?.endedAt ?? Date(),
+                segments: engine.records
+            )
+        }
+
+        // 로컬 저장과 폰 전송은 서로 독립적으로 시도한다. 하나가 실패해도 요약 화면까지는 반드시 진행.
+        do {
+            try persistence.saveCompletedWorkout(completed)
+            didFailToSave = false
+            checkpointStore.clear()
+        } catch {
+            didFailToSave = true
+            // 저장 실패한 결과는 체크포인트로 남겨 다음 실행에서 재시도한다.
+            saveCheckpoint(finishedAt: completed.finishedAt, id: completed.id)
             errorHandler?(error)
         }
+
+        do {
+            try syncCoordinator?.sendCompletedWorkout(completed)
+        } catch {
+            print("[WatchWorkout] Failed to send completed workout: \(error)")
+        }
+
+        isFinished = true
+        finishHandler?(completed)
     }
 
     private func cleanup() {
