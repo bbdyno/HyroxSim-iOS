@@ -248,9 +248,15 @@ final class WorkoutBuilderViewController: UIViewController {
         guard let template = try? viewModel.makeTemplateForStart() else { return }
 
         let rootVC: UIViewController
+        // 프리셋을 복제해 구조를 바꾼 템플릿은 디비전이 남아 있어도 8×8 기준 플랜을 쓸 수 없다.
         if template.division != nil,
+           template.isStandardHyroxCourse,
            let pacePlanner = try? PaceReferenceLoader.loadPacePlanner() {
-            let planner = PacePlannerViewController(template: template, planner: pacePlanner)
+            let planner = PacePlannerViewController(
+                template: template,
+                planner: pacePlanner,
+                goalOverrideStore: TemplateGoalOverrideStore()
+            )
             planner.delegate = self
             rootVC = planner
         } else {

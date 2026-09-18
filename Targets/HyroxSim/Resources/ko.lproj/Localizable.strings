@@ -3,6 +3,10 @@
 "pace_planner.mode.hint.equal" = "Run 1~8 동일 분배";
 "pace_planner.mode.hint.adaptive" = "데이터 기반 Run별 분배";
 "pace_planner.percentile.format" = "상위 %.1f%%";
+"pace_planner.data_range.hint" = "데이터 범위 %@ – %@";
+"pace_planner.warning.too_fast" = "데이터보다 빠른 목표입니다. 계획할 수 있는 가장 빠른 목표는 %@ 입니다.";
+"pace_planner.warning.too_slow" = "데이터보다 느린 목표입니다. 계획할 수 있는 가장 느린 목표는 %@ 입니다.";
+"pace_planner.warning.unbalanced" = "이 목표는 정확히 분배할 수 없습니다. 근처 시간을 골라 주세요.";
 
 // MARK: - Alerts
 "alert.end_workout.title" = "운동 종료?";

@@ -21,21 +21,36 @@ final class PacePlannerViewController: UIViewController {
 
     private var template: WorkoutTemplate
     private let planner: PacePlanner
+    private let goalOverrideStore: TemplateGoalOverrideStore
 
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private let timePicker = UIPickerView()
     private let pctLabel = UILabel()
     private let tierLabel = UILabel()
+    private let rangeHintLabel = UILabel()
+    private let warningLabel = UILabel()
     private let resultStack = UIStackView()
     private let footerContainer = UIView()
     private let applyButton = UIButton(type: .system)
     private let finetuneButton = UIButton(type: .system)
 
-    /// 시(hour) 피커 범위는 0–4. 레퍼런스 데이터의 최대 버킷이 240분(4시간)이다.
-    private static let maxPickerHours = 4
-    /// 피커로 고를 수 있는 최대 목표 시간 (4:59:59)
-    private static let maxSelectableSeconds = maxPickerHours * 3600 + 59 * 60 + 59
+    /// 이 디비전의 버킷이 실제로 덮는 목표 시간 구간. 피커 범위와 경고의 기준이다.
+    /// 데이터에 없는 디비전이면 nil.
+    private let goalRange: PaceGoalRange?
+
+    /// 데이터가 없을 때만 쓰는 피커 폴백 (0–4시간).
+    private static let fallbackHourRange = 0...4
+
+    /// 시(hour) 행은 데이터에서 뽑는다. 분·초는 열어 두고, 범위를 벗어난 조합은
+    /// `warningLabel` + Apply 비활성화로 잡는다.
+    private var pickerHourRange: ClosedRange<Int> {
+        guard let goalRange else { return Self.fallbackHourRange }
+        return (goalRange.minTotalS / 3600)...(goalRange.maxTotalS / 3600)
+    }
+
+    private var minSelectableSeconds: Int { pickerHourRange.lowerBound * 3600 }
+    private var maxSelectableSeconds: Int { pickerHourRange.upperBound * 3600 + 59 * 60 + 59 }
 
     private var selectedHours = 1
     private var selectedMinutes = 20
@@ -43,20 +58,15 @@ final class PacePlannerViewController: UIViewController {
     private var runMode: PacePlanner.RunMode = .adaptive
     private var plan: PacePlan?
 
-    private let stationOrder: [(String, String)] = [
-        ("skiErg", "SkiErg"),
-        ("sledPush", "Sled Push"),
-        ("sledPull", "Sled Pull"),
-        ("burpeeBroadJumps", "Burpee Broad Jumps"),
-        ("rowing", "Rowing"),
-        ("farmersCarry", "Farmers Carry"),
-        ("sandbagLunges", "Sandbag Lunges"),
-        ("wallBalls", "Wall Balls")
-    ]
-
-    init(template: WorkoutTemplate, planner: PacePlanner) {
+    init(
+        template: WorkoutTemplate,
+        planner: PacePlanner,
+        goalOverrideStore: TemplateGoalOverrideStore
+    ) {
         self.template = template
         self.planner = planner
+        self.goalOverrideStore = goalOverrideStore
+        self.goalRange = template.division.flatMap { planner.goalRange(for: $0) }
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -127,6 +137,7 @@ final class PacePlannerViewController: UIViewController {
         applyButton.setTitle(HyroxSimStrings.Localizable.Button.applyGoals, for: .normal)
         applyButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
         applyButton.setTitleColor(.black, for: .normal)
+        applyButton.setTitleColor(DesignTokens.Color.textSecondary, for: .disabled)
         applyButton.backgroundColor = DesignTokens.Color.accent
         applyButton.layer.cornerRadius = 24
         applyButton.translatesAutoresizingMaskIntoConstraints = false
@@ -182,6 +193,20 @@ final class PacePlannerViewController: UIViewController {
         goalHeader.textColor = DesignTokens.Color.accent
         contentStack.addArrangedSubview(goalHeader)
 
+        // 이 화면이 계획할 수 있는 구간을 먼저 알려 준다 — 피커가 왜 거기서 멈추는지 설명.
+        rangeHintLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        rangeHintLabel.textColor = DesignTokens.Color.textTertiary
+        rangeHintLabel.numberOfLines = 0
+        if let goalRange {
+            rangeHintLabel.text = Self.L.dataRangeHint(
+                DurationFormatter.hms(TimeInterval(goalRange.minTotalS)),
+                DurationFormatter.hms(TimeInterval(goalRange.maxTotalS))
+            )
+        } else {
+            rangeHintLabel.isHidden = true
+        }
+        contentStack.addArrangedSubview(rangeHintLabel)
+
         // Percentile display
         tierLabel.font = .systemFont(ofSize: 14, weight: .bold)
         tierLabel.textAlignment = .center
@@ -198,6 +223,14 @@ final class PacePlannerViewController: UIViewController {
         timePicker.translatesAutoresizingMaskIntoConstraints = false
         timePicker.heightAnchor.constraint(equalToConstant: 140).isActive = true
         contentStack.addArrangedSubview(timePicker)
+
+        // 데이터 범위를 벗어났거나 분배가 목표에 못 맞은 경우의 경고
+        warningLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        warningLabel.textColor = DesignTokens.Color.destructive
+        warningLabel.numberOfLines = 0
+        warningLabel.textAlignment = .center
+        warningLabel.isHidden = true
+        contentStack.addArrangedSubview(warningLabel)
 
         // Run mode toggle
         let modeRow = makeRunModeToggle()
@@ -253,47 +286,42 @@ final class PacePlannerViewController: UIViewController {
 
     /// 목표 시간을 피커가 표현할 수 있는 범위로 자른 뒤, 내부 상태와 피커 행을 함께 맞춘다.
     private func applyGoalSeconds(_ seconds: Int) {
-        let clamped = min(max(0, seconds), Self.maxSelectableSeconds)
+        let clamped = min(max(minSelectableSeconds, seconds), maxSelectableSeconds)
         selectedHours = clamped / 3600
         selectedMinutes = (clamped % 3600) / 60
         selectedSeconds = clamped % 60
 
-        timePicker.selectRow(selectedHours, inComponent: 0, animated: false)
+        timePicker.selectRow(selectedHours - pickerHourRange.lowerBound, inComponent: 0, animated: false)
         timePicker.selectRow(selectedMinutes, inComponent: 2, animated: false)
         timePicker.selectRow(selectedSeconds, inComponent: 4, animated: false)
     }
 
     private func initialGoalSeconds() -> Int {
         let currentSelection = selectedHours * 3600 + selectedMinutes * 60 + selectedSeconds
-        guard let division = template.division,
-              let div = planner.data.divisions[division.rawValue] else { return currentSelection }
+        guard let division = template.division else { return currentSelection }
 
-        // If template already has goals set, use the total as initial value
-        let existingTotal = LocalizedDecimalFormatter.safeInt(template.estimatedDurationSeconds)
-        let hasExistingGoals = template.segments.contains { $0.goalDurationSeconds != nil }
-        if hasExistingGoals && existingTotal > 0 { return existingTotal }
-
-        // Find 50th percentile time (matching site's setupTime)
-        let bs = div.buckets
-        guard let firstBucket = bs.first, let lastBucket = bs.last else { return currentSelection }
-
-        var bestSec = (firstBucket.loMin + lastBucket.hiMin) / 2 * 60
-        for i in 0..<bs.count {
-            let avg = (bs[i].pctRange[0] + bs[i].pctRange[1]) / 2
-            if avg >= 50 {
-                if i == 0 {
-                    bestSec = (bs[0].loMin + bs[0].hiMin) / 2 * 60
-                } else {
-                    let prev = (bs[i - 1].pctRange[0] + bs[i - 1].pctRange[1]) / 2
-                    let t = (50 - prev) / (avg - prev)
-                    let prevMid = Double(bs[i - 1].loMin + bs[i - 1].hiMin) / 2
-                    let curMid = Double(bs[i].loMin + bs[i].hiMin) / 2
-                    bestSec = LocalizedDecimalFormatter.safeInt((prevMid + (curMid - prevMid) * t) * 60)
-                }
-                break
-            }
+        if startsFromExistingGoals {
+            let existingTotal = LocalizedDecimalFormatter.safeInt(template.estimatedDurationSeconds)
+            if existingTotal > 0 { return existingTotal }
         }
-        return bestSec
+
+        // 한 번도 목표를 정한 적이 없으면 이 디비전의 중앙값에서 출발한다.
+        return planner.medianGoalSeconds(for: division) ?? currentSelection
+    }
+
+    /// 피커 시작값을 "이미 들어 있는 목표"로 둘지, 데이터 중앙값으로 둘지 판단한다.
+    ///
+    /// 프리셋 세그먼트는 만들어질 때부터 기본 목표(런 360초 / 스테이션 240초)를 들고 있어서
+    /// 목표의 존재 여부로는 사용자가 정했는지 알 수 없다 — 그래서 모든 프리셋이 늘 1:27:30 에서
+    /// 시작했다. 빌트인 프리셋은 `TemplateGoalOverrideStore` 에 저장된 override 가 유일한 근거다.
+    /// 커스텀 템플릿은 override 저장소를 쓰지 않고 목표를 템플릿 자체에 들고 있으므로 그대로 쓴다.
+    private var startsFromExistingGoals: Bool {
+        guard template.isBuiltIn, let division = template.division else { return true }
+
+        // 저장된 override 가 있을 때만 프리셋 원본과 다른 템플릿이 돌아온다.
+        // 여기로 들어온 template 은 이미 override 가 적용된 상태일 수 있어 원본과 비교한다.
+        let preset = HyroxPresets.template(for: division)
+        return goalOverrideStore.resolvedTemplate(from: preset) != preset
     }
 
     // MARK: - Actions
@@ -303,14 +331,17 @@ final class PacePlannerViewController: UIViewController {
     }
 
     @objc private func applyTapped() {
-        guard let plan else { return }
+        guard let plan, plan.isApplicable else { return }
         applyPlanToTemplate(plan)
         delegate?.pacePlannerDidConfirm(template: template)
     }
 
     @objc private func finetuneTapped() {
-        guard let plan else { return }
-        applyPlanToTemplate(plan)
+        // 적용 가능한 플랜일 때만 템플릿에 쓴다. 데이터 범위를 벗어난 플랜은
+        // 손으로 고치러 들어가는 길만 열어 두고 기존 목표는 건드리지 않는다.
+        if let plan, plan.isApplicable {
+            applyPlanToTemplate(plan)
+        }
 
         let goalVC = WorkoutGoalSetupViewController(
             template: template,
@@ -333,15 +364,59 @@ final class PacePlannerViewController: UIViewController {
     // MARK: - Analysis
 
     private func performAnalysis() {
-        guard let division = template.division else { return }
+        guard let division = template.division else {
+            updateGuardrails(for: nil, goalSeconds: 0)
+            return
+        }
         let goalS = selectedHours * 3600 + selectedMinutes * 60 + selectedSeconds
-        guard goalS > 0 else { return }
 
-        guard let p = planner.computePlan(goalTotalS: goalS, division: division, mode: runMode) else { return }
-        plan = p
+        let computed = goalS > 0
+            ? planner.computePlan(goalTotalS: goalS, division: division, mode: runMode)
+            : nil
+        plan = computed
 
-        updatePercentileDisplay(p)
-        buildResult(p)
+        guard let computed else {
+            // 목표 0 처럼 계획을 세울 수 없는 상태. 직전 결과를 남겨 두면 그 값이
+            // 적용될 것처럼 보이므로 지운다.
+            resultStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+            tierLabel.text = nil
+            pctLabel.text = nil
+            updateGuardrails(for: nil, goalSeconds: goalS)
+            return
+        }
+
+        updatePercentileDisplay(computed)
+        buildResult(computed)
+        updateGuardrails(for: computed, goalSeconds: goalS)
+    }
+
+    /// 경고 문구와 Apply 활성 여부를 한곳에서 정한다.
+    private func updateGuardrails(for plan: PacePlan?, goalSeconds: Int) {
+        let warning = warningText(for: plan, goalSeconds: goalSeconds)
+        warningLabel.text = warning
+        warningLabel.isHidden = warning == nil
+
+        let canApply = plan?.isApplicable ?? false
+        applyButton.isEnabled = canApply
+        applyButton.backgroundColor = canApply
+            ? DesignTokens.Color.accent
+            : DesignTokens.Color.surfaceElevated
+    }
+
+    private func warningText(for plan: PacePlan?, goalSeconds: Int) -> String? {
+        let range = plan?.goalRange ?? goalRange
+        switch plan?.rangeStatus ?? range?.status(for: goalSeconds) {
+        case .fasterThanData:
+            guard let range else { return nil }
+            return Self.L.warningTooFast(DurationFormatter.hms(TimeInterval(range.minTotalS)))
+        case .slowerThanData:
+            guard let range else { return nil }
+            return Self.L.warningTooSlow(DurationFormatter.hms(TimeInterval(range.maxTotalS)))
+        case .inRange, .none:
+            // 범위 안인데도 보정 루프가 목표에 정확히 못 맞은 경우.
+            guard let plan, plan.computedTotal != plan.goalTotalS else { return nil }
+            return Self.L.warningUnbalanced
+        }
     }
 
     private func updatePercentileDisplay(_ plan: PacePlan) {
@@ -371,7 +446,8 @@ final class PacePlannerViewController: UIViewController {
         addSeparator()
 
         // Runs + Stations interleaved (matching site: Run 1, Station 1, Run 2, Station 2, ...)
-        for i in 0..<8 {
+        for (i, station) in StationKind.standardOrder.enumerated() {
+            guard i < plan.runTimes.count else { break }
             let runSec = plan.runTimes[i]
             let runPace = DurationFormatter.ms(TimeInterval(Int(Double(runSec) / 1.0875)))
 
@@ -384,12 +460,11 @@ final class PacePlannerViewController: UIViewController {
             ))
 
             // Station row
-            let (key, name) = stationOrder[i]
-            if let stnSec = plan.stationTimes[key] {
-                let hasPace = key == "skiErg" || key == "rowing"
+            if let key = station.dataKey, let stnSec = plan.stationTimes[key] {
+                let hasPace = station == .skiErg || station == .rowing
                 let paceText = hasPace ? "\(DurationFormatter.ms(TimeInterval(stnSec / 2))) /500m" : nil
                 resultStack.addArrangedSubview(makeRow(
-                    title: name,
+                    title: station.displayName,
                     time: DurationFormatter.ms(TimeInterval(stnSec)),
                     subtitle: paceText,
                     color: DesignTokens.Color.stationAccent,
@@ -443,22 +518,8 @@ final class PacePlannerViewController: UIViewController {
                     runIndex += 1
                 }
             case .station:
-                if let kind = seg.stationKind {
-                    let key: String
-                    switch kind {
-                    case .skiErg: key = "skiErg"
-                    case .sledPush: key = "sledPush"
-                    case .sledPull: key = "sledPull"
-                    case .burpeeBroadJumps: key = "burpeeBroadJumps"
-                    case .rowing: key = "rowing"
-                    case .farmersCarry: key = "farmersCarry"
-                    case .sandbagLunges: key = "sandbagLunges"
-                    case .wallBalls: key = "wallBalls"
-                    case .custom: key = ""
-                    }
-                    if let secs = plan.stationTimes[key] {
-                        template.segments[i].goalDurationSeconds = TimeInterval(secs)
-                    }
+                if let key = seg.stationKind?.dataKey, let secs = plan.stationTimes[key] {
+                    template.segments[i].goalDurationSeconds = TimeInterval(secs)
                 }
             case .roxZone:
                 template.segments[i].goalDurationSeconds = 0
@@ -543,6 +604,19 @@ final class PacePlannerViewController: UIViewController {
     fileprivate enum L {
         static var modeEqual: String { HyroxSimStrings.Localizable.PacePlanner.Mode.equal }
         static var modeAdaptive: String { HyroxSimStrings.Localizable.PacePlanner.Mode.adaptive }
+        static var warningUnbalanced: String { HyroxSimStrings.Localizable.PacePlanner.Warning.unbalanced }
+
+        static func dataRangeHint(_ fastest: String, _ slowest: String) -> String {
+            HyroxSimStrings.Localizable.PacePlanner.DataRange.hint(fastest, slowest)
+        }
+
+        static func warningTooFast(_ fastest: String) -> String {
+            HyroxSimStrings.Localizable.PacePlanner.Warning.tooFast(fastest)
+        }
+
+        static func warningTooSlow(_ slowest: String) -> String {
+            HyroxSimStrings.Localizable.PacePlanner.Warning.tooSlow(slowest)
+        }
 
         static func percentileFormat(_ percent: Float) -> String {
             HyroxSimStrings.Localizable.PacePlanner.Percentile.format(percent)
@@ -565,7 +639,7 @@ extension PacePlannerViewController: UIPickerViewDataSource, UIPickerViewDelegat
 
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
         switch component {
-        case 0: return Self.maxPickerHours + 1
+        case 0: return pickerHourRange.count
         case 2: return 60
         case 4: return 60
         default: return 1
@@ -588,7 +662,8 @@ extension PacePlannerViewController: UIPickerViewDataSource, UIPickerViewDelegat
         case 0, 2, 4:
             label.textAlignment = .right
             label.font = .monospacedDigitSystemFont(ofSize: 22, weight: .semibold)
-            label.text = String(format: "%02d", row)
+            // 시 컴포넌트는 데이터 범위의 첫 시간부터 시작하므로 행 번호와 값이 다를 수 있다.
+            label.text = String(format: "%02d", component == 0 ? pickerHourRange.lowerBound + row : row)
         case 1:
             label.textAlignment = .left
             label.font = .systemFont(ofSize: 16, weight: .medium)
@@ -612,7 +687,7 @@ extension PacePlannerViewController: UIPickerViewDataSource, UIPickerViewDelegat
 
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         switch component {
-        case 0: selectedHours = row
+        case 0: selectedHours = pickerHourRange.lowerBound + row
         case 2: selectedMinutes = row
         case 4: selectedSeconds = row
         default: break

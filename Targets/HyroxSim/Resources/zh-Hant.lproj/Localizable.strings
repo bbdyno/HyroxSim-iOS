@@ -3,6 +3,10 @@
 "pace_planner.mode.hint.equal" = "Run 1~8 均勻分配";
 "pace_planner.mode.hint.adaptive" = "基於數據的各 Run 分配";
 "pace_planner.percentile.format" = "前 %.1f%%";
+"pace_planner.data_range.hint" = "資料範圍 %@ – %@";
+"pace_planner.warning.too_fast" = "目標快於資料範圍。可規劃的最快目標為 %@。";
+"pace_planner.warning.too_slow" = "目標慢於資料範圍。可規劃的最慢目標為 %@。";
+"pace_planner.warning.unbalanced" = "無法精確分配此目標，請選擇相近的時間。";
 
 // MARK: - Alerts
 "alert.end_workout.title" = "結束訓練?";

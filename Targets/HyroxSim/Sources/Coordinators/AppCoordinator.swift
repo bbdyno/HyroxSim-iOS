@@ -427,8 +427,14 @@ public final class AppCoordinator {
         case .builder:
             presentBuilder(startingFrom: ScreenshotFixtures.customTemplate, animated: false)
         case .pacePlanner:
-            guard let planner = try? PaceReferenceLoader.loadPacePlanner() else { return }
-            let vc = PacePlannerViewController(template: HyroxPresets.menProSingle, planner: planner)
+            let preset = HyroxPresets.menProSingle
+            guard preset.isStandardHyroxCourse,
+                  let planner = try? PaceReferenceLoader.loadPacePlanner() else { return }
+            let vc = PacePlannerViewController(
+                template: preset,
+                planner: planner,
+                goalOverrideStore: templateGoalOverrideStore
+            )
             navigationController.setViewControllers([vc], animated: false)
         case .history:
             navigationController.pushViewController(makeHistoryViewController(), animated: false)

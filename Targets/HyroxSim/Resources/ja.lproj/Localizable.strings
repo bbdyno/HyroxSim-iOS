@@ -3,6 +3,10 @@
 "pace_planner.mode.hint.equal" = "Run 1〜8を均等に配分";
 "pace_planner.mode.hint.adaptive" = "データに基づくRun別配分";
 "pace_planner.percentile.format" = "上位 %.1f%%";
+"pace_planner.data_range.hint" = "データ範囲 %@ – %@";
+"pace_planner.warning.too_fast" = "データより速い目標です。設定できる最速の目標は %@ です。";
+"pace_planner.warning.too_slow" = "データより遅い目標です。設定できる最遅の目標は %@ です。";
+"pace_planner.warning.unbalanced" = "この目標は正確に配分できません。近い時間を選んでください。";
 
 // MARK: - Alerts
 "alert.end_workout.title" = "ワークアウトを終了しますか?";

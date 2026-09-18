@@ -3,6 +3,10 @@
 "pace_planner.mode.hint.equal" = "Evenly split across 8 runs";
 "pace_planner.mode.hint.adaptive" = "Data-based per-run split";
 "pace_planner.percentile.format" = "Top %.1f%%";
+"pace_planner.data_range.hint" = "Data covers %@ – %@";
+"pace_planner.warning.too_fast" = "Faster than the data. The fastest goal we can plan is %@.";
+"pace_planner.warning.too_slow" = "Slower than the data. The slowest goal we can plan is %@.";
+"pace_planner.warning.unbalanced" = "This goal cannot be split exactly. Pick a nearby time.";
 
 // MARK: - Alerts
 "alert.end_workout.title" = "End workout?";
