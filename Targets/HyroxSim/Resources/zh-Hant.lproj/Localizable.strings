@@ -89,3 +89,6 @@
 "history.empty" = "尚無訓練記錄。\n完成你的第一場 HYROX!";
 "builder.empty" = "點擊下方按鈕新增第一個分段";
 "workout.swipe_back_hint" = "滑動返回";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "非官方應用程式。與 HYROX 並無從屬、背書或關聯關係。HYROX 為其權利人之商標。";

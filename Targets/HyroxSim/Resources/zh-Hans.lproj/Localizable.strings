@@ -89,3 +89,6 @@
 "history.empty" = "尚无训练记录。\n完成你的第一场 HYROX!";
 "builder.empty" = "点击下方按钮添加第一个分段";
 "workout.swipe_back_hint" = "滑动返回";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "非官方应用。与 HYROX 无隶属、认可或关联关系。HYROX 为其权利人的商标。";

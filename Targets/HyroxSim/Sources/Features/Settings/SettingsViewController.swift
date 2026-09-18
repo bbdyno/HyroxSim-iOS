@@ -93,6 +93,10 @@ final class SettingsViewController: UIViewController {
             icon: "info.circle",
             action: nil
         ))
+
+        contentStack.addArrangedSubview(makeFooterNotice(
+            HyroxSimStrings.Localizable.Settings.Footer.unofficial
+        ))
     }
 
     // MARK: - Status refresh
@@ -108,7 +112,7 @@ final class SettingsViewController: UIViewController {
 
     @objc private func garminTapped() { delegate?.settingsDidTapGarminPairing() }
     @objc private func githubTapped() {
-        guard let url = URL(string: "https://github.com/bbdyno") else { return }
+        guard let url = URL(string: "https://github.com/bbdyno/HyroxSim-iOS") else { return }
         UIApplication.shared.open(url)
     }
     @objc private func openSourceTapped() { delegate?.settingsDidTapOpenSource() }
@@ -201,6 +205,25 @@ final class SettingsViewController: UIViewController {
             card.addGestureRecognizer(tap)
             card.isUserInteractionEnabled = true
         }
+        return container
+    }
+
+    /// 비공식 앱 고지. HYROX 상표는 권리자의 것이므로 공식 앱으로 오인되지 않게 명시한다.
+    private func makeFooterNotice(_ text: String) -> UIView {
+        let container = UIView()
+        let label = UILabel()
+        label.text = text
+        label.numberOfLines = 0
+        label.font = .systemFont(ofSize: 11, weight: .regular)
+        label.textColor = DesignTokens.Color.textSecondary
+        label.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 16),
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
+            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
+            label.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
         return container
     }
 

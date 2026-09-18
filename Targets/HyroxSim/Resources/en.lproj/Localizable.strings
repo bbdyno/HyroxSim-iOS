@@ -89,3 +89,6 @@
 "history.empty" = "No workouts yet.\nComplete your first HYROX!";
 "builder.empty" = "Tap a button below to add your first segment";
 "workout.swipe_back_hint" = "Swipe back";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "Unofficial app. Not affiliated with, endorsed by, or connected to HYROX. HYROX is a trademark of its respective owner.";

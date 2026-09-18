@@ -592,3 +592,11 @@ h3 {
     width: min(220px, 70vw);
   }
 }
+
+.footer-disclaimer {
+  max-width: 680px;
+  margin: 0 auto 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  opacity: 0.65;
+}

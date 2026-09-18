@@ -89,3 +89,6 @@
 "history.empty" = "ワークアウト履歴がありません。\n最初のHYROXを完走しましょう!";
 "builder.empty" = "下のボタンをタップして最初のセグメントを追加";
 "workout.swipe_back_hint" = "スワイプで戻る";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "非公式アプリです。HYROXとの提携・後援・関連はありません。HYROXは権利者の商標です。";

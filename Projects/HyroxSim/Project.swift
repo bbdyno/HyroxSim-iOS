@@ -102,14 +102,16 @@ let project = Project(
                 "UILaunchScreen": [
                     "UIColorName": "systemBackground"
                 ],
+                // 앱은 window override 로 다크를 강제한다. 이 키가 없으면 라이트 모드
+                // 기기에서 런치 스크린이 흰색으로 번쩍인다.
+                "UIUserInterfaceStyle": "Dark",
                 "NSLocationWhenInUseUsageDescription": "HYROX SIM uses your location during workouts to measure your running pace and distance.",
                 "NSLocationAlwaysAndWhenInUseUsageDescription": "HYROX SIM uses your location during workouts to keep measuring your running pace and distance while the workout remains active.",
-                "NSMotionUsageDescription": "HYROX SIM uses motion data to support movement analysis during workout sessions.",
                 "NSHealthShareUsageDescription": "HYROX SIM reads your heart rate from HealthKit during workouts.",
                 "NSHealthUpdateUsageDescription": "HYROX SIM saves completed workout results to the Health app.",
                 "NSBluetoothAlwaysUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
                 "NSBluetoothPeripheralUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
-                "UIBackgroundModes": ["location", "audio", "bluetooth-central"],
+                "UIBackgroundModes": ["location", "bluetooth-central"],
                 "NSSupportsLiveActivities": true,
                 "LSApplicationQueriesSchemes": ["gcm-ciq"],
                 "CFBundleURLTypes": [

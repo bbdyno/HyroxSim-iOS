@@ -89,3 +89,6 @@
 "history.empty" = "운동 기록이 없습니다.\n첫 HYROX를 완주해보세요!";
 "builder.empty" = "아래 버튼을 눌러 첫 세그먼트를 추가하세요";
 "workout.swipe_back_hint" = "스와이프해서 뒤로";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "비공식 앱입니다. HYROX와 제휴·후원·연관 관계가 없습니다. HYROX는 해당 권리자의 상표입니다.";
