@@ -23,17 +23,54 @@ public final class AppCoordinator {
     private let workoutMirrorController: WorkoutMirrorController
     private let garminTemplateSyncService: GarminTemplateSyncService
     private let templateGoalOverrideStore = TemplateGoalOverrideStore()
+    private let checkpointStore: WorkoutCheckpointStore
     private let forceDisconnectedMirrorUITest = ProcessInfo.processInfo.arguments.contains("UITestWatchMirrorDisconnected")
+    private let isMirrorUITestScenario = ProcessInfo.processInfo.arguments.contains("UITestWatchMirror")
+
+    /// 워치 상태가 이 시간 이상 안 들어오면 "끊김" 으로 표시한다.
+    private static let mirrorDisconnectThreshold: TimeInterval = 12
+    /// 이 시간 이상 무수신이면 미러를 자동 정리한다(화면에 갇히지 않도록).
+    private static let mirrorAutoCloseThreshold: TimeInterval = 180
+    /// 이보다 짧은 중단 기록은 복구하지 않는다(시작 직후 종료 등).
+    private static let minimumRecoverableDuration: TimeInterval = 30
 
     /// All modal presentations (builder sheet, live mirror) use the tab bar
     /// as host so they work regardless of which tab is foregrounded.
     private var presentationHost: UIViewController { tabBarController }
 
-    init(window: UIWindow, services: AppServices) {
+    /// 지금 실제로 화면 맨 위에 있는 VC. 모달이 떠 있어도 present 가 조용히 실패하지 않도록 한다.
+    private var topmostPresentedViewController: UIViewController {
+        var top: UIViewController = presentationHost
+        while let presented = top.presentedViewController, !presented.isBeingDismissed {
+            top = presented
+        }
+        return top
+    }
+
+    /// 최상단 VC 위에 present. 전환 애니메이션 중이면 끝난 뒤에 올린다
+    /// (전환 중 present 는 조용히 무시되기 때문).
+    private func presentOnTop(_ viewController: UIViewController, animated: Bool = true) {
+        let host = topmostPresentedViewController
+        if let coordinator = host.transitionCoordinator {
+            coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+                guard let self else { return }
+                self.topmostPresentedViewController.present(viewController, animated: animated)
+            }
+        } else {
+            host.present(viewController, animated: animated)
+        }
+    }
+
+    init(
+        window: UIWindow,
+        services: AppServices,
+        checkpointStore: WorkoutCheckpointStore = .shared
+    ) {
         self.window = window
         self.navigationController = UINavigationController()
         self.settingsNavigationController = UINavigationController()
         self.tabBarController = UITabBarController()
+        self.checkpointStore = checkpointStore
         self.persistence = services.persistence
         self.syncCoordinator = services.syncCoordinator
         self.workoutMirrorController = services.workoutMirrorController
@@ -100,59 +137,59 @@ public final class AppCoordinator {
         // 워치 운동 미러링 - HealthKit mirrored session 경로
         workoutMirrorController.onWorkoutStarted = { [weak self] template, origin in
             guard origin == .watch else { return }
-            self?.showLiveMirror(template: template)
+            self?.handleWatchWorkoutStarted(template: template)
         }
         workoutMirrorController.onLiveStateReceived = { [weak self] state in
-            guard state.origin == .watch else { return }
-            if self?.liveMirrorVC == nil {
-                let template = self?.workoutMirrorController.currentTemplate
+            guard let self, state.origin == .watch else { return }
+            if self.activeMirrorVC == nil {
+                let template = self.workoutMirrorController.currentTemplate
                     ?? Self.placeholderTemplate(for: state)
-                self?.showLiveMirror(template: template)
+                self.showLiveMirror(template: template)
             }
-            self?.applyLiveMirrorState(state)
+            self.applyLiveMirrorState(state)
         }
         workoutMirrorController.onWorkoutFinished = { [weak self] origin in
             guard origin == .watch else { return }
-            self?.dismissLiveMirror()
+            self?.handleWatchWorkoutFinished()
         }
         workoutMirrorController.onConnectionChanged = { [weak self] connected in
             if self?.forceDisconnectedMirrorUITest == true {
-                self?.liveMirrorVC?.showDisconnected()
+                self?.activeMirrorVC?.showDisconnected()
                 return
             }
             if connected {
-                self?.liveMirrorVC?.showReconnected()
+                self?.activeMirrorVC?.showReconnected()
             } else {
-                self?.liveMirrorVC?.showDisconnected()
+                self?.activeMirrorVC?.showDisconnected()
             }
         }
 
         // WatchConnectivity fallback 경로
         syncCoordinator.onWorkoutStarted = { [weak self] template, origin in
             guard origin == .watch else { return } // 폰 자신이 시작한 운동은 미러 안 함
-            self?.showLiveMirror(template: template)
+            self?.handleWatchWorkoutStarted(template: template)
         }
         syncCoordinator.onLiveStateReceived = { [weak self] state in
-            guard state.origin == .watch else { return }
-            if self?.liveMirrorVC == nil {
-                self?.showLiveMirror(template: Self.placeholderTemplate(for: state))
+            guard let self, state.origin == .watch else { return }
+            if self.activeMirrorVC == nil {
+                self.showLiveMirror(template: Self.placeholderTemplate(for: state))
             }
-            self?.applyLiveMirrorState(state)
+            self.applyLiveMirrorState(state)
         }
         syncCoordinator.onWorkoutFinished = { [weak self] origin in
             guard origin == .watch else { return }
-            self?.dismissLiveMirror()
+            self?.handleWatchWorkoutFinished()
         }
         syncCoordinator.onReachabilityChanged = { [weak self] reachable in
             guard let self, !self.workoutMirrorController.hasActiveWorkout else { return }
             if self.forceDisconnectedMirrorUITest {
-                self.liveMirrorVC?.showDisconnected()
+                self.activeMirrorVC?.showDisconnected()
                 return
             }
             if reachable {
-                self.liveMirrorVC?.showReconnected()
+                self.activeMirrorVC?.showReconnected()
             } else {
-                self.liveMirrorVC?.showDisconnected()
+                self.activeMirrorVC?.showDisconnected()
             }
         }
 
@@ -162,46 +199,115 @@ public final class AppCoordinator {
                 applyLiveMirrorState(state)
             }
             if forceDisconnectedMirrorUITest {
-                liveMirrorVC?.showDisconnected()
+                activeMirrorVC?.showDisconnected()
             } else if !workoutMirrorController.isConnected {
-                liveMirrorVC?.showDisconnected()
+                activeMirrorVC?.showDisconnected()
             }
         }
 
+        recoverInterruptedWorkoutIfNeeded()
         applyUITestScenarioIfNeeded()
         applyScreenshotScenarioIfNeeded()
     }
 
     // MARK: - 워치 실시간 미러
 
+    /// present 가 완료된 미러.
     private var liveMirrorVC: LiveWorkoutMirrorViewController?
+    /// present 를 요청했지만 아직 완료 콜백이 오지 않은 미러.
+    /// present 가 실패하면 이 값이 남지 않도록 정리해, 이후 미러가 영영 안 뜨는 상태를 막는다.
+    private var pendingMirrorVC: LiveWorkoutMirrorViewController?
+    /// 폰 운동 때문에 미러를 보류해 둔 템플릿. 폰 운동이 끝나면 이어서 띄운다.
+    private var deferredMirrorTemplate: WorkoutTemplate?
+    private var isDismissingMirror = false
+    /// 사용자가 미러를 직접 닫은 뒤에는, 다음 운동이 시작될 때까지 자동으로 다시 띄우지 않는다.
+    /// (0.5초마다 들어오는 상태 때문에 닫자마자 다시 뜨는 것을 막는다.)
+    private var isMirrorSuppressed = false
+    private var mirrorShownAt: Date?
+    private var mirrorWatchdogTimer: Timer?
 
-    private func showLiveMirror(template: WorkoutTemplate) {
-        guard liveMirrorVC == nil else { return }
-        let vc = LiveWorkoutMirrorViewController()
-        vc.delegate = self
-        liveMirrorVC = vc
-        presentationHost.present(vc, animated: true)
+    /// 화면에 떠 있거나 뜨는 중인 미러.
+    private var activeMirrorVC: LiveWorkoutMirrorViewController? {
+        liveMirrorVC ?? pendingMirrorVC
     }
 
+    /// 폰에서 진행 중인 운동 화면. 있으면 미러를 띄우지 않는다.
+    private var activeWorkoutVC: ActiveWorkoutViewController?
+
+    private var isPhoneWorkoutRunning: Bool { activeWorkoutVC != nil }
+
+    /// 워치 운동이 새로 시작됐다 — 사용자가 직접 닫았던 이력은 리셋하고 미러를 띄운다.
+    private func handleWatchWorkoutStarted(template: WorkoutTemplate) {
+        isMirrorSuppressed = false
+        showLiveMirror(template: template)
+    }
+
+    /// 워치 운동 종료. HealthKit / WatchConnectivity 양쪽에서 중복 호출돼도 안전하다.
+    private func handleWatchWorkoutFinished() {
+        isMirrorSuppressed = false
+        dismissLiveMirror()
+    }
+
+    private func showLiveMirror(template: WorkoutTemplate) {
+        guard activeMirrorVC == nil, !isDismissingMirror, !isMirrorSuppressed else { return }
+
+        // 폰 운동 중에는 미러를 띄우지 않고 보류한다 — 진행 중인 폰 운동을 가리거나
+        // 정리 전에 화면이 바뀌면 기록이 날아갈 수 있다.
+        guard !isPhoneWorkoutRunning else {
+            deferredMirrorTemplate = template
+            return
+        }
+
+        let vc = LiveWorkoutMirrorViewController()
+        vc.delegate = self
+        pendingMirrorVC = vc
+        mirrorShownAt = Date()
+
+        // 모달(플래너/빌더/요약 등)이 떠 있으면 tabBarController.present 는 조용히 실패한다.
+        // 항상 최상단 VC 위에 present 하고, 성공 시점(완료 콜백)에 소유권을 옮긴다.
+        topmostPresentedViewController.present(vc, animated: true) { [weak self] in
+            guard let self else { return }
+            guard self.pendingMirrorVC === vc else {
+                // present 도중에 종료 신호가 와서 이미 정리된 경우 — 그대로 닫는다.
+                if vc.presentingViewController != nil { vc.dismiss(animated: false) }
+                return
+            }
+            self.pendingMirrorVC = nil
+            self.liveMirrorVC = vc
+        }
+        startMirrorWatchdog()
+    }
+
+    /// 종료 신호는 HealthKit / WatchConnectivity 두 경로로 중복 도착한다.
+    /// 두 번 와도 한 번만 처리되도록 멱등하게 만든다.
     private func dismissLiveMirror() {
-        guard let liveMirrorVC else {
-            presentationHost.dismiss(animated: true)
+        deferredMirrorTemplate = nil
+        stopMirrorWatchdog()
+
+        guard let mirror = activeMirrorVC else {
+            // 미러가 없으면 아무것도 닫지 않는다.
+            // (예전에는 여기서 presentationHost.dismiss 를 불러 진행 중인 폰 운동 화면까지
+            //  닫아버렸고, 정리·저장 전에 화면이 사라져 기록이 유실될 수 있었다.)
             refreshHomeIfVisible()
             return
         }
+        guard !isDismissingMirror else { return }
+        isDismissingMirror = true
 
         let finishDismissal = { [weak self] in
             guard let self else { return }
             self.liveMirrorVC = nil
+            self.pendingMirrorVC = nil
+            self.isDismissingMirror = false
+            self.mirrorShownAt = nil
             self.refreshHomeIfVisible()
         }
 
         let dismissMirror = {
-            liveMirrorVC.dismiss(animated: true, completion: finishDismissal)
+            mirror.dismiss(animated: true, completion: finishDismissal)
         }
 
-        if let presented = liveMirrorVC.presentedViewController {
+        if let presented = mirror.presentedViewController {
             presented.dismiss(animated: false, completion: dismissMirror)
         } else {
             dismissMirror()
@@ -213,9 +319,46 @@ public final class AppCoordinator {
     }
 
     private func applyLiveMirrorState(_ state: LiveWorkoutState) {
-        liveMirrorVC?.updateState(state)
+        activeMirrorVC?.updateState(state)
         if forceDisconnectedMirrorUITest {
-            liveMirrorVC?.showDisconnected()
+            activeMirrorVC?.showDisconnected()
+        }
+    }
+
+    // MARK: - 미러 무수신 워치독
+
+    /// 워치 상태가 한동안 안 들어오면 "끊김" 으로 표시하고, 아주 오래 끊기면 미러를 정리한다.
+    /// UI 테스트/스크린샷 시나리오는 실제 워치 없이 한 번만 상태를 주입하므로 제외한다.
+    private func startMirrorWatchdog() {
+        guard !isMirrorUITestScenario, PhoneScreenshotScenario.current == nil else { return }
+        stopMirrorWatchdog()
+        mirrorWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkMirrorStaleness() }
+        }
+    }
+
+    private func stopMirrorWatchdog() {
+        mirrorWatchdogTimer?.invalidate()
+        mirrorWatchdogTimer = nil
+    }
+
+    private func checkMirrorStaleness() {
+        guard let mirror = activeMirrorVC else {
+            stopMirrorWatchdog()
+            return
+        }
+        // 연결 판단 기준은 "마지막으로 워치 상태를 받은 시각".
+        let now = Date()
+        let reference = mirror.lastStateReceivedAt ?? mirrorShownAt ?? now
+        let idle = now.timeIntervalSince(reference)
+
+        if idle > Self.mirrorAutoCloseThreshold {
+            workoutMirrorController.abandonActiveWorkout()
+            dismissLiveMirror()
+            return
+        }
+        if idle > Self.mirrorDisconnectThreshold {
+            mirror.showDisconnected()
         }
     }
 
@@ -271,7 +414,7 @@ public final class AppCoordinator {
         applyLiveMirrorState(state)
 
         if forceDisconnectedMirrorUITest {
-            liveMirrorVC?.showDisconnected()
+            activeMirrorVC?.showDisconnected()
         }
     }
 
@@ -293,7 +436,58 @@ public final class AppCoordinator {
             showSummary(for: ScreenshotFixtures.summaryWorkout, fromHistory: true, animated: false)
         case .mirror:
             showLiveMirror(template: ScreenshotFixtures.liveMirrorTemplate)
-            liveMirrorVC?.updateState(ScreenshotFixtures.liveMirrorState)
+            activeMirrorVC?.updateState(ScreenshotFixtures.liveMirrorState)
+        }
+    }
+
+    // MARK: - 중단된 폰 운동 복구
+
+    /// 앱이 운동 중에 강제 종료/크래시된 경우, 마지막 체크포인트를 완료 기록으로 저장한다.
+    /// 복구할 운동이 없으면 이전 세션에서 남은 Live Activity 만 정리한다.
+    private func recoverInterruptedWorkoutIfNeeded() {
+        // UI 테스트/스크린샷 시나리오는 고정된 화면을 기대하므로 건드리지 않는다.
+        guard !isMirrorUITestScenario, PhoneScreenshotScenario.current == nil else { return }
+
+        // 워치 운동이 미러링 중이면 그쪽 Live Activity 를 죽이면 안 된다.
+        let hasMirrorWorkout = workoutMirrorController.hasActiveWorkout
+        let checkpoint = checkpointStore.load()
+
+        // 이전 세션에서 멈춘 채 잠금화면에 남은 Live Activity 정리.
+        if !hasMirrorWorkout {
+            ActiveWorkoutViewModel.endStaleActivities()
+        }
+
+        guard let checkpoint else { return }
+        // 같은 체크포인트로 두 번 복구하지 않도록 먼저 지운다.
+        checkpointStore.clear()
+
+        // 시작 직후 종료처럼 너무 짧은 기록은 히스토리를 어지럽히기만 한다.
+        guard checkpoint.workout.totalDuration >= Self.minimumRecoverableDuration else { return }
+
+        do {
+            // 같은 id 로 두 번 저장돼도 1개만 남도록 upsert.
+            let saved = try persistence.upsertCompletedWorkout(checkpoint.workout)
+            guard saved else { return }
+            refreshHomeIfVisible()
+            presentRecoveredWorkoutNotice(for: checkpoint.workout)
+        } catch {
+            print("[Recovery] Failed to save interrupted workout: \(error)")
+        }
+    }
+
+    private func presentRecoveredWorkoutNotice(for workout: CompletedWorkout) {
+        // 윈도우가 막 key 가 된 직후라 다음 런루프에서 present 한다.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let alert = DarkAlertController(
+                title: "Workout recovered",
+                message: """
+                \(workout.templateName) — \(DurationFormatter.hms(workout.totalDuration))
+                The app closed mid-workout, so your progress up to that point was saved.
+                """
+            )
+            alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+            self.presentOnTop(alert)
         }
     }
 
@@ -449,6 +643,14 @@ extension AppCoordinator {
     }
 
     private func beginWorkout(template: WorkoutTemplate) {
+        // 워치 운동이 진행/미러링 중이면 폰에서 새 운동을 시작하지 않는다.
+        // (시작하면 워치 쪽 운동이 조용히 사라진다.)
+        guard !workoutMirrorController.hasActiveWorkout, activeMirrorVC == nil else {
+            presentWatchWorkoutInProgressAlert()
+            return
+        }
+        guard !isPhoneWorkoutRunning else { return }
+
         let location = CoreLocationAdapter()
         let heartRate = HealthKitHeartRateAdapter()
         let vm = ActiveWorkoutViewModel(
@@ -457,17 +659,13 @@ extension AppCoordinator {
             heartRateStream: heartRate,
             persistence: persistence,
             maxHeartRate: 190, // TODO: user settings
-            syncCoordinator: syncCoordinator
+            syncCoordinator: syncCoordinator,
+            checkpointStore: checkpointStore
         )
         let vc = ActiveWorkoutViewController(viewModel: vm)
 
         vm.errorHandler = { [weak self] error in
-            let alert = DarkAlertController(
-                title: HyroxSimStrings.Localizable.Alert.Error.title,
-                message: "\(error)"
-            )
-            alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
-            self?.presentationHost.presentedViewController?.present(alert, animated: true)
+            self?.presentWorkoutError(error)
         }
         vm.finishHandler = { [weak self] completed in
             self?.dismissWorkout(showingSummaryFor: completed)
@@ -477,15 +675,58 @@ extension AppCoordinator {
         }
 
         vc.modalPresentationStyle = .fullScreen
-        presentationHost.present(vc, animated: true)
+        activeWorkoutVC = vc
+        topmostPresentedViewController.present(vc, animated: true)
+    }
+
+    /// 센서 오류는 내부 덤프(`"\(error)"`) 대신 사용자용 문구로 보여준다.
+    private func presentWorkoutError(_ error: Error) {
+        let message: String
+        if let sensorError = error as? SensorError {
+            message = sensorError.userFacingMessage
+        } else {
+            message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+        let alert = DarkAlertController(
+            title: HyroxSimStrings.Localizable.Alert.Error.title,
+            message: message
+        )
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+        presentOnTop(alert)
+    }
+
+    private func presentWatchWorkoutInProgressAlert() {
+        let alert = DarkAlertController(
+            title: "Watch workout in progress",
+            message: "A workout is already running on your Apple Watch. End it before starting a new one on your phone."
+        )
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+        presentOnTop(alert)
     }
 
     private func dismissWorkout(showingSummaryFor workout: CompletedWorkout?) {
-        presentationHost.dismiss(animated: true) { [self] in
+        let workoutVC = activeWorkoutVC
+        activeWorkoutVC = nil
+        let presenter = workoutVC ?? presentationHost.presentedViewController
+        let completion: () -> Void = { [weak self] in
+            guard let self else { return }
             if let workout {
-                showSummary(for: workout, fromHistory: false)
+                self.showSummary(for: workout, fromHistory: false)
+            }
+            // 폰 운동 때문에 보류해 둔 워치 미러가 있으면 이제 띄운다.
+            if let deferred = self.deferredMirrorTemplate {
+                self.deferredMirrorTemplate = nil
+                if self.workoutMirrorController.hasActiveWorkout {
+                    self.showLiveMirror(template: deferred)
+                }
             }
         }
+
+        guard let presenter, presenter.presentingViewController != nil else {
+            completion()
+            return
+        }
+        presenter.dismiss(animated: true, completion: completion)
     }
 
     func showSummary(for workout: CompletedWorkout, fromHistory: Bool, animated: Bool = true) {
@@ -498,7 +739,7 @@ extension AppCoordinator {
             // After workout: present modally (no "back" destination — builder was dismissed)
             let nav = UINavigationController(rootViewController: vc)
             nav.applyDarkTheme()
-            presentationHost.present(nav, animated: animated)
+            topmostPresentedViewController.present(nav, animated: animated)
         }
     }
 
@@ -566,6 +807,8 @@ extension AppCoordinator: TemplateDetailViewControllerDelegate {
 extension AppCoordinator: LiveWorkoutMirrorDelegate {
 
     func mirrorDidClose() {
+        // 사용자가 직접 닫았으면 다음 운동 시작 전까지 다시 띄우지 않는다.
+        isMirrorSuppressed = true
         dismissLiveMirror()
     }
 

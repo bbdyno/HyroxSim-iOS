@@ -58,15 +58,27 @@ public final class ActiveWorkoutViewModel {
     private let heartRateStream: any HeartRateStreaming
     private let persistence: PersistenceController
     private let syncCoordinator: (any SyncCoordinator)?
+    private let checkpointStore: WorkoutCheckpointStore
     private let maxHeartRate: Int
+
+    /// 체크포인트/복구가 같은 운동을 가리키도록 고정되는 ID (idempotent upsert 용).
+    private let workoutId = UUID()
 
     // MARK: - Internal
     private var displayTimer: Timer?
+    private var checkpointTimer: Timer?
     private var locationTask: Task<Void, Never>?
     private var heartRateTask: Task<Void, Never>?
     private var lastKnownBpm: Int?
     private var liveActivity: Activity<WorkoutActivityAttributes>?
     private var alertedGoalSegmentId: UUID?
+    /// GPS 스트림이 실제로 살아 있는지. 권한 거부/시작 실패 시 false → GPS OFF 표시.
+    private var isLocationActive = false
+
+    /// Live Activity 가 "멈춘 화면"으로 잠금화면에 남지 않도록 하는 stale 여유 시간.
+    private static let activityStaleInterval: TimeInterval = 4 * 60
+    /// 주기 체크포인트 간격.
+    private static let checkpointInterval: TimeInterval = 30
 
     // MARK: - Callbacks
     public var errorHandler: ((Error) -> Void)?
@@ -80,7 +92,8 @@ public final class ActiveWorkoutViewModel {
         heartRateStream: any HeartRateStreaming,
         persistence: PersistenceController,
         maxHeartRate: Int = 190,
-        syncCoordinator: (any SyncCoordinator)? = nil
+        syncCoordinator: (any SyncCoordinator)? = nil,
+        checkpointStore: WorkoutCheckpointStore = .shared
     ) {
         self.engine = WorkoutEngine(template: template)
         self.locationStream = locationStream
@@ -88,26 +101,66 @@ public final class ActiveWorkoutViewModel {
         self.persistence = persistence
         self.maxHeartRate = maxHeartRate
         self.syncCoordinator = syncCoordinator
+        self.checkpointStore = checkpointStore
     }
 
     // MARK: - Lifecycle
 
     public func start() async {
+        // 1) 센서(=권한 창)를 엔진 시작 전에 끝낸다.
+        //    권한 창에 사용자가 답하는 시간이 Run 1 / 총 시간에 포함되면 안 되기 때문.
+        let sensorError = await prepareSensors()
+
+        // 2) 엔진 시작. 실패는 치명적이라 여기서만 중단한다.
         do {
             try engine.start(at: Date())
-            // 워치 미러를 GPS/HR 준비 대기 없이 즉시 띄우기 위해 센서 start 전에 전송.
-            setupSyncCallbacks()
-            syncCoordinator?.sendWorkoutStarted(template: engine.template, origin: .phone)
-            try await locationStream.start()
-            try await heartRateStream.start()
-            locationTask = engine.attachLocationStream(locationStream)
-            heartRateTask = engine.attachHeartRateStream(heartRateStream)
-            startDisplayTimer()
-            startLiveActivity()
-            refresh()
         } catch {
             errorHandler?(error)
+            return
         }
+
+        setupSyncCallbacks()
+        syncCoordinator?.sendWorkoutStarted(template: engine.template, origin: .phone)
+
+        // 3) 센서 성공 여부와 무관하게 타이머·Live Activity·워치 전송을 시작한다.
+        if isLocationActive {
+            locationTask = engine.attachLocationStream(locationStream)
+        }
+        heartRateTask = engine.attachHeartRateStream(heartRateStream)
+        startDisplayTimer()
+        startCheckpointTimer()
+        startLiveActivity()
+        refresh()
+        writeCheckpoint()
+
+        // 4) 센서 실패는 운동을 막지 않고 안내만 한다.
+        if let sensorError {
+            errorHandler?(sensorError)
+        }
+    }
+
+    /// 위치/심박 스트림을 각각 독립적으로 시작한다.
+    /// 한쪽이 실패해도 다른 쪽은 계속 시도하며, 운동 자체는 항상 진행된다.
+    /// - Returns: 사용자에게 안내할 대표 오류 (없으면 nil). 위치 오류를 우선한다.
+    private func prepareSensors() async -> Error? {
+        var locationError: Error?
+        var heartRateError: Error?
+
+        do {
+            try await locationStream.start()
+            isLocationActive = true
+        } catch {
+            isLocationActive = false
+            locationError = error
+        }
+
+        do {
+            try await heartRateStream.start()
+        } catch {
+            heartRateError = error
+        }
+
+        return locationError ?? heartRateError
     }
 
     public func advance() {
@@ -116,6 +169,9 @@ public final class ActiveWorkoutViewModel {
             refresh()
             if engine.isFinished {
                 Task { await finishAndSave() }
+            } else {
+                // 세그먼트 전환마다 체크포인트 — 여기까지의 기록은 크래시에도 살아남는다.
+                writeCheckpoint()
             }
         } catch { errorHandler?(error) }
     }
@@ -136,6 +192,7 @@ public final class ActiveWorkoutViewModel {
             }
             isPaused = !isPaused
             refresh()
+            writeCheckpoint()
         } catch { errorHandler?(error) }
     }
 
@@ -148,6 +205,7 @@ public final class ActiveWorkoutViewModel {
 
     public func cancelWorkout() {
         cleanup()
+        checkpointStore.clear()
         cancelHandler?()
     }
 
@@ -308,7 +366,8 @@ public final class ActiveWorkoutViewModel {
         }
 
         // GPS status from latest location sample accuracy
-        if current.type == .station {
+        if !isLocationActive || current.type == .station {
+            // 권한 거부/시작 실패 시에도 운동은 계속되고, GPS 만 비활성으로 표시한다.
             gpsStatus = .off
         } else if let lastLoc = live.locationSamples.last {
             let acc = lastLoc.horizontalAccuracy
@@ -519,6 +578,66 @@ public final class ActiveWorkoutViewModel {
         displayTimer = nil
     }
 
+    // MARK: - Checkpoint (앱 강제 종료/크래시 대비)
+
+    private func startCheckpointTimer() {
+        checkpointTimer = Timer.scheduledTimer(
+            withTimeInterval: Self.checkpointInterval,
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in self?.writeCheckpoint() }
+        }
+    }
+
+    private func stopCheckpointTimer() {
+        checkpointTimer?.invalidate()
+        checkpointTimer = nil
+    }
+
+    /// 지금까지의 진행 상황을 "지금 끝났다고 가정한" 잠정 결과로 저장한다.
+    func writeCheckpoint(at now: Date = Date()) {
+        guard let provisional = makeProvisionalWorkout(at: now) else { return }
+        checkpointStore.save(workout: provisional, at: now)
+    }
+
+    /// 진행 중인 세그먼트까지 포함한 잠정 `CompletedWorkout`.
+    /// 엔진이 idle/finished 이거나 기록이 하나도 없으면 nil.
+    func makeProvisionalWorkout(at now: Date) -> CompletedWorkout? {
+        guard !engine.isFinished else { return nil }
+
+        var records = engine.records
+        if let index = engine.currentSegmentIndex,
+           engine.template.segments.indices.contains(index) {
+            let segment = engine.template.segments[index]
+            let segElapsed = engine.segmentElapsed(at: now)
+            records.append(
+                SegmentRecord(
+                    segmentId: segment.id,
+                    index: index,
+                    type: segment.type,
+                    startedAt: now.addingTimeInterval(-segElapsed),
+                    endedAt: now,
+                    measurements: engine.liveMeasurementsSnapshot,
+                    stationDisplayName: segment.stationKind?.displayName,
+                    plannedDistanceMeters: segment.distanceMeters,
+                    goalDurationSeconds: segment.goalDurationSeconds
+                )
+            )
+        }
+        guard !records.isEmpty else { return nil }
+
+        // paused 상태에서는 workoutStartedAt 이 상태에 없으므로 총 경과로 역산한다.
+        let startedAt = now.addingTimeInterval(-engine.totalElapsed(at: now))
+        return CompletedWorkout(
+            id: workoutId,
+            templateName: engine.template.name,
+            division: engine.template.division,
+            startedAt: startedAt,
+            finishedAt: now,
+            segments: records
+        )
+    }
+
     // MARK: - Finish
 
     private func finishAndSave() async {
@@ -526,6 +645,8 @@ public final class ActiveWorkoutViewModel {
         do {
             let completed = try engine.makeCompletedWorkout()
             try persistence.saveCompletedWorkout(completed)
+            // 정상 저장이 끝난 뒤에만 체크포인트를 지운다.
+            checkpointStore.clear()
             try? syncCoordinator?.sendCompletedWorkout(completed)
             syncCoordinator?.sendWorkoutFinished(origin: .phone)
             isFinished = true
@@ -537,11 +658,13 @@ public final class ActiveWorkoutViewModel {
 
     private func cleanup() {
         stopDisplayTimer()
+        stopCheckpointTimer()
         endLiveActivity()
         locationTask?.cancel()
         heartRateTask?.cancel()
         locationTask = nil
         heartRateTask = nil
+        isLocationActive = false
         locationStream.stop()
         heartRateStream.stop()
         syncCoordinator?.onReceiveCommand = nil
@@ -556,16 +679,24 @@ public final class ActiveWorkoutViewModel {
             templateName: engine.template.name,
             totalSegments: engine.template.segments.count
         )
-        let state = makeActivityState()
-        let content = ActivityContent(state: state, staleDate: nil)
+        let content = makeActivityContent()
         liveActivity = try? Activity.request(attributes: attributes, content: content, pushType: nil)
     }
 
     private func updateLiveActivity() {
         guard let liveActivity else { return }
-        let state = makeActivityState()
-        let content = ActivityContent(state: state, staleDate: nil)
+        let content = makeActivityContent()
         Task { await liveActivity.update(content) }
+    }
+
+    /// staleDate 를 매번 "현재 + 수 분"으로 갱신한다.
+    /// 앱이 죽어 업데이트가 끊기면 시스템이 stale 로 표시해 주므로,
+    /// 멈춘 시계가 잠금화면에 계속 살아 있는 것처럼 보이지 않는다.
+    private func makeActivityContent() -> ActivityContent<WorkoutActivityAttributes.ContentState> {
+        ActivityContent(
+            state: makeActivityState(),
+            staleDate: Date().addingTimeInterval(Self.activityStaleInterval)
+        )
     }
 
     private func endLiveActivity() {

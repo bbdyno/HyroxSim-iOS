@@ -150,6 +150,39 @@ final class ActiveWorkoutViewModelSyncTests: XCTestCase {
         XCTAssertEqual(sync.sentWorkoutFinished, [.phone])
     }
 
+    // MARK: - Sensor failure (P1)
+
+    /// 위치 권한이 거부돼도 워치 전송(운동 시작 알림 + 실시간 상태)은 계속돼야 한다.
+    func testBroadcastsContinueWhenLocationStartFails() async throws {
+        let sync = MockSyncCoordinator()
+        let persistence = try PersistenceController(inMemory: true)
+        let checkpointDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("checkpoint-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: checkpointDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: checkpointDirectory) }
+
+        let vm = ActiveWorkoutViewModel(
+            template: WorkoutTemplate(name: "Denied", segments: [.run(distanceMeters: 1000), .roxZone()]),
+            locationStream: DeniedLocationStream(),
+            heartRateStream: MockHeartRateStream(),
+            persistence: persistence,
+            maxHeartRate: 200,
+            syncCoordinator: sync,
+            checkpointStore: WorkoutCheckpointStore(directory: checkpointDirectory)
+        )
+        vm.errorHandler = { _ in }
+
+        await vm.start()
+
+        XCTAssertEqual(sync.sentWorkoutStarted.count, 1)
+        let state = try XCTUnwrap(sync.sentLiveStates.last)
+        XCTAssertEqual(state.segmentLabel, "RUN 1 / 1")
+        XCTAssertFalse(state.gpsActive)
+        XCTAssertFalse(state.gpsStrong)
+
+        vm.cancelWorkout()
+    }
+
     // MARK: - No Sync Coordinator
 
     func testWorkoutWithoutSyncCoordinator() async throws {
