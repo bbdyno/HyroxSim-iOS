@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: 빌드 · 테스트
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode 정보
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes
+
+      - name: Tuist 설치 (.mise.toml 고정 버전)
+        run: |
+          brew install mise xcbeautify
+          mise install
+          mise exec tuist -- tuist version
+
+      - name: ConnectIQ SDK 설치
+        run: ./scripts/setup-garmin-sdk.sh
+
+      - name: 의존성 설치 · 프로젝트 생성
+        run: |
+          mise exec tuist -- tuist install
+          mise exec tuist -- tuist generate --no-open
+
+      - name: 시뮬레이터 선택
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          for runtime, items in devices.items():
+              if 'iOS' not in runtime:
+                  continue
+              for item in items:
+                  if item.get('isAvailable') and item['name'].startswith('iPhone'):
+                      print(item['udid'])
+                      raise SystemExit
+          ")
+          if [ -z "$UDID" ]; then echo '사용 가능한 iPhone 시뮬레이터가 없습니다'; exit 1; fi
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID" || true
+
+      - name: 빌드 (iOS 앱 + 워치 앱 + 위젯)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -workspace HyroxSim.xcworkspace -scheme HyroxSim \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            CODE_SIGNING_ALLOWED=NO | xcbeautify --quieter
+
+      - name: 코어 테스트 (HyroxKitTests)
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -workspace HyroxSim.xcworkspace -scheme HyroxKitTests \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath TestResults-Kit.xcresult \
+            CODE_SIGNING_ALLOWED=NO | xcbeautify --quieter
+
+      - name: 앱 테스트 (HyroxSimTests)
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -workspace HyroxSim.xcworkspace -scheme HyroxSim \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -only-testing:HyroxSimTests \
+            -resultBundlePath TestResults-App.xcresult \
+            CODE_SIGNING_ALLOWED=NO | xcbeautify --quieter
+
+      - name: UI 테스트 (HyroxSimUITests)
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -workspace HyroxSim.xcworkspace -scheme HyroxSim \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -only-testing:HyroxSimUITests \
+            -resultBundlePath TestResults-UI.xcresult \
+            CODE_SIGNING_ALLOWED=NO | xcbeautify --quieter
+
+      - name: 결과 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults-*.xcresult
+          retention-days: 7
+          if-no-files-found: ignore
