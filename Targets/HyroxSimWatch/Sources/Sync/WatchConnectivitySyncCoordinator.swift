@@ -31,6 +31,7 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
     public var onReceiveTemplate: ((WorkoutTemplate) -> Void)?
     public var onReceiveCompletedWorkout: ((CompletedWorkout) -> Void)?
     public var onReceiveTemplateDeleted: ((UUID) -> Void)?
+    public var onReceiveCompletedWorkoutDeleted: ((UUID) -> Void)?
 
     // MARK: - Live workout callbacks (양방향)
     public var onWorkoutStarted: ((WorkoutTemplate, WorkoutOrigin) -> Void)?
@@ -44,6 +45,15 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         self.persistence = persistence
         self.session = WCSession.default
         super.init()
+
+        // 워치 히스토리에서 스와이프 삭제해도 화면 코드 수정 없이 폰까지 전파되도록
+        // persistence 삭제 알림을 구독한다.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLocalCompletedWorkoutDeleted(_:)),
+            name: .hyroxCompletedWorkoutDeleted,
+            object: nil
+        )
     }
 
     public var isSupported: Bool { WCSession.isSupported() }
@@ -85,10 +95,28 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
         session.transferUserInfo(dict)
     }
 
-    /// 워치에 저장된 모든 완료 워크아웃을 폰으로 전송 (기존 히스토리 동기화)
+    /// 기록 삭제를 폰에 알린다. 폰은 tombstone을 남겨 되살리지 않는다.
+    public func sendCompletedWorkoutDeleted(id: UUID) throws {
+        let envelope = try SyncEnvelopeCoder.encode(id, kind: .completedWorkoutDeleted)
+        let dict = try SyncEnvelopeCoder.toDictionary(envelope)
+        session.transferUserInfo(dict)
+    }
+
+    @objc private func handleLocalCompletedWorkoutDeleted(_ note: Notification) {
+        guard
+            isSupported,
+            session.activationState == .activated,
+            let id = note.userInfo?[PersistenceController.deletedWorkoutIdKey] as? UUID
+        else { return }
+        try? sendCompletedWorkoutDeleted(id: id)
+    }
+
+    /// 워치에 저장된 모든 완료 워크아웃을 폰으로 전송 (기존 히스토리 동기화).
+    /// 사용자가 지운 기록(tombstone)은 제외 — 재전송이 삭제를 되돌리면 안 된다.
     public func syncAllCompletedWorkouts() {
         guard let workouts = try? persistence.fetchAllCompletedWorkouts() else { return }
-        for workout in workouts {
+        let deletedIds = persistence.deletedCompletedWorkoutIds()
+        for workout in workouts where !deletedIds.contains(workout.id) {
             try? sendCompletedWorkout(workout)
         }
     }
@@ -194,7 +222,7 @@ extension WatchConnectivitySyncCoordinator {
                 onReceiveTemplate?(t)
             case .completedWorkout:
                 let w = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
-                try persistence.upsertCompletedWorkout(w)
+                guard try persistence.upsertCompletedWorkout(w) else { return } // 삭제된 기록
                 NotificationCenter.default.post(name: .hyroxCompletedWorkoutsUpdated, object: nil)
                 onReceiveCompletedWorkout?(w)
             case .templateDeleted:
@@ -202,6 +230,18 @@ extension WatchConnectivitySyncCoordinator {
                 try? persistence.deleteTemplate(id: id)
                 NotificationCenter.default.post(name: .hyroxCustomTemplatesUpdated, object: nil)
                 onReceiveTemplateDeleted?(id)
+            case .completedWorkoutDeleted:
+                let id = try SyncEnvelopeCoder.decodeDeletedId(envelope)
+                let removed = (try? persistence.applyRemoteCompletedWorkoutDeletion(
+                    id: id,
+                    deletedAt: envelope.createdAt
+                )) ?? false
+                if removed {
+                    NotificationCenter.default.post(name: .hyroxCompletedWorkoutsUpdated, object: nil)
+                }
+                onReceiveCompletedWorkoutDeleted?(id)
+            case .unrecognized:
+                break // 신버전이 보낸 모르는 종류 — 무시
             }
         } catch {
             print("[Sync] Receive dict failed: \(error)")
@@ -230,7 +270,7 @@ extension WatchConnectivitySyncCoordinator {
             do {
                 let envelope = try JSONDecoder().decode(SyncEnvelope.self, from: data)
                 let workout = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
-                try persistence.upsertCompletedWorkout(workout)
+                guard try persistence.upsertCompletedWorkout(workout) else { return } // 삭제된 기록
                 NotificationCenter.default.post(name: .hyroxCompletedWorkoutsUpdated, object: nil)
                 onReceiveCompletedWorkout?(workout)
             } catch {
@@ -278,7 +318,7 @@ extension WatchConnectivitySyncCoordinator {
         do {
             let envelope = try JSONDecoder().decode(SyncEnvelope.self, from: data)
             let workout = try SyncEnvelopeCoder.decodeCompletedWorkout(envelope)
-            try persistence.upsertCompletedWorkout(workout)
+            guard try persistence.upsertCompletedWorkout(workout) else { return } // 삭제된 기록
             NotificationCenter.default.post(name: .hyroxCompletedWorkoutsUpdated, object: nil)
             onReceiveCompletedWorkout?(workout)
         } catch {

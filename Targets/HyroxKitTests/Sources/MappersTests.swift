@@ -111,5 +111,77 @@ final class MappersTests: XCTestCase {
         XCTAssertEqual(restored.segments[2].stationKind, .wallBalls)
         XCTAssertEqual(restored.segments[2].weightKg, 6)
         XCTAssertFalse(restored.isBuiltIn)
+        XCTAssertTrue(restored.usesRoxZone)
+    }
+
+    // MARK: - usesRoxZone
+
+    private func makeRoxTemplate() -> WorkoutTemplate {
+        WorkoutTemplate(
+            name: "Custom ROX",
+            segments: [
+                .run(distanceMeters: 1000),
+                .roxZone(),
+                .station(.skiErg, target: .distance(meters: 1000)),
+                .roxZone(),
+                .run(distanceMeters: 1000)
+            ],
+            usesRoxZone: true
+        )
+    }
+
+    /// Turning ROX Zone off used to be lost on save: the flag had nowhere to live,
+    /// so the template came back with the `true` default and the "NEXT" cue returned.
+    func testWorkoutTemplateWithRoxZoneOffRoundTrip() throws {
+        let original = makeRoxTemplate().settingUsesRoxZone(false)
+        XCTAssertFalse(original.segments.contains { $0.type == .roxZone })
+
+        let stored = try WorkoutTemplateMapper.toStored(original)
+        let restored = try WorkoutTemplateMapper.toDomain(stored)
+
+        XCTAssertFalse(restored.usesRoxZone)
+        XCTAssertEqual(restored.segments.count, 3)
+        XCTAssertFalse(restored.segments.contains { $0.type == .roxZone })
+    }
+
+    func testWorkoutTemplateWithRoxZoneOnRoundTrip() throws {
+        let original = makeRoxTemplate()
+
+        let stored = try WorkoutTemplateMapper.toStored(original)
+        let restored = try WorkoutTemplateMapper.toDomain(stored)
+
+        XCTAssertTrue(restored.usesRoxZone)
+        XCTAssertEqual(restored.segments.count, 5)
+        XCTAssertEqual(restored.segments.filter { $0.type == .roxZone }.count, 2)
+    }
+
+    /// Rows written before the attribute existed decode as `nil` and the flag is
+    /// inferred from the segments, so existing users keep working templates.
+    func testLegacyStoredTemplateInfersRoxZoneFromSegments() throws {
+        let withRox = try makeLegacyStored(segments: makeRoxTemplate().segments)
+        XCTAssertTrue(try WorkoutTemplateMapper.toDomain(withRox).usesRoxZone)
+
+        let withoutRox = try makeLegacyStored(segments: [
+            .run(distanceMeters: 1000),
+            .station(.skiErg),
+            .run(distanceMeters: 1000)
+        ])
+        XCTAssertFalse(try WorkoutTemplateMapper.toDomain(withoutRox).usesRoxZone)
+
+        // No run↔station boundary: both settings produce the same segments, so the
+        // default (ON) is kept.
+        let runsOnly = try makeLegacyStored(segments: [.run(distanceMeters: 1000), .run(distanceMeters: 500)])
+        XCTAssertTrue(try WorkoutTemplateMapper.toDomain(runsOnly).usesRoxZone)
+    }
+
+    private func makeLegacyStored(segments: [WorkoutSegment]) throws -> StoredTemplate {
+        StoredTemplate(
+            id: UUID(),
+            name: "Legacy",
+            divisionRaw: nil,
+            createdAt: t0,
+            segmentsData: try JSONEncoder().encode(segments)
+            // usesRoxZone deliberately omitted — mirrors a row from an older build
+        )
     }
 }

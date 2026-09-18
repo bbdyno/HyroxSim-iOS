@@ -15,6 +15,17 @@ public enum SyncMessageKind: String, Codable, Sendable {
     case completedWorkout
     /// Template deletion notification (bidirectional, payload = UUID)
     case templateDeleted
+    /// Completed workout deletion notification (bidirectional, payload = UUID).
+    /// The receiver tombstones the ID so its own history can't push the record back.
+    case completedWorkoutDeleted
+    /// A kind introduced by a newer build. Never sent — decoding produces it so an
+    /// older build ignores the message instead of failing the whole envelope.
+    case unrecognized
+
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = SyncMessageKind(rawValue: raw) ?? .unrecognized
+    }
 }
 
 /// Envelope wrapping a sync payload for WatchConnectivity transfer

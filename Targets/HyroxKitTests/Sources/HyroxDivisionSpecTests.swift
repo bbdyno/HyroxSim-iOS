@@ -36,11 +36,21 @@ final class HyroxDivisionSpecTests: XCTestCase {
         XCTAssertEqual(sledPush?.weightKg, 152)
     }
 
+    /// 24/25 · 25/26 · 26/27 rulebooks all list Women Open wall balls as 4kg · 100 reps.
     func testWomenOpenWallBallsRepsAndWeight() {
-        let specs = HyroxDivisionSpec.stations(for: .womenOpenSingle)
-        let wallBalls = specs.first { $0.kind == .wallBalls }
-        XCTAssertEqual(wallBalls?.target, .reps(count: 75))
-        XCTAssertEqual(wallBalls?.weightKg, 4)
+        for division in [HyroxDivision.womenOpenSingle, .womenOpenDouble] {
+            let specs = HyroxDivisionSpec.stations(for: division)
+            let wallBalls = specs.first { $0.kind == .wallBalls }
+            XCTAssertEqual(wallBalls?.target, .reps(count: 100), "\(division) wall balls reps")
+            XCTAssertEqual(wallBalls?.weightKg, 4, "\(division) wall balls weight")
+        }
+    }
+
+    func testEveryDivisionHas100WallBalls() {
+        for division in HyroxDivision.allCases {
+            let wallBalls = HyroxDivisionSpec.stations(for: division).first { $0.kind == .wallBalls }
+            XCTAssertEqual(wallBalls?.target, .reps(count: 100), "\(division) wall balls reps")
+        }
     }
 
     func testMenProSandbagLungesWeight() {

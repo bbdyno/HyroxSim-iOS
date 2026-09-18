@@ -58,6 +58,70 @@ final class PacePlannerDataTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - Data invariants
+    //
+    // Buckets with few athletes are noisy by nature (the slowest ones hold a
+    // handful of results), so these only cover the statistically dense part of the
+    // table. 250 is the lowest threshold at which the shipped data is clean —
+    // below it the long tail wobbles by a few seconds between adjacent buckets.
+
+    private static let denseBucketMinCount = 250
+
+    private func denseBuckets(_ divisionKey: String) -> [TimeBucket] {
+        (planner.data.divisions[divisionKey]?.buckets ?? [])
+            .filter { $0.count >= Self.denseBucketMinCount }
+    }
+
+    /// Slower finishers must not have *faster* sled splits. A contaminated
+    /// menOpenSingle 65-70 bucket (sledPush 234s / sledPull 314s between
+    /// neighbours of 138/207 and 156/247) used to break this.
+    func testSledTimesIncreaseMonotonicallyInDenseBuckets() {
+        for divisionKey in ["menOpenSingle", "womenOpenSingle"] {
+            let buckets = denseBuckets(divisionKey)
+            XCTAssertGreaterThan(buckets.count, 10, "\(divisionKey) has too few dense buckets to check")
+
+            for station in ["sledPush", "sledPull"] {
+                let values = buckets.compactMap { $0.stations[station] }
+                XCTAssertEqual(values.count, buckets.count, "\(divisionKey).\(station) missing values")
+
+                for i in 0..<(values.count - 1) {
+                    XCTAssertLessThanOrEqual(
+                        values[i],
+                        values[i + 1],
+                        """
+                        \(divisionKey).\(station) drops from \(values[i])s to \(values[i + 1])s \
+                        between the \(buckets[i].loMin)- and \(buckets[i + 1].loMin)-minute buckets
+                        """
+                    )
+                }
+            }
+        }
+    }
+
+    /// Open pushes/pulls a lighter sled than Pro, so at the same goal time an
+    /// Open athlete's sled split must not be slower.
+    func testOpenSledTimesAreNotSlowerThanProAtTheSameGoal() {
+        let open = Dictionary(uniqueKeysWithValues: denseBuckets("menOpenSingle").map { ($0.loMin, $0) })
+        let pro = Dictionary(uniqueKeysWithValues: denseBuckets("menProSingle").map { ($0.loMin, $0) })
+        let shared = Set(open.keys).intersection(pro.keys).sorted()
+        XCTAssertGreaterThan(shared.count, 10)
+
+        for loMin in shared {
+            for station in ["sledPush", "sledPull"] {
+                guard let openValue = open[loMin]?.stations[station],
+                      let proValue = pro[loMin]?.stations[station] else {
+                    XCTFail("missing \(station) at \(loMin) min")
+                    continue
+                }
+                XCTAssertLessThanOrEqual(
+                    openValue,
+                    proValue,
+                    "menOpenSingle.\(station) (\(openValue)s) is slower than menProSingle (\(proValue)s) at \(loMin) min"
+                )
+            }
+        }
+    }
 }
 
 final class PacePlannerLogicTests: XCTestCase {
