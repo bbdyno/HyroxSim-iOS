@@ -136,6 +136,32 @@ public enum GarminMessageCodec {
 
     // MARK: - Decoding
 
+    /// ConnectIQ 는 숫자를 NSNumber 로 넘기고, 테스트나 다른 경로는 Swift `Int`/`Double` 로 넘긴다.
+    /// `as? Int64` 로만 받으면 타입이 조금만 달라도 기록 전체가 버려지므로 폭넓게 받는다.
+    private static func int64(_ value: Any?) -> Int64? {
+        switch value {
+        case let v as Int64: return v
+        case let v as Int: return Int64(v)
+        case let v as NSNumber: return v.int64Value
+        case let v as Double where v.isFinite: return Int64(v)
+        case let v as String: return Int64(v)
+        default: return nil
+        }
+    }
+
+    private static func int(_ value: Any?) -> Int? {
+        int64(value).flatMap { Int(exactly: $0) }
+    }
+
+    private static func double(_ value: Any?) -> Double? {
+        switch value {
+        case let v as Double where v.isFinite: return v
+        case let v as NSNumber where v.doubleValue.isFinite: return v.doubleValue
+        case let v as String: return Double(v).flatMap { $0.isFinite ? $0 : nil }
+        default: return nil
+        }
+    }
+
     /// Parses a `workout.completed` envelope into a `CompletedWorkout`.
     /// Returns nil if the payload is malformed — callers should surface
     /// a soft error rather than crash.
@@ -145,8 +171,8 @@ public enum GarminMessageCodec {
             let payload = envelope[Key.payload] as? [String: Any],
             let idString = payload["id"] as? String,
             let templateName = payload["templateName"] as? String,
-            let startedAtMs = payload["startedAtMs"] as? Int64,
-            let finishedAtMs = payload["finishedAtMs"] as? Int64,
+            let startedAtMs = int64(payload["startedAtMs"]),
+            let finishedAtMs = int64(payload["finishedAtMs"]),
             let rawSegments = payload["segments"] as? [[String: Any]]
         else { return nil }
 
@@ -166,18 +192,18 @@ public enum GarminMessageCodec {
 
     private static func decodeSegment(_ dict: [String: Any]) -> SegmentRecord? {
         guard
-            let index = dict["index"] as? Int,
+            let index = int(dict["index"]),
             let typeRaw = dict["type"] as? String,
             let type = SegmentType(rawValue: typeRaw),
-            let startedAtMs = dict["startedAtMs"] as? Int64,
-            let endedAtMs = dict["endedAtMs"] as? Int64
+            let startedAtMs = int64(dict["startedAtMs"]),
+            let endedAtMs = int64(dict["endedAtMs"])
         else { return nil }
 
-        let pausedMs = (dict["pausedDurationMs"] as? Int64) ?? 0
+        let pausedMs = int64(dict["pausedDurationMs"]) ?? 0
         let hrRaw = dict["heartRateSamples"] as? [[String: Any]] ?? []
         let hrSamples = hrRaw.compactMap { sample -> HeartRateSample? in
-            guard let tMs = sample["tMs"] as? Int64,
-                  let bpm = sample["bpm"] as? Int else { return nil }
+            guard let tMs = int64(sample["tMs"]),
+                  let bpm = int(sample["bpm"]) else { return nil }
             return HeartRateSample(
                 timestamp: Date(timeIntervalSince1970: TimeInterval(tMs) / 1000.0),
                 bpm: bpm
@@ -198,8 +224,8 @@ public enum GarminMessageCodec {
             pausedDuration: TimeInterval(pausedMs) / 1000.0,
             measurements: measurements,
             stationDisplayName: dict["stationDisplayName"] as? String,
-            plannedDistanceMeters: dict["plannedDistanceMeters"] as? Double,
-            goalDurationSeconds: dict["goalDurationSeconds"] as? Double
+            plannedDistanceMeters: double(dict["plannedDistanceMeters"]),
+            goalDurationSeconds: double(dict["goalDurationSeconds"])
         )
     }
 }

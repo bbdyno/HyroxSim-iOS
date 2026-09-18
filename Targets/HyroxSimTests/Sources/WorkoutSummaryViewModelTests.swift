@@ -53,7 +53,8 @@ final class WorkoutSummaryViewModelTests: XCTestCase {
     func testHeaderTexts() {
         let vm = WorkoutSummaryViewModel(workout: makeSampleWorkout())
         XCTAssertEqual(vm.totalTimeText, "0:10:30")
-        XCTAssertEqual(vm.titleText, "Men's Open — Singles")
+        // 3493837 이후 요약 헤더는 디비전 이름이 아니라 템플릿(커스텀) 이름을 쓴다
+        XCTAssertEqual(vm.titleText, "Test Workout")
         XCTAssertEqual(vm.totalGoalText, "0:11:00")
         XCTAssertEqual(vm.totalDelta.text, "-0:30")
         XCTAssertFalse(vm.dateText.isEmpty)
@@ -187,7 +188,7 @@ final class WorkoutSummaryViewModelTests: XCTestCase {
 
     func testShareText() {
         let vm = WorkoutSummaryViewModel(workout: makeSampleWorkout())
-        XCTAssertTrue(vm.shareText.contains("Men's Open — Singles"))
+        XCTAssertTrue(vm.shareText.contains("Test Workout"))
         XCTAssertTrue(vm.shareText.contains("0:10:30"))
         XCTAssertTrue(vm.shareText.contains("Goal: 0:11:00"))
         XCTAssertTrue(vm.shareText.contains("Delta: -0:30"))
