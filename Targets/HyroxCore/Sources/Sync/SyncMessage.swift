@@ -18,6 +18,9 @@ public enum SyncMessageKind: String, Codable, Sendable {
     /// Completed workout deletion notification (bidirectional, payload = UUID).
     /// The receiver tombstones the ID so its own history can't push the record back.
     case completedWorkoutDeleted
+    /// Race target (bidirectional, payload = `RaceTarget`).
+    /// Builds without race-target support decode this as `.unrecognized` and drop it.
+    case raceTarget
     /// A kind introduced by a newer build. Never sent — decoding produces it so an
     /// older build ignores the message instead of failing the whole envelope.
     case unrecognized
@@ -72,6 +75,13 @@ public enum SyncEnvelopeCoder {
             throw SyncError.decodingFailed
         }
         return w
+    }
+
+    public static func decodeRaceTarget(_ envelope: SyncEnvelope) throws -> RaceTarget {
+        guard let target = try? decoder.decode(RaceTarget.self, from: envelope.payload) else {
+            throw SyncError.decodingFailed
+        }
+        return target
     }
 
     public static func decodeDeletedId(_ envelope: SyncEnvelope) throws -> UUID {

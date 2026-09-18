@@ -35,16 +35,22 @@ public final class PersistenceController {
     public let container: ModelContainer
 
     /// Creates a persistence controller.
-    /// - Parameter inMemory: If true, uses in-memory storage (for testing).
-    public init(inMemory: Bool = false) throws {
-        let schema = Schema([
-            StoredWorkout.self,
-            StoredSegment.self,
-            StoredTemplate.self,
-            StoredWorkoutTombstone.self
-        ])
-        let config = ModelConfiguration(isStoredInMemoryOnly: inMemory)
-        self.container = try ModelContainer(for: schema, configurations: [config])
+    ///
+    /// The container is built from the current versioned schema
+    /// (`HyroxModelContainerFactory.currentVersionedSchema`) with
+    /// `HyroxMigrationPlan` applied, so a store written by an older build is
+    /// migrated on open. Creation failures are logged and rethrown — the store is
+    /// never wiped or silently swapped for an in-memory one.
+    /// - Parameters:
+    ///   - inMemory: If true, uses in-memory storage (for testing). Takes
+    ///     precedence over `storeURL`.
+    ///   - storeURL: Explicit store location. `nil` uses SwiftData's default
+    ///     location, which is where existing users' data already lives.
+    public init(inMemory: Bool = false, storeURL: URL? = nil) throws {
+        self.container = try HyroxModelContainerFactory.makeContainer(
+            inMemory: inMemory,
+            storeURL: storeURL
+        )
     }
 
     private var context: ModelContext { container.mainContext }
@@ -222,6 +228,69 @@ public final class PersistenceController {
         }
         context.delete(stored)
         try context.save()
+    }
+
+    // MARK: - Race Targets
+
+    /// Inserts or replaces a race target by ID.
+    ///
+    /// Idempotent: the same target can arrive twice (user edit, then a sync
+    /// message echoing it back) and still leave exactly one row.
+    public func upsertRaceTarget(_ target: RaceTarget) throws {
+        if let old = try storedRaceTarget(id: target.id) {
+            context.delete(old)
+        }
+        context.insert(RaceTargetMapper.toStored(target))
+        try context.save()
+    }
+
+    /// All race targets, soonest first (past races included).
+    public func fetchRaceTargets() throws -> [RaceTarget] {
+        let descriptor = FetchDescriptor<StoredRaceTarget>(
+            sortBy: [SortDescriptor(\.date, order: .forward)]
+        )
+        return try context.fetch(descriptor).map(RaceTargetMapper.toDomain)
+    }
+
+    /// Deletes a race target.
+    public func deleteRaceTarget(id: UUID) throws {
+        guard let stored = try storedRaceTarget(id: id) else {
+            throw PersistenceError.notFound(id: id)
+        }
+        context.delete(stored)
+        try context.save()
+    }
+
+    /// The nearest race the user has not run yet, or `nil` when every stored
+    /// target is in the past.
+    ///
+    /// Race day itself counts as upcoming — the cutoff is the *start of today* in
+    /// `calendar`, which matches `RaceTarget.daysRemaining(asOf:calendar:)`
+    /// returning 0 on the day of the race.
+    /// - Parameters:
+    ///   - now: Reference instant, defaults to the current time.
+    ///   - calendar: Calendar deciding where "today" starts. Injected so tests
+    ///     don't depend on the machine's time zone.
+    public func fetchUpcomingRaceTarget(
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) throws -> RaceTarget? {
+        let cutoff = calendar.startOfDay(for: now)
+        let predicate = #Predicate<StoredRaceTarget> { $0.date >= cutoff }
+        var descriptor = FetchDescriptor<StoredRaceTarget>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.date, order: .forward)]
+        )
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first.map(RaceTargetMapper.toDomain)
+    }
+
+    private func storedRaceTarget(id: UUID) throws -> StoredRaceTarget? {
+        let targetId = id
+        let predicate = #Predicate<StoredRaceTarget> { $0.id == targetId }
+        var descriptor = FetchDescriptor<StoredRaceTarget>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
     }
 
     // MARK: - Upsert (Sync)

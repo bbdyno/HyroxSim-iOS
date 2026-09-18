@@ -240,6 +240,8 @@ extension WatchConnectivitySyncCoordinator {
                     NotificationCenter.default.post(name: .hyroxCompletedWorkoutsUpdated, object: nil)
                 }
                 onReceiveCompletedWorkoutDeleted?(id)
+            case .raceTarget:
+                break // TODO: 대회 목표 수신 배선 (모델·저장은 준비됨)
             case .unrecognized:
                 break // 신버전이 보낸 모르는 종류 — 무시
             }
