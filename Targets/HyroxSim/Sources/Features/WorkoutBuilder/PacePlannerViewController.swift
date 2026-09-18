@@ -32,6 +32,11 @@ final class PacePlannerViewController: UIViewController {
     private let applyButton = UIButton(type: .system)
     private let finetuneButton = UIButton(type: .system)
 
+    /// 시(hour) 피커 범위는 0–4. 레퍼런스 데이터의 최대 버킷이 240분(4시간)이다.
+    private static let maxPickerHours = 4
+    /// 피커로 고를 수 있는 최대 목표 시간 (4:59:59)
+    private static let maxSelectableSeconds = maxPickerHours * 3600 + 59 * 60 + 59
+
     private var selectedHours = 1
     private var selectedMinutes = 20
     private var selectedSeconds = 0
@@ -243,44 +248,52 @@ final class PacePlannerViewController: UIViewController {
     }
 
     private func setInitialPickerValues() {
-        guard let division = template.division,
-              let div = planner.data.divisions[division.rawValue] else { return }
+        applyGoalSeconds(initialGoalSeconds())
+    }
 
-        // If template already has goals set, use the total as initial value
-        let existingTotal = Int(template.estimatedDurationSeconds)
-        let hasExistingGoals = template.segments.contains { $0.goalDurationSeconds != nil }
-
-        var bestSec: Int
-        if hasExistingGoals && existingTotal > 0 {
-            bestSec = existingTotal
-        } else {
-            // Find 50th percentile time (matching site's setupTime)
-            let bs = div.buckets
-            bestSec = (bs.first!.loMin + bs.last!.hiMin) / 2 * 60
-            for i in 0..<bs.count {
-                let avg = (bs[i].pctRange[0] + bs[i].pctRange[1]) / 2
-                if avg >= 50 {
-                    if i == 0 {
-                        bestSec = (bs[0].loMin + bs[0].hiMin) / 2 * 60
-                    } else {
-                        let prev = (bs[i - 1].pctRange[0] + bs[i - 1].pctRange[1]) / 2
-                        let t = (50 - prev) / (avg - prev)
-                        let prevMid = Double(bs[i - 1].loMin + bs[i - 1].hiMin) / 2
-                        let curMid = Double(bs[i].loMin + bs[i].hiMin) / 2
-                        bestSec = Int((prevMid + (curMid - prevMid) * t) * 60)
-                    }
-                    break
-                }
-            }
-        }
-
-        selectedHours = bestSec / 3600
-        selectedMinutes = (bestSec % 3600) / 60
-        selectedSeconds = bestSec % 60
+    /// 목표 시간을 피커가 표현할 수 있는 범위로 자른 뒤, 내부 상태와 피커 행을 함께 맞춘다.
+    private func applyGoalSeconds(_ seconds: Int) {
+        let clamped = min(max(0, seconds), Self.maxSelectableSeconds)
+        selectedHours = clamped / 3600
+        selectedMinutes = (clamped % 3600) / 60
+        selectedSeconds = clamped % 60
 
         timePicker.selectRow(selectedHours, inComponent: 0, animated: false)
         timePicker.selectRow(selectedMinutes, inComponent: 2, animated: false)
         timePicker.selectRow(selectedSeconds, inComponent: 4, animated: false)
+    }
+
+    private func initialGoalSeconds() -> Int {
+        let currentSelection = selectedHours * 3600 + selectedMinutes * 60 + selectedSeconds
+        guard let division = template.division,
+              let div = planner.data.divisions[division.rawValue] else { return currentSelection }
+
+        // If template already has goals set, use the total as initial value
+        let existingTotal = LocalizedDecimalFormatter.safeInt(template.estimatedDurationSeconds)
+        let hasExistingGoals = template.segments.contains { $0.goalDurationSeconds != nil }
+        if hasExistingGoals && existingTotal > 0 { return existingTotal }
+
+        // Find 50th percentile time (matching site's setupTime)
+        let bs = div.buckets
+        guard let firstBucket = bs.first, let lastBucket = bs.last else { return currentSelection }
+
+        var bestSec = (firstBucket.loMin + lastBucket.hiMin) / 2 * 60
+        for i in 0..<bs.count {
+            let avg = (bs[i].pctRange[0] + bs[i].pctRange[1]) / 2
+            if avg >= 50 {
+                if i == 0 {
+                    bestSec = (bs[0].loMin + bs[0].hiMin) / 2 * 60
+                } else {
+                    let prev = (bs[i - 1].pctRange[0] + bs[i - 1].pctRange[1]) / 2
+                    let t = (50 - prev) / (avg - prev)
+                    let prevMid = Double(bs[i - 1].loMin + bs[i - 1].hiMin) / 2
+                    let curMid = Double(bs[i].loMin + bs[i].hiMin) / 2
+                    bestSec = LocalizedDecimalFormatter.safeInt((prevMid + (curMid - prevMid) * t) * 60)
+                }
+                break
+            }
+        }
+        return bestSec
     }
 
     // MARK: - Actions
@@ -552,7 +565,7 @@ extension PacePlannerViewController: UIPickerViewDataSource, UIPickerViewDelegat
 
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
         switch component {
-        case 0: return 3
+        case 0: return Self.maxPickerHours + 1
         case 2: return 60
         case 4: return 60
         default: return 1

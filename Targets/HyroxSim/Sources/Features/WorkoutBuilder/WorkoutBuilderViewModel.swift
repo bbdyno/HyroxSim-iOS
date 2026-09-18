@@ -67,6 +67,20 @@ public final class WorkoutBuilderViewModel {
         segments.remove(at: index)
     }
 
+    /// 주어진 ID 순서대로 세그먼트를 재정렬한다.
+    /// 목록에 없는 세그먼트는 삭제하지 않고 뒤에 유지해 재정렬 중 항목이 사라지는 것을 막는다.
+    public func reorderSegments(to orderedIDs: [UUID]) {
+        var remaining = segments
+        var reordered: [WorkoutSegment] = []
+        reordered.reserveCapacity(segments.count)
+        for id in orderedIDs {
+            guard let index = remaining.firstIndex(where: { $0.id == id }) else { continue }
+            reordered.append(remaining.remove(at: index))
+        }
+        reordered.append(contentsOf: remaining)
+        segments = reordered
+    }
+
     public func moveSegment(from source: Int, to destination: Int) {
         guard source < segments.count, destination <= segments.count else { return }
         let s = segments.remove(at: source)

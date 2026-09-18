@@ -27,6 +27,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
     private var goalFields: [Int: UITextField] = [:]
     private let footerContainer = UIView()
     private let startButton = UIButton(type: .system)
+    private lazy var doneToolbar: UIToolbar = makeDoneToolbar()
 
     init(
         template: WorkoutTemplate,
@@ -54,6 +55,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
         )
         setupFooter()
         setupLayout()
+        setupKeyboardHandling()
         buildContent()
         updateTotalGoal()
     }
@@ -69,6 +71,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
 
     private func setupLayout() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.keyboardDismissMode = .interactive
         view.addSubview(scrollView)
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -122,8 +125,51 @@ final class WorkoutGoalSetupViewController: UIViewController {
             startButton.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 20),
             startButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -20),
             startButton.heightAnchor.constraint(equalToConstant: 48),
-            startButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12)
+            // 키보드가 올라오면 버튼(과 푸터)이 키보드 위로 밀려 올라간다.
+            startButton.bottomAnchor.constraint(lessThanOrEqualTo: view.keyboardLayoutGuide.topAnchor, constant: -12)
         ])
+
+        // 키보드가 없을 때는 세이프 에어리어 기준 위치를 유지한다.
+        let restingBottom = startButton.bottomAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.bottomAnchor,
+            constant: -12
+        )
+        restingBottom.priority = .defaultHigh
+        restingBottom.isActive = true
+    }
+
+    private func setupKeyboardHandling() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardDidShow),
+            name: UIResponder.keyboardDidShowNotification,
+            object: nil
+        )
+    }
+
+    private func makeDoneToolbar() -> UIToolbar {
+        let toolbar = UIToolbar()
+        toolbar.barStyle = .black
+        toolbar.tintColor = DesignTokens.Color.accent
+        toolbar.items = [
+            UIBarButtonItem(systemItem: .flexibleSpace),
+            UIBarButtonItem(systemItem: .done, primaryAction: UIAction { [weak self] _ in
+                self?.view.endEditing(true)
+            })
+        ]
+        toolbar.sizeToFit()
+        return toolbar
+    }
+
+    @objc private func keyboardDidShow() {
+        guard let activeField = goalFields.values.first(where: \.isFirstResponder) else { return }
+        scrollToVisible(activeField)
+    }
+
+    private func scrollToVisible(_ field: UITextField) {
+        view.layoutIfNeeded()
+        let fieldRect = field.convert(field.bounds, to: scrollView).insetBy(dx: 0, dy: -12)
+        scrollView.scrollRectToVisible(fieldRect, animated: true)
     }
 
     private func buildContent() {
@@ -182,7 +228,10 @@ final class WorkoutGoalSetupViewController: UIViewController {
         field.layer.cornerRadius = 10
         field.heightAnchor.constraint(equalToConstant: 42).isActive = true
         field.widthAnchor.constraint(equalToConstant: 88).isActive = true
+        field.inputAccessoryView = doneToolbar
         field.addTarget(self, action: #selector(goalFieldChanged(_:)), for: .editingChanged)
+        field.addTarget(self, action: #selector(goalFieldEditingDidBegin(_:)), for: .editingDidBegin)
+        field.addTarget(self, action: #selector(goalFieldEditingDidEnd(_:)), for: .editingDidEnd)
         goalFields[index] = field
 
         let row = UIStackView(arrangedSubviews: [labels, field])
@@ -214,6 +263,22 @@ final class WorkoutGoalSetupViewController: UIViewController {
     }
 
     @objc private func goalFieldChanged(_ sender: UITextField) {
+        updateTotalGoal()
+    }
+
+    @objc private func goalFieldEditingDidBegin(_ sender: UITextField) {
+        DispatchQueue.main.async { [weak self, weak sender] in
+            guard let self, let sender else { return }
+            self.scrollToVisible(sender)
+        }
+    }
+
+    /// 편집을 끝내면 실제로 적용될 값(범위 제한 후)을 MM:SS 형태로 되돌려 보여준다.
+    @objc private func goalFieldEditingDidEnd(_ sender: UITextField) {
+        guard template.segments.indices.contains(sender.tag) else { return }
+        let segment = template.segments[sender.tag]
+        let seconds = parsedDuration(for: sender.text) ?? defaultGoal(for: segment)
+        sender.text = DurationFormatter.ms(seconds)
         updateTotalGoal()
     }
 
@@ -289,12 +354,18 @@ final class WorkoutGoalSetupViewController: UIViewController {
         if parts.count == 2,
            let minutes = Double(parts[0]),
            let seconds = Double(parts[1]) {
-            return max(0, minutes * 60 + seconds)
+            return clampedGoal(minutes * 60 + seconds)
         }
         if let seconds = Double(trimmed) {
-            return max(0, seconds)
+            return clampedGoal(seconds)
         }
         return nil
+    }
+
+    /// 목표 시간은 0–24시간으로 제한한다. NaN/무한대 같은 비정상 입력은 버린다.
+    private func clampedGoal(_ seconds: TimeInterval) -> TimeInterval? {
+        guard seconds.isFinite else { return nil }
+        return LocalizedDecimalFormatter.clamped(seconds, to: NumericInputLimits.durationSeconds)
     }
 
     private func addSeparator() {
