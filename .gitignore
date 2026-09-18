@@ -18,6 +18,13 @@ Derived/
 # SPM
 .swiftpm/
 
+# Pace data ETL (다운로드 캐시 — tools/pace-data/build_pace_data.py 가 재생성)
+tools/pace-data/.cache/
+
+# Python
+__pycache__/
+*.pyc
+
 # Firebase
 .firebase/
 ConnectIQ.xcframework/
