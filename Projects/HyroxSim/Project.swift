@@ -122,6 +122,10 @@ let project = Project(
                 "NSBluetoothPeripheralUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
                 "UIBackgroundModes": ["location", "bluetooth-central"],
                 "NSSupportsLiveActivities": true,
+                // 앱이 쓰는 암호화는 OS 가 제공하는 HTTPS 와 CryptoKit 해시뿐이라 수출
+                // 규정 면제 대상이다. 이 키가 있으면 업로드마다 App Store Connect 에서
+                // 수출 규정 질문에 답하지 않아도 된다.
+                "ITSAppUsesNonExemptEncryption": false,
                 "LSApplicationQueriesSchemes": ["gcm-ciq"],
                 "CFBundleURLTypes": [
                     [
