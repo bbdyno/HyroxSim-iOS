@@ -10,12 +10,14 @@ import HyroxCore
 
 /// Where the competition-record catalogue lives.
 ///
-/// The published copy is served by Firebase Hosting out of `docs/`, where
-/// `firebase.json` caches `/pace/manifest.json` for five minutes and marks
-/// `/pace/v*/**` immutable — so a new dataset is a new path and is never served stale.
+/// 공개본은 `docs/` 를 그대로 서빙하는 GitHub Pages 가 기본이다. main 에 푸시하면
+/// 바로 반영되므로 별도 배포 단계가 없다. Firebase Hosting(`firebase.json`)도 같은
+/// 디렉토리를 서빙하고 `/pace/manifest.json` 5분 · `/pace/v*/**` immutable 캐시 헤더를
+/// 주므로, `firebase deploy` 를 돌리는 운영으로 바꾸면 아래 상수만 그 도메인으로 되돌리면 된다.
+/// 데이터 파일 경로는 버전이 들어간 불변 경로라 어느 쪽이든 오래된 값이 섞이지 않는다.
 enum PaceDataEndpoint {
 
-    static let defaultManifestURLString = "https://hyroxsim-ios.web.app/pace/manifest.json"
+    static let defaultManifestURLString = "https://bbdyno.github.io/HyroxSim-iOS/pace/manifest.json"
 
     /// Optional `Info.plist` override, for pointing a build at a staging catalogue.
     static let infoPlistKey = "PaceDataManifestURL"
