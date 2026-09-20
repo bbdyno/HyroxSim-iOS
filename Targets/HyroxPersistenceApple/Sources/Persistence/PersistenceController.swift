@@ -7,6 +7,7 @@
 
 import Foundation
 import HyroxCore
+import os
 import SwiftData
 
 extension Notification.Name {
@@ -26,6 +27,8 @@ extension Notification.Name {
 /// Uses SwiftData with local storage (no iCloud sync in this version).
 @MainActor
 public final class PersistenceController {
+
+    static let logger = Logger(subsystem: "com.bbdyno.app.HyroxSim", category: "Persistence")
 
     /// `userInfo` key carrying the deleted workout's `UUID` in
     /// `Notification.Name.hyroxCompletedWorkoutDeleted`.
@@ -70,7 +73,18 @@ public final class PersistenceController {
             sortBy: [SortDescriptor(\.finishedAt, order: .reverse)]
         )
         let results = try context.fetch(descriptor)
-        return try results.map { try CompletedWorkoutMapper.toDomain($0) }
+        // 기록 하나가 깨졌다고 목록 전체를 잃으면 사용자는 데이터가 다 사라졌다고 본다.
+        // 실패한 건만 건너뛰고 로그로 남긴다.
+        return results.compactMap { stored in
+            do {
+                return try CompletedWorkoutMapper.toDomain(stored)
+            } catch {
+                Self.logger.error(
+                    "completed workout \(stored.id.uuidString, privacy: .public) 디코딩 실패: \(String(describing: error), privacy: .public)"
+                )
+                return nil
+            }
+        }
     }
 
     /// Fetches a single completed workout by ID.
