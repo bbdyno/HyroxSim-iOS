@@ -31,6 +31,7 @@ enum TrainingSessionLocalization {
         case .stationIntervals: return "STN"
         case .roxZoneDrill: return "ROX"
         case .wallBallLadder: return "WB"
+        case .pftBenchmark: return "PFT"
         }
     }
 

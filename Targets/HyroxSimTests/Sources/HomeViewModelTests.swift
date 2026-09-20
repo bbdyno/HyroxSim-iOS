@@ -46,6 +46,32 @@ final class HomeViewModelTests: XCTestCase {
         XCTAssertNotNil(vm.mostRecentWorkout)
         XCTAssertEqual(vm.mostRecentWorkout?.id, workout.id)
     }
+
+    // MARK: - 진척 화면 진입점
+
+    /// 기록이 하나도 없으면 진척 화면은 "아직 없다"는 말밖에 못 한다 — 홈에서 감춘다.
+    func testProgressEntryIsHiddenWithoutAnyRecord() throws {
+        let vm = HomeViewModel(persistence: try makePersistence())
+        vm.load()
+        XCTAssertFalse(vm.showsProgressEntry)
+    }
+
+    func testProgressEntryAppearsAfterTheFirstRecord() throws {
+        let persistence = try makePersistence()
+        try persistence.saveCompletedWorkout(
+            CompletedWorkout(
+                templateName: "Race Simulation",
+                division: .menOpenSingle,
+                startedAt: Date(),
+                finishedAt: Date().addingTimeInterval(5_400),
+                segments: []
+            )
+        )
+
+        let vm = HomeViewModel(persistence: persistence)
+        vm.load()
+        XCTAssertTrue(vm.showsProgressEntry)
+    }
 }
 
 // MARK: - 내 대회 카드

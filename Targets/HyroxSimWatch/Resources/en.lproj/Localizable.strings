@@ -21,3 +21,8 @@
 
 // MARK: - My Race
 "race_target.dday" = "D-DAY";
+
+// MARK: - Race Day
+"race_day.lap_hint" = "Count your own laps";
+"race_day.add_lap" = "Add lap";
+"race_day.remove_lap" = "Remove lap";

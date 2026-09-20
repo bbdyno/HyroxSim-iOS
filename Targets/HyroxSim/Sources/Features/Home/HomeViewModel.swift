@@ -102,6 +102,13 @@ public final class HomeViewModel {
 
     public var mostRecentWorkout: CompletedWorkout? { recentWorkouts.first }
 
+    /// 홈에 "진척" 항목을 띄울지.
+    ///
+    /// 기록이 하나도 없으면 그 화면은 "아직 없다"는 말밖에 못 한다. 두 번째 기록부터
+    /// 추세가 생기지만, 한 건만 있어도 들어가서 무엇을 추적하는지 볼 수 있어야 하므로
+    /// 기준은 "기록 1건 이상"이다.
+    public var showsProgressEntry: Bool { !recentWorkouts.isEmpty }
+
     // MARK: - Private
 
     /// 훈련 세션 무게·횟수를 뽑을 디비전.

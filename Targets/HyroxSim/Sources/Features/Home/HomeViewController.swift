@@ -14,6 +14,10 @@ protocol HomeViewControllerDelegate: AnyObject {
     func homeDidRequestDeleteTemplate(_ template: WorkoutTemplate)
     func homeDidTapNewWorkout()
     func homeDidTapHistory()
+    /// 진척 추적 화면.
+    func homeDidTapProgress()
+    /// 대회 당일 도구 — 페이스 카드와 룰북 체크리스트.
+    func homeDidTapRaceDay()
     func homeDidSelectRecent(_ workout: CompletedWorkout)
     /// 내 대회 카드 탭 — 등록된 대회가 있으면 그 대회를, 없으면 새 대회 작성 화면을 연다.
     func homeDidTapRaceTarget(_ target: RaceTarget?)
@@ -37,6 +41,8 @@ final class HomeViewController: UIViewController {
         static let customTemplatesContainer = 102
         static let raceTargetContainer = 103
         static let trainingSessionsContainer = 104
+        static let progressRow = 105
+        static let raceDayRow = 106
     }
 
     private var cardWidth: CGFloat { view.bounds.width - hMargin * 2 }
@@ -82,6 +88,7 @@ final class HomeViewController: UIViewController {
         rebuildRecentCard()
         rebuildTrainingSessions()
         rebuildCustomTemplates()
+        refreshProgressRow()
     }
 
     // MARK: - Scroll View
@@ -154,6 +161,30 @@ final class HomeViewController: UIViewController {
         contentStack.addArrangedSubview(makeSectionHeader("MY WORKOUTS"))
         contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.createCustom, icon: "plus.circle.fill", action: #selector(newWorkoutTapped)))
         contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.history, icon: "clock.arrow.circlepath", action: #selector(historyTapped)))
+
+        let progressRow = makeActionRow(
+            title: HyroxSimStrings.Localizable.Home.Action.progress,
+            icon: "chart.line.uptrend.xyaxis",
+            action: #selector(progressTapped)
+        )
+        progressRow.tag = Tags.progressRow
+        progressRow.isHidden = true
+        contentStack.addArrangedSubview(progressRow)
+
+        let raceDayRow = makeActionRow(
+            title: HyroxSimStrings.Localizable.Home.Action.raceDay,
+            icon: "flag.checkered",
+            action: #selector(raceDayTapped)
+        )
+        raceDayRow.tag = Tags.raceDayRow
+        contentStack.addArrangedSubview(raceDayRow)
+    }
+
+    /// 기록이 하나도 없으면 진척 화면은 빈 안내밖에 못 한다 — 그때는 줄을 감춘다.
+    private func refreshProgressRow() {
+        contentStack.arrangedSubviews
+            .first { $0.tag == Tags.progressRow }?
+            .isHidden = !viewModel.showsProgressEntry
     }
 
     // MARK: - Carousel (paging snap)
@@ -454,10 +485,13 @@ final class HomeViewController: UIViewController {
 
     @objc private func newWorkoutTapped() { delegate?.homeDidTapNewWorkout() }
     @objc private func historyTapped() { delegate?.homeDidTapHistory() }
+    @objc private func progressTapped() { delegate?.homeDidTapProgress() }
     @objc private func customTemplateTapped(_ sender: UIButton) {
         guard sender.tag < viewModel.customTemplates.count else { return }
         delegate?.homeDidSelectTemplate(viewModel.customTemplates[sender.tag])
     }
+
+    @objc private func raceDayTapped() { delegate?.homeDidTapRaceDay() }
 }
 
 // MARK: - UIContextMenuInteractionDelegate

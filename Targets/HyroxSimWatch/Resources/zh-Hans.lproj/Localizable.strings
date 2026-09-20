@@ -21,3 +21,8 @@
 
 // MARK: - My Race
 "race_target.dday" = "D-DAY";
+
+// MARK: - Race Day
+"race_day.lap_hint" = "圈数需自行计数";
+"race_day.add_lap" = "增加圈数";
+"race_day.remove_lap" = "减少圈数";

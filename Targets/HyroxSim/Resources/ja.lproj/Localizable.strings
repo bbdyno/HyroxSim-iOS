@@ -170,3 +170,172 @@
 // MARK: - History delete failure
 "alert.delete_workout_failed.title" = "削除できませんでした";
 "alert.delete_workout_failed.message" = "この記録を削除できませんでした。もう一度お試しください。";
+
+// MARK: - Race Day — hub
+"race_day.hub.title" = "レースデイ";
+"race_day.hub.pace_card.title" = "レースペースカード";
+"race_day.hub.pace_card.subtitle" = "区間目標と累計目標タイム";
+"race_day.hub.checklist.title" = "レースデイ チェックリスト";
+"race_day.hub.checklist.subtitle" = "ルール・装備・補給とウォームアップ";
+"race_day.hub.no_race" = "登録された大会がないため、このワークアウトの目標を使います";
+"race_day.hub.goal_format" = "目標 %@";
+"race_day.hub.dday_format" = "D-%d";
+"race_day.hub.dday_today" = "D-DAY";
+"race_day.hub.past_race" = "終了した大会";
+
+// MARK: - Race Day — pace card
+"race_day.pace_card.title" = "ペースカード";
+"race_day.pace_card.column.segment" = "区間";
+"race_day.pace_card.column.split" = "区間目標";
+"race_day.pace_card.column.cumulative" = "累計";
+"race_day.pace_card.scaled_notice" = "大会目標に合わせて区間目標を調整しました。";
+"race_day.pace_card.fast_lane_hint" = "ルールブック: 4:00/km 以下のランは Fast Lane を使用します。";
+"race_day.pace_card.no_goal.title" = "このワークアウトには目標タイムがありません";
+"race_day.pace_card.no_goal.message" = "区間目標かゴールタイムを設定するとペースカードが埋まります。";
+"race_day.pace_card.share" = "画像として保存・共有";
+"race_day.pace_card.share_failed" = "画像を作成できませんでした";
+
+// MARK: - Race Day — checklist screen
+"race_day.checklist.title" = "レースデイ チェックリスト";
+"race_day.checklist.section.rule" = "ルール";
+"race_day.checklist.section.gear" = "装備";
+"race_day.checklist.section.nutrition" = "補給・ウォームアップ";
+"race_day.checklist.section.rule.footer" = "HYROX 26/27 ルールブックに基づきます。";
+"race_day.checklist.reset" = "チェックリストをリセット";
+"race_day.checklist.reset.title" = "チェックリストをリセットしますか？";
+"race_day.checklist.reset.message" = "すべての項目のチェックが外れます。";
+"race_day.checklist.past_race_notice" = "この大会は終了しました。次に向けてリセットしましょう。";
+"race_day.checklist.progress_format" = "%1$d / %2$d";
+
+// MARK: - Race Day — workout screen
+"race_day.workout.add_lap" = "ラップを追加";
+"race_day.workout.remove_lap" = "ラップを取り消す";
+"race_day.workout.race_mode" = "レースモード";
+"race_day.workout.open" = "レースデイ";
+"race_day.workout.lap_hint" = "ラップは自分で数える";
+
+// MARK: - Race Day — checklist items (rules, from the 26/27 rulebook)
+"race_day.checklist.chip_ankle.title" = "計測チップを足首に装着";
+"race_day.checklist.chip_ankle.evidence" = "ルールブック: チップは足首に装着。未装着のスタートは DNS。";
+"race_day.checklist.assigned_wave.title" = "指定されたウェーブでのみスタート";
+"race_day.checklist.assigned_wave.evidence" = "ルールブック: 指定外のウェーブでのスタートは失格。";
+"race_day.checklist.count_laps.title" = "ランのラップは自分で数える";
+"race_day.checklist.count_laps.evidence" = "ルールブック: ラップ計数は選手の責任。抜けると 3分・5分・7分、または失格。";
+"race_day.checklist.finish_every_station.title" = "各ステーションを最後までやり切る";
+"race_day.checklist.finish_every_station.evidence" = "ルールブック: ステーション未完了は時間ペナルティではなく失格。";
+"race_day.checklist.sandbag_shoulder.title" = "サンドバッグを肩から落とさない";
+"race_day.checklist.sandbag_shoulder.evidence" = "ルールブック: サンドバッグが肩から落ちるたびに 15 秒。";
+"race_day.checklist.event_chalk_only.title" = "会場で提供されるチョークのみ使用";
+"race_day.checklist.event_chalk_only.evidence" = "ルールブック: 主催提供のチョークのみ許可。持ち込みは 2 分。";
+"race_day.checklist.no_pouring_drinks.title" = "飲み物を体にかけない";
+"race_day.checklist.no_pouring_drinks.evidence" = "ルールブック: 飲み物を体にかけると 2 分。";
+"race_day.checklist.fast_lane.title" = "4:00/km 以下なら Fast Lane へ";
+"race_day.checklist.fast_lane.evidence" = "ルールブック: 4:00/km 以下のランは Fast Lane を使用。";
+
+// MARK: - Race Day — checklist items (gear)
+"race_day.checklist.bib_front.title" = "ゼッケンを前面に見える形で装着";
+"race_day.checklist.shoes_laced.title" = "レースシューズ着用、靴紐は二重結び";
+"race_day.checklist.grips_ready.title" = "スレッド・キャリー用のグローブかグリップを用意";
+"race_day.checklist.bag_drop.title" = "着替えとタオルを荷物預かりに";
+"race_day.checklist.devices_charged.title" = "ウォッチとスマホを充電、レーステンプレートを用意";
+
+// MARK: - Race Day — checklist items (fuel & warm-up)
+"race_day.checklist.main_meal.title" = "ウェーブの 3 時間前に主食事";
+"race_day.checklist.light_carbs.title" = "60 分前に軽い炭水化物";
+"race_day.checklist.hydration.title" = "直前 2 時間で水 500ml";
+"race_day.checklist.caffeine.title" = "スタート 45 分前にカフェイン";
+"race_day.checklist.warm_up.title" = "ウェーブの 30 分前にウォームアップ開始";
+
+// MARK: - 進捗トラッキング
+"home.action.progress" = "進捗";
+"progress.title" = "進捗";
+"progress.load_failed" = "記録を読み込めませんでした";
+"progress.empty.title" = "比較できる記録がまだ足りません";
+"progress.empty.message" = "公式コースの記録が 2 件たまると、フィニッシュタイム・パーセンタイル・ランの落ち込み・最も時間を失う種目を追跡します。";
+"progress.empty.count_format" = "これまで %d 件";
+"progress.section.finish" = "フィニッシュタイム";
+"progress.section.percentile" = "パーセンタイル";
+"progress.section.running" = "ラン";
+"progress.section.segments" = "時間を使っている場所";
+"progress.finish.best_format" = "自己ベスト %@";
+"progress.finish.delta_faster_format" = "初回より %@ 速くなりました";
+"progress.finish.delta_slower_format" = "初回より %@ 遅くなりました";
+"progress.finish.delta_same" = "初回と同じです";
+"progress.percentile.value_format" = "上位 %.1f%%";
+"progress.percentile.unavailable" = "このディビジョンは参照データがまだ足りません。";
+"progress.running.first_pace" = "最初のラン";
+"progress.running.fade" = "ラン 8 / ラン 1";
+"progress.running.fade_hint" = "1.00 なら最初のランのペースを最後まで保てたという意味です。序盤に飛ばすほどこの数値が大きくなります。";
+"progress.segments.first_marker" = "ひし形が初回の記録です。";
+"progress.footer.division_format" = "%@ の記録だけを比較します";
+"progress.footer.dataset_format" = "パーセンタイルの基準: %@ データ";
+"progress.footer.skipped_format" = "読み取れない、または別コースの記録 %d 件を除きました";
+
+// MARK: - レース計画ツール（マイレースの導線）
+"race_target.section.planning" = "プランニング";
+"race_target.action.team_split" = "分担プラン";
+"race_target.action.team_split.subtitle" = "パートナーとステーションを分ける";
+"race_target.action.benchmark" = "PFTベンチマーク";
+"race_target.action.benchmark.subtitle" = "体力テスト1回でディビジョンを決める";
+
+// MARK: - 分担プランナー
+"team_split.title" = "分担プラン";
+"team_split.format.doubles" = "ダブルス · 2人";
+"team_split.format.relay" = "リレー · 4人";
+"team_split.section.goal" = "チーム目標";
+"team_split.section.workload" = "負荷の配分";
+"team_split.section.stations" = "ステーション分担";
+"team_split.rule.doubles" = "ステーションは自由に分けられますが、ランは2人一緒に走ります。先行すると1分のペナルティ、3回を超えると失格になるため、ランの時間は分けずにチーム共通として扱います。";
+"team_split.rule.relay" = "1人あたり2 ×（1 km + ステーション1種）なので、ランもステーションと一緒に分けます。重量は各自の性別のOpen基準です。";
+"team_split.summary.projected" = "予想フィニッシュ";
+"team_split.summary.shared_run" = "一緒に走る時間";
+"team_split.summary.run_per_athlete" = "1人あたりのラン";
+"team_split.summary.load_gap" = "負荷の差";
+"team_split.summary.even" = "差なし";
+"team_split.member.stations" = "ステーション";
+"team_split.member.running" = "ラン";
+"team_split.member.rest" = "休息";
+"team_split.button.reset" = "均等な分担に戻す";
+"team_split.warning.imbalance" = "1人がステーション作業の%d%%を担当しています。ランは一緒に走るため、重い側がチームのペースを決めることになります。";
+"team_split.note.reference" = "ステーション時間は、このフィニッシュタイム帯の%@のレース結果に基づいています。";
+"team_split.note.estimated" = "リレーは公開された記録表がないため、%@の結果の比率を目標に合わせて伸縮した値です。参考用です。";
+"team_split.share.format" = "%d%%";
+
+// MARK: - PFTベンチマーク
+"pft.template.name" = "HYROX PFT";
+"pft.template.summary" = "公式体力テスト：1 kmラン、バーピーブロードジャンプ50、ランジ100 m、ロウ1 km、プッシュアップ30、ウォールボール100。";
+"pft.step.run.name" = "ラン";
+"pft.step.burpee_broad_jumps.name" = "バーピーブロードジャンプ";
+"pft.step.lunges.name" = "ランジ";
+"pft.step.row.name" = "ロウ";
+"pft.step.push_ups.name" = "ハンドリリース・プッシュアップ";
+"pft.step.wall_balls.name" = "ウォールボール";
+"benchmark.title" = "PFTベンチマーク";
+"benchmark.section.protocol" = "テスト構成";
+"benchmark.section.time" = "自分のタイム";
+"benchmark.section.division" = "比較するディビジョン";
+"benchmark.section.result" = "結果";
+"benchmark.section.splits" = "区間パーセンタイル";
+"benchmark.section.next" = "次のステップ";
+"benchmark.recommend.pro" = "PRO";
+"benchmark.recommend.open" = "OPEN";
+"benchmark.recommend.headline" = "このタイムは%@向きです。";
+"benchmark.projection.title" = "予想HYROXフィニッシュ";
+"benchmark.projection.range" = "%@ – %@";
+"benchmark.projection.basis" = "%@の結果を基準";
+"benchmark.projection.percentile" = "上位%d%% – %d%%";
+"benchmark.note.source" = "Pro 15–25分、Open 25–35分は公式の算出式ではなく報道された目安です。範囲は参考として見てください。";
+"benchmark.note.outside_band" = "報道された15–35分の範囲外のため、予想の幅を広めに取っています。";
+"benchmark.record.source" = "%@のPFT記録から";
+"benchmark.record.none" = "PFTの記録がまだありません。タイムを手入力するか、PFTテンプレートで実施すると区間比較も表示されます。";
+"benchmark.record.edited" = "区間パーセンタイルは記録されたタイムにのみ適用されます。";
+"benchmark.splits.empty" = "アプリでPFTを実施すると、区間ごとにレース結果と比較できます。";
+"benchmark.splits.approximate" = "目安";
+"benchmark.splits.percentile" = "上位%.1f%%";
+"benchmark.next.body" = "次はフルシミュレーションです。完了後のサマリーにあるギャップ分析で、どこで時間を失っているかを確認できます。";
+"benchmark.unavailable" = "このディビジョンの参照記録はまだありません。";
+
+// MARK: - Race day entry
+"home.action.race_day" = "大会当日の準備";
+"training_session.pft_benchmark.name" = "体力テスト (PFT)";
+"training_session.pft_benchmark.summary" = "公式6種目のテスト — 数週間ごとに繰り返して現在地を確認します。";

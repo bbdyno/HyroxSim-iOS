@@ -21,3 +21,8 @@
 
 // MARK: - My Race
 "race_target.dday" = "D-DAY";
+
+// MARK: - Race Day
+"race_day.lap_hint" = "ラップは自分で数える";
+"race_day.add_lap" = "ラップを追加";
+"race_day.remove_lap" = "ラップを取り消す";

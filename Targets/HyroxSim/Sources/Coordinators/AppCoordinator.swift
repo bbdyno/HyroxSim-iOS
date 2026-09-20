@@ -22,6 +22,8 @@ public final class AppCoordinator {
     private let syncCoordinator: WatchConnectivitySyncCoordinator
     private let workoutMirrorController: WorkoutMirrorController
     private let garminTemplateSyncService: GarminTemplateSyncService
+    /// 진척 화면의 퍼센타일 기준. 번들 스냅샷이든 내려받은 표든 여기서 나온다.
+    private let paceData: PaceDataRepository
     private let templateGoalOverrideStore = TemplateGoalOverrideStore()
     private let heartRateProfile = HeartRateProfile()
     private let checkpointStore: WorkoutCheckpointStore
@@ -76,6 +78,7 @@ public final class AppCoordinator {
         self.syncCoordinator = services.syncCoordinator
         self.workoutMirrorController = services.workoutMirrorController
         self.garminTemplateSyncService = services.garminTemplateSyncService
+        self.paceData = services.paceData
 
         // Global dark nav bar appearance
         let navAppearance = UINavigationBarAppearance()
@@ -529,6 +532,15 @@ public final class AppCoordinator {
         return vc
     }
 
+    private func makeProgressViewController() -> UIViewController {
+        // v4 표가 아직 준비되지 않았으면 nil 이 넘어가고, 분석은 번들 v3 버킷으로 떨어진다.
+        let vm = ProgressViewModel(
+            persistence: persistence,
+            paceData: paceData.currentProvider()
+        )
+        return ProgressViewController(viewModel: vm)
+    }
+
     private func showTemplateDetail(_ template: WorkoutTemplate) {
         let resolvedTemplate = templateWithOverrides(template)
         let vc = TemplateDetailViewController(template: resolvedTemplate) { [weak self] updatedTemplate in
@@ -580,6 +592,21 @@ extension AppCoordinator: HomeViewControllerDelegate {
     func homeDidTapHistory() {
         let vc = makeHistoryViewController()
         navigationController.pushViewController(vc, animated: true)
+    }
+
+    func homeDidTapRaceDay() {
+        // 대회 당일 도구는 등록한 대회(있으면)와 그 디비전 프리셋을 기준으로 연다.
+        let race = try? persistence.fetchUpcomingRaceTarget()
+        let division = race?.division ?? .menOpenSingle
+        let preset = templateGoalOverrideStore.resolvedTemplate(from: HyroxPresets.template(for: division))
+        RaceDayEntry.present(
+            from: topmostPresentedViewController,
+            context: RaceDayContext(template: preset, raceTarget: race)
+        )
+    }
+
+    func homeDidTapProgress() {
+        navigationController.pushViewController(makeProgressViewController(), animated: true)
     }
 
     func homeDidSelectRecent(_ workout: CompletedWorkout) {
@@ -636,6 +663,8 @@ extension AppCoordinator: RaceTargetEditorViewControllerDelegate {
 
     func raceTargetEditorDidRequestDelete(_ target: RaceTarget) {
         try? persistence.deleteRaceTarget(id: target.id)
+        // 대회가 사라지면 그 대회에 묶인 분담 계획도 남길 이유가 없다.
+        TeamSplitPlanStore().remove(raceTargetId: target.id)
         // 삭제 전용 동기화 메시지가 아직 없다. 남아 있는 대회 중 가장 가까운 것을 다시
         // 보내 워치가 최신 대회를 잡게 하고, 하나도 없으면 워치는 날짜가 지날 때까지
         // 마지막 값을 들고 있는다. (TODO: `raceTargetDeleted` 메시지 종류 추가)

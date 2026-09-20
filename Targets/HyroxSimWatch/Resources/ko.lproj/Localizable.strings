@@ -21,3 +21,8 @@
 
 // MARK: - My Race
 "race_target.dday" = "D-DAY";
+
+// MARK: - Race Day
+"race_day.lap_hint" = "랩은 직접 세세요";
+"race_day.add_lap" = "랩 추가";
+"race_day.remove_lap" = "랩 취소";
