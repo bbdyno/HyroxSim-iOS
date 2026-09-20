@@ -1182,3 +1182,245 @@ final class PaceDataVersionTests: XCTestCase {
         XCTAssertEqual(PaceDataVersion.compare("2026.09.15-beta", "2026.09.15-alpha"), .orderedDescending)
     }
 }
+
+// MARK: - Race-Shaped Distribution
+//
+// 분배가 바뀐 두 가지:
+//
+// 1. 블록 목표 = Run i + "그 블록이 실제로 지나는 록스존". 첫 블록은 1개, 나머지는 2개다
+//    (8 × (입장 + 퇴장) − 월볼 뒤에 없는 퇴장 = 15). 예전에는 러닝 시간에 비례해서
+//    나눠 첫 블록이 반 구간쯤 더 받았다.
+// 2. Run 1 은 그 플랜의 평균 러닝보다 3% 넘게 앞서지 못한다. 번들 비율표는
+//    Run 1 = Run 2 = 1.0 이라, 목표가 느릴수록 첫 런이 평균보다 더 빨라졌다
+//    (2:15:00 목표에서 −52초). 무너지는 쪽의 실패 패턴을 그대로 지시하던 값이다.
+
+final class PacePlannerDistributionTests: XCTestCase {
+
+    private var planner: PacePlanner!
+
+    override func setUpWithError() throws {
+        planner = try PaceReferenceLoader.loadPacePlanner()
+    }
+
+    // MARK: - 합계 불변식
+
+    /// 31개 구간 목표의 합은 사용자가 정한 목표 시간과 정확히 같아야 한다.
+    func testBlocksAndStationsAlwaysAddUpToTheGoal() {
+        for division in HyroxDivision.allCases {
+            guard let range = planner.goalRange(for: division) else {
+                XCTFail("\(division.rawValue) has no goal range")
+                continue
+            }
+
+            for goal in stride(from: range.minTotalS, through: range.maxTotalS, by: 137) {
+                for mode in [PacePlanner.RunMode.adaptive, .equal] {
+                    guard let plan = planner.computePlan(
+                        goalTotalS: goal,
+                        division: division,
+                        mode: mode
+                    ) else {
+                        XCTFail("\(division.rawValue) @ \(goal)s produced no plan")
+                        continue
+                    }
+
+                    XCTAssertEqual(
+                        plan.runTotal + plan.stationTotal,
+                        goal,
+                        "\(division.rawValue) @ \(goal)s (\(mode.rawValue))"
+                    )
+                    XCTAssertEqual(plan.computedTotal, goal, "\(division.rawValue) @ \(goal)s")
+                    XCTAssertEqual(plan.runTimes.count, PacePlanner.runCount)
+                    XCTAssertTrue(
+                        plan.runTimes.allSatisfy { $0 > 0 },
+                        "\(division.rawValue) @ \(goal)s produced a non-positive block"
+                    )
+                }
+            }
+        }
+    }
+
+    // MARK: - 블록별 록스존
+
+    func testRoxZoneCountsCoverTheCourseExactly() {
+        XCTAssertEqual(PacePlanner.blockRoxZoneCounts.count, PacePlanner.runCount)
+        XCTAssertEqual(PacePlanner.blockRoxZoneCounts.reduce(0, +), PacePlanner.roxZoneCount)
+        XCTAssertEqual(PacePlanner.blockRoxZoneCounts.first, 1)
+        XCTAssertTrue(PacePlanner.blockRoxZoneCounts.dropFirst().allSatisfy { $0 == 2 })
+        // 공식 코스의 구간 수와 맞는지: 8 러닝 + 8 스테이션 + 15 록스존 = 31.
+        XCTAssertEqual(
+            PacePlanner.runCount * 2 + PacePlanner.roxZoneCount,
+            WorkoutTemplate.standardSegmentCountWithRox
+        )
+    }
+
+    /// 균등 모드에서는 러닝 몫이 8등분이므로 블록 간 차이는 순수하게 록스존 개수 차이다.
+    func testFirstBlockCarriesOneRoxZoneInsteadOfTwo() {
+        guard let plan = planner.computePlan(
+            goalTotalS: 5400,
+            division: .menOpenSingle,
+            mode: .equal
+        ) else { return XCTFail("no plan") }
+
+        // 2번째 블록부터는 전부 같은 목표(반올림 1초 이내).
+        for index in 2..<PacePlanner.runCount {
+            XCTAssertLessThanOrEqual(
+                abs(plan.runTimes[index] - plan.runTimes[1]),
+                1,
+                "block \(index + 1) should match block 2"
+            )
+        }
+
+        let oneZone = Double(plan.runTotal) * plan.roxFraction / Double(PacePlanner.roxZoneCount)
+        XCTAssertEqual(
+            Double(plan.runTimes[1] - plan.runTimes[0]),
+            oneZone,
+            accuracy: 1.5,
+            "the first block should be short by exactly one ROX Zone"
+        )
+        XCTAssertGreaterThan(oneZone, 20, "the fixture should have a ROX Zone worth measuring")
+    }
+
+    /// 예전 분배(러닝 비례)라면 첫 블록이 록스존을 1.6개어치 받았다.
+    func testFirstBlockNoLongerGetsARunProportionalShareOfRoxZones() {
+        guard let plan = planner.computePlan(goalTotalS: 5400, division: .menOpenSingle) else {
+            return XCTFail("no plan")
+        }
+
+        let roxPool = Double(plan.runTotal) * plan.roxFraction
+        let proportionalShare = roxPool / Double(PacePlanner.runCount)
+        let actualShare = roxPool / Double(PacePlanner.roxZoneCount)
+
+        // 이전 감사에서 "첫 블록만 록스존이 1개인데 같은 몫을 받는다"고 지적된 왜곡.
+        // 크기는 목표·디비전마다 다르지만 어느 경우에도 한 자릿수 초가 아니다.
+        XCTAssertLessThan(actualShare, proportionalShare)
+        XCTAssertGreaterThan(proportionalShare - actualShare, 10)
+    }
+
+    // MARK: - 보수적인 첫 런
+
+    func testFirstRunKeepsAtMostTheAllowedLeadOverTheAverageRun() {
+        for goal in [4200, 5400, 6600, 8100] {
+            guard let bucket = planner.interpolate(
+                targetMinutes: Double(goal) / 60,
+                division: .menOpenSingle
+            ) else { return XCTFail("no bucket") }
+
+            let shaped = planner.pacingRunRatios(
+                targetSeconds: goal,
+                fadeScale: PacePlanner.fadeScale(for: bucket)
+            )
+            let mean = shaped.reduce(0, +) / Double(shaped.count)
+
+            XCTAssertEqual(
+                shaped[0] / mean,
+                1 - PacePlanner.maximumOpenerLead,
+                accuracy: 0.001,
+                "goal \(goal)s"
+            )
+        }
+    }
+
+    /// 예전 비율표보다 첫 런이 덜 앞서야 한다 — 특히 목표가 느릴수록 차이가 크다.
+    func testFirstRunIsMoreConservativeThanTheRawRatioTable() {
+        for goal in [4200, 5400, 6600, 8100] {
+            guard let bucket = planner.interpolate(
+                targetMinutes: Double(goal) / 60,
+                division: .menOpenSingle
+            ) else { return XCTFail("no bucket") }
+
+            let raw = planner.interpolatedRunRatios(targetSeconds: goal)
+            let shaped = planner.pacingRunRatios(
+                targetSeconds: goal,
+                fadeScale: PacePlanner.fadeScale(for: bucket)
+            )
+
+            let rawLead = raw[0] / (raw.reduce(0, +) / Double(raw.count))
+            let shapedLead = shaped[0] / (shaped.reduce(0, +) / Double(shaped.count))
+
+            XCTAssertLessThan(rawLead, shapedLead, "goal \(goal)s: the opener got no slower")
+            XCTAssertLessThan(rawLead, 1 - PacePlanner.maximumOpenerLead, "goal \(goal)s")
+        }
+    }
+
+    /// 목표가 느릴수록 예전 표의 과속 지시가 컸다는 사실 자체를 붙잡아 둔다.
+    func testTheRawTableOverSpedTheOpenerMostForSlowGoals() {
+        let fast = planner.interpolatedRunRatios(targetSeconds: 3600)
+        let slow = planner.interpolatedRunRatios(targetSeconds: 8100)
+
+        let fastLead = 1 - fast[0] / (fast.reduce(0, +) / Double(fast.count))
+        let slowLead = 1 - slow[0] / (slow.reduce(0, +) / Double(slow.count))
+
+        XCTAssertGreaterThan(slowLead, fastLead)
+        XCTAssertGreaterThan(slowLead, 0.10, "2:15 목표에서 첫 런이 평균보다 10% 넘게 빨랐다")
+    }
+
+    func testEqualModeKeepsEveryRunEqualDespiteTheOpenerCap() {
+        let ratios = planner.pacingRunRatios(targetSeconds: 5400, fadeScale: 1.0, mode: .equal)
+        XCTAssertEqual(ratios.count, PacePlanner.runCount)
+        for ratio in ratios {
+            XCTAssertEqual(ratio, 1.0, accuracy: 0.0001)
+        }
+    }
+
+    // MARK: - 더블스 계수
+
+    func testDoublesAndMixedGetAFlatterFadeThanSingles() {
+        let singles: [HyroxDivision] = [
+            .menOpenSingle, .womenOpenSingle, .menProSingle, .womenProSingle
+        ]
+        let doubles: [HyroxDivision] = [
+            .menOpenDouble, .womenOpenDouble, .menProDouble, .womenProDouble, .mixedDouble
+        ]
+
+        for goal in [4200, 5400, 6600] {
+            let minutes = Double(goal) / 60
+
+            let singleScales = singles.compactMap { division in
+                planner.interpolate(targetMinutes: minutes, division: division)
+                    .map(PacePlanner.fadeScale(for:))
+            }
+            let doubleScales = doubles.compactMap { division in
+                planner.interpolate(targetMinutes: minutes, division: division)
+                    .map(PacePlanner.fadeScale(for:))
+            }
+
+            XCTAssertEqual(singleScales.count, singles.count)
+            XCTAssertEqual(doubleScales.count, doubles.count)
+            XCTAssertGreaterThan(
+                singleScales.min() ?? 0,
+                doubleScales.max() ?? 1,
+                "goal \(goal)s: doubles must fade less than every singles division"
+            )
+            XCTAssertLessThanOrEqual(singleScales.max() ?? 0, PacePlanner.fadeScaleRange.upperBound)
+            XCTAssertGreaterThanOrEqual(doubleScales.min() ?? 0, PacePlanner.fadeScaleRange.lowerBound)
+        }
+    }
+
+    /// 계수가 실제 플랜까지 내려가는지 — 더블스의 마지막 블록은 싱글보다 덜 늘어진다.
+    func testDoublesPlanHasALessSteepFadeThanSingles() {
+        guard let single = planner.computePlan(goalTotalS: 5400, division: .menOpenSingle),
+              let double = planner.computePlan(goalTotalS: 5400, division: .menOpenDouble),
+              let singleBucket = planner.interpolate(targetMinutes: 90, division: .menOpenSingle),
+              let doubleBucket = planner.interpolate(targetMinutes: 90, division: .menOpenDouble)
+        else { return XCTFail("no plan") }
+
+        func lastOverFirstRun(_ plan: PacePlan, _ bucket: InterpolatedBucket) -> Double {
+            let ratios = planner.pacingRunRatios(
+                targetSeconds: plan.goalTotalS,
+                fadeScale: PacePlanner.fadeScale(for: bucket)
+            )
+            return ratios[PacePlanner.runCount - 1] / ratios[0]
+        }
+
+        XCTAssertLessThan(
+            lastOverFirstRun(double, doubleBucket),
+            lastOverFirstRun(single, singleBucket)
+        )
+    }
+
+    func testFadeScaleIsClampedForOddBuckets() {
+        XCTAssertEqual(PacePlanner.clampFadeScale(.nan), PacePlanner.fadeScaleRange.upperBound)
+        XCTAssertEqual(PacePlanner.clampFadeScale(5), PacePlanner.fadeScaleRange.upperBound)
+        XCTAssertEqual(PacePlanner.clampFadeScale(0), PacePlanner.fadeScaleRange.lowerBound)
+    }
+}

@@ -156,6 +156,15 @@ public struct InterpolatedBucket: Sendable {
     public var roxFraction: Double {
         avgRunRox > 0 ? Double(avgRox) / Double(avgRunRox) : 0
     }
+
+    /// Fraction of the finish time spent at the 8 stations (0.0-1.0).
+    ///
+    /// The lever behind the division-specific fade scale: a doubles athlete runs the
+    /// whole course but only does part of the station work, so the same finish time
+    /// carries far less accumulated leg load into the later runs.
+    public var stationFraction: Double {
+        avgOverall > 0 ? Double(avgStationTotal) / Double(avgOverall) : 0
+    }
 }
 
 // MARK: - Goal Range
@@ -203,6 +212,58 @@ public struct PacePlanner: Sendable {
 
     /// Runs in a standard HYROX race.
     public static let runCount = 8
+
+    /// ROX Zones in a standard race: 8 × (entry + exit) − the exit that never happens
+    /// after Wall Balls.
+    public static let roxZoneCount = 15
+
+    /// ROX Zones that belong to each "Run i + ROX Zone" block.
+    ///
+    /// A block is the transition **into** the run and the transition **out of** it:
+    /// `[exit of station i−1] → Run i → [entry of station i]`. Run 1 starts the race,
+    /// so it has no preceding exit — one zone instead of two. 1 + 7 × 2 = 15.
+    ///
+    /// The old distribution ignored this and spread the ROX Zone pool across the eight
+    /// blocks in proportion to their run time, which handed block 1 roughly half a zone
+    /// too much: ±14s on the block it matters most on, right where an athlete decides
+    /// how hard the opening run feels.
+    public static let blockRoxZoneCounts: [Int] = [1, 2, 2, 2, 2, 2, 2, 2]
+
+    // MARK: - Race Shape
+
+    /// How far ahead of the plan's own average run Run 1 is allowed to be.
+    ///
+    /// Running is about half of the finish time and drives improvement more than any
+    /// station (Rappelt et al. 2026, ~40k PRO/ELITE results), and the way that half is
+    /// spent is lopsided: Run 5 comes in 1:20–1:52 slower than Run 1, and the further
+    /// down the field an athlete is the more of that gap is self-inflicted — the ones
+    /// who blow up open **more than 40s faster than their own average run**
+    /// (HyroxDataLab, ~700k results).
+    ///
+    /// The bundled `run_ratio_table` pins Run 1 = Run 2 = 1.0, which makes the opener
+    /// the fastest lap of the race *by the size of the whole fade curve*: −19s against
+    /// the average run at a 1:30:00 Men's Open goal, and −52s at 2:15:00. That is the
+    /// failure pattern written down as a plan. Capping the opener's lead at 3% (8–9s on
+    /// a 4:30–5:00/km run) keeps a settling-in allowance without handing out the
+    /// blow-up.
+    public static let maximumOpenerLead = 0.03
+
+    /// Station share of the finish time that the run ratio table was fitted around.
+    ///
+    /// There is exactly one ratio table for all nine divisions — it was copied verbatim
+    /// from the 2026-04-17 snapshot (`tools/pace-data/paceetl/v3.py`) and the field it
+    /// came from is dominated by singles. But late-race running decay is paid for by the
+    /// station work already done, and doubles athletes share that work: in the bundled
+    /// v4 tables (2026.09.15) the median station share is 42.4–46.2% for singles and
+    /// 34.8–38.5% for doubles and mixed. 0.44 is the singles median, so a division whose
+    /// athletes carry less station load gets a proportionally flatter fade
+    /// (≈0.77–0.81 for doubles, ≈1.0 for singles).
+    public static let referenceStationFraction = 0.44
+
+    /// Bounds on that scale. The floor keeps a half-flat curve from becoming a flat one
+    /// on sparse buckets; the ceiling keeps a station-heavy bucket from inventing a
+    /// steeper fade than the data ever measured.
+    public static let fadeScaleRange: ClosedRange<Double> = 0.60...1.00
 
     public let data: PacePlannerData
 
@@ -324,7 +385,13 @@ public struct PacePlanner: Sendable {
         case adaptive // 실전: data-driven fatigue curve
     }
 
-    /// Get run time for a specific lap.
+    /// Get run time for a specific lap, straight off the ratio table.
+    ///
+    /// The raw per-lap read, kept for callers that want the table's own shape.
+    /// ``computePlan(goalTotalS:division:mode:)`` does **not** use it: a plan row is a
+    /// block (run + its ROX Zones) and needs the shaped ratios plus the zone split,
+    /// neither of which this signature carries.
+    ///
     /// - Parameters:
     ///   - index: Run index (0-7)
     ///   - paceSeconds87: Pace in seconds per 8.7km-equivalent lap
@@ -366,6 +433,94 @@ public struct PacePlanner: Sendable {
         return last.r
     }
 
+    // MARK: - Race-Shaped Distribution
+
+    /// Fade scale for a bucket, from how much of that finish time is station work.
+    ///
+    /// See ``referenceStationFraction``. Singles land at ~1.0 (the curve they were
+    /// fitted on), doubles and mixed at ~0.77–0.81.
+    public static func fadeScale(for bucket: InterpolatedBucket) -> Double {
+        let fraction = bucket.stationFraction
+        guard fraction > 0 else { return fadeScaleRange.upperBound }
+        return clampFadeScale(fraction / referenceStationFraction)
+    }
+
+    static func clampFadeScale(_ value: Double) -> Double {
+        guard value.isFinite else { return fadeScaleRange.upperBound }
+        return min(max(value, fadeScaleRange.lowerBound), fadeScaleRange.upperBound)
+    }
+
+    /// Per-run weights for the **running** pool only, after two corrections the raw
+    /// table cannot make on its own: the division's fade scale, and the opener cap.
+    ///
+    /// - Parameters:
+    ///   - targetSeconds: Target overall time, for the ratio lookup.
+    ///   - fadeScale: Amplitude of the fade, 1.0 being the table's own curve.
+    ///   - mode: `.equal` starts from a flat curve; the opener cap then does nothing,
+    ///     because a flat plan has no lead to give back.
+    public func pacingRunRatios(
+        targetSeconds: Int,
+        fadeScale: Double,
+        mode: RunMode = .adaptive
+    ) -> [Double] {
+        var ratios: [Double]
+        switch mode {
+        case .equal:
+            ratios = Array(repeating: 1, count: Self.runCount)
+        case .adaptive:
+            let scale = Self.clampFadeScale(fadeScale)
+            ratios = interpolatedRunRatios(targetSeconds: targetSeconds)
+                .map { 1 + ($0 - 1) * scale }
+        }
+        guard ratios.count == Self.runCount, ratios.allSatisfy({ $0.isFinite && $0 > 0 }) else {
+            return Array(repeating: 1, count: Self.runCount)
+        }
+
+        // Slow the opener until it leads the plan's mean run by at most
+        // `maximumOpenerLead`. Solving `r0 = (1 - L) · (r0 + rest) / n` for `r0` lands on
+        // the cap in one step instead of iterating. `max` keeps it a cap: a table that
+        // already asks for a slower Run 1 is never sped up.
+        let rest = ratios.dropFirst().reduce(0, +)
+        let cap = (1 - Self.maximumOpenerLead) * rest
+            / (Double(Self.runCount - 1) + Self.maximumOpenerLead)
+        ratios[0] = max(ratios[0], cap)
+        return ratios
+    }
+
+    /// Split the run + ROX Zone pool into the eight block targets of a plan row.
+    ///
+    /// Running is apportioned by `ratios`; the ROX Zone pool is apportioned by how many
+    /// zones each block actually contains (``blockRoxZoneCounts``) rather than by run
+    /// time. Largest-remainder rounding makes the eight blocks add up to
+    /// `combinedSeconds` exactly, so the plan still totals the athlete's goal.
+    static func distributeBlocks(
+        combinedSeconds: Int,
+        roxFraction: Double,
+        ratios: [Double]
+    ) -> [Int] {
+        let flat = { (total: Int) -> [Int] in
+            PaceInterpolation.apportion(
+                Array(repeating: Double(total) / Double(runCount), count: runCount),
+                total: total
+            )
+        }
+        guard ratios.count == runCount else { return flat(combinedSeconds) }
+
+        let ratioSum = ratios.reduce(0, +)
+        guard ratioSum > 0, ratioSum.isFinite else { return flat(combinedSeconds) }
+
+        let fraction = roxFraction.isFinite ? min(max(roxFraction, 0), 1) : 0
+        let roxPool = Double(combinedSeconds) * fraction
+        let runPool = Double(combinedSeconds) - roxPool
+        let zoneTotal = Double(roxZoneCount)
+
+        let exact = (0..<runCount).map { index in
+            runPool * ratios[index] / ratioSum
+                + roxPool * Double(blockRoxZoneCounts[index]) / zoneTotal
+        }
+        return PaceInterpolation.apportion(exact, total: combinedSeconds)
+    }
+
     // MARK: - Full Plan Computation (matching renderDetail)
 
     /// Compute a full pace plan for a target time.
@@ -394,13 +549,24 @@ public struct PacePlanner: Sendable {
             if diff < bestDiff { bestDiff = diff; bestPace = p }
         }
 
-        // Compute run times
-        var runTimes: [Int] = []
-        for i in 0..<Self.runCount {
-            runTimes.append(runTime(index: i, paceSeconds87: bestPace, totalSeconds: goalTotalS, mode: mode))
-        }
+        // Block targets: running shaped by the division's fade curve, ROX Zones split by
+        // the number of zones each block holds. The two are apportioned together so the
+        // eight rows add up to `targetRun` exactly.
+        let runTimes = Self.distributeBlocks(
+            combinedSeconds: targetRun,
+            roxFraction: bucket.roxFraction,
+            ratios: pacingRunRatios(
+                targetSeconds: goalTotalS,
+                fadeScale: Self.fadeScale(for: bucket),
+                mode: mode
+            )
+        )
 
-        // Rebalance stations (matching rebalanceStations)
+        // Rebalance stations (matching rebalanceStations).
+        // Largest-remainder apportionment already lands the blocks on `targetRun`, so
+        // this is now a backstop for a goal the pool cannot express at all (goal 0, or a
+        // bucket whose stations alone exceed the goal) rather than the rounding sink it
+        // used to be — which is why the station splits no longer drift off the data.
         let runTotal = runTimes.reduce(0, +)
         let residual = goalTotalS - (runTotal + stnTotal)
         let stationOrder = StationKind.standardDataKeys
@@ -460,7 +626,10 @@ public struct PacePlanner: Sendable {
 
 public struct PacePlan: Sendable {
     public let goalTotalS: Int
-    /// Per-run times (8 values, includes roxzone).
+    /// Per-block targets (8 values): Run i plus the ROX Zones that block carries.
+    ///
+    /// Block 1 holds one zone (the race starts on Run 1, so there is no exit to cross
+    /// first); every other block holds two. See ``PacePlanner/blockRoxZoneCounts``.
     public let runTimes: [Int]
     /// Per-station times, keyed by `StationKind.dataKey`.
     public let stationTimes: [String: Int]
