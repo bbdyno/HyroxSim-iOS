@@ -96,3 +96,77 @@
 
 // MARK: - Legal
 "settings.footer.unofficial" = "비공식 앱입니다. HYROX와 제휴·후원·연관 관계가 없습니다. HYROX는 해당 권리자의 상표입니다.";
+
+// MARK: - Summary gap analysis
+"summary.gap.title" = "되찾을 수 있는 시간";
+"summary.gap.subtitle_format" = "목표 %@ · %@";
+"summary.gap.subtitle_goal_format" = "목표 %@";
+"summary.gap.headline_format" = "목표까지 %@ 더 줄이면 돼요";
+"summary.gap.goal_met_format" = "목표보다 %@ 빨랐어요.";
+"summary.gap.no_goal" = "목표를 설정하면 분석을 볼 수 있어요.";
+"summary.gap.no_reference" = "이 목표는 참고 기록 범위를 벗어났어요.";
+"summary.gap.share_format" = "전체 격차의 %d%%";
+"summary.gap.remainder_format" = "나머지 %d개 구간 · %@";
+"summary.gap.row.run" = "러닝 8회";
+"summary.gap.row.rox_zone" = "록스존";
+
+// MARK: - Summary heart rate zones
+"summary.zones.title" = "심박 존";
+
+// MARK: - Summary share card
+"summary.share.tagline" = "HYROX SIM 으로 기록";
+
+// MARK: - Home / My Race
+"home.section.training_sessions" = "훈련 세션";
+"home.race_target.badge" = "내 대회";
+"home.race_target.dday" = "D-DAY";
+"home.race_target.goal_format" = "목표 %@";
+"home.race_target.no_goal" = "목표 시간 미정";
+"home.race_target.empty.title" = "대회 추가";
+"home.race_target.empty.subtitle" = "남은 일수를 세고 목표 시간을 정하세요";
+
+// MARK: - My Race editor
+"race_target.title.new" = "새 대회";
+"race_target.title.edit" = "내 대회";
+"race_target.field.event_name" = "대회명";
+"race_target.field.event_name.placeholder" = "HYROX Seoul";
+"race_target.field.city" = "도시";
+"race_target.field.city.placeholder" = "서울";
+"race_target.field.date" = "대회일";
+"race_target.field.division" = "디비전";
+"race_target.field.division.undecided" = "미정";
+"race_target.field.goal" = "목표 완주 시간";
+"race_target.field.goal.unset" = "목표 없음";
+"race_target.field.note" = "메모";
+"race_target.field.note.placeholder" = "숙소, 동반 출전자, 준비물…";
+"race_target.hint.past_date" = "이미 지난 날짜입니다. 기록으로는 남지만 홈 카운트다운에는 표시되지 않습니다.";
+"race_target.error.empty_name" = "대회명을 입력하세요.";
+"race_target.alert.delete.title" = "대회 삭제?";
+"race_target.alert.delete.message" = "“%@”을(를) 이 폰에서 지웁니다.";
+
+// MARK: - Training sessions
+"training_session.compromised_run.name" = "컴프로마이즈드 런";
+"training_session.compromised_run.summary" = "1 km 런 직후 런지, 4라운드. 기록을 가장 크게 가르는 피로 상태 러닝을 훈련합니다.";
+"training_session.half_simulation.name" = "하프 시뮬레이션";
+"training_session.half_simulation.summary" = "런 1~4 + 스테이션 1~4를 대회 볼륨 그대로.";
+"training_session.station_intervals.name" = "스테이션 인터벌";
+"training_session.station_intervals.summary" = "월볼 · 버피 · 런지 3라운드. 시간 손실이 가장 큰 세 종목입니다.";
+"training_session.roxzone_drill.name" = "록스존 전환 드릴";
+"training_session.roxzone_drill.summary" = "400 m 런 → 록스존 → 스테이션 진입 반복. 전환이 몸에 붙을 때까지.";
+"training_session.wall_ball_ladder.name" = "월볼 사다리";
+"training_session.wall_ball_ladder.summary" = "대회 볼륨 월볼을 30·25·20·15·10 내림차순 세트로 나눠서.";
+
+// MARK: - Garmin connection state
+"settings.row.garmin.subtitle.not_paired" = "기기를 선택하지 않음";
+"settings.row.garmin.subtitle.bluetooth_off" = "블루투스가 꺼짐";
+"settings.row.garmin.subtitle.not_found" = "기기를 찾을 수 없음";
+"settings.row.garmin.subtitle.device_format" = "%@ · %@";
+"settings.row.garmin.disconnect" = "기기 해제";
+"settings.row.garmin.disconnect_subtitle" = "이 워치와 동기화를 중단합니다";
+"alert.garmin_disconnect.title" = "기기를 해제할까요?";
+"alert.garmin_disconnect.message" = "%@ 와의 동기화를 중단합니다. 아직 보내지 못한 내용은 버려집니다.";
+"button.disconnect" = "해제";
+
+// MARK: - History delete failure
+"alert.delete_workout_failed.title" = "삭제하지 못했어요";
+"alert.delete_workout_failed.message" = "이 기록을 삭제하지 못했어요. 다시 시도해 주세요.";

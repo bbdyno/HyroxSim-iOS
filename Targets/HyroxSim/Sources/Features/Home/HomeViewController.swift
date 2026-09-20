@@ -15,6 +15,8 @@ protocol HomeViewControllerDelegate: AnyObject {
     func homeDidTapNewWorkout()
     func homeDidTapHistory()
     func homeDidSelectRecent(_ workout: CompletedWorkout)
+    /// 내 대회 카드 탭 — 등록된 대회가 있으면 그 대회를, 없으면 새 대회 작성 화면을 연다.
+    func homeDidTapRaceTarget(_ target: RaceTarget?)
 }
 
 final class HomeViewController: UIViewController {
@@ -33,6 +35,8 @@ final class HomeViewController: UIViewController {
         static let recentContainer = 100
         static let customTemplatesHeader = 101
         static let customTemplatesContainer = 102
+        static let raceTargetContainer = 103
+        static let trainingSessionsContainer = 104
     }
 
     private var cardWidth: CGFloat { view.bounds.width - hMargin * 2 }
@@ -52,21 +56,31 @@ final class HomeViewController: UIViewController {
         title = "HYROX"
         setupScrollView()
         buildContent()
+        // 페이스 플래너/워치에서 목표가 바뀌면 프리셋 카드의 예상 시간도 같이 갱신한다.
+        viewModel.onDataChanged = { [weak self] in self?.refreshSections() }
         NotificationCenter.default.addObserver(self, selector: #selector(handleSyncUpdate), name: .syncDataUpdated, object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        viewModel.load()
-        carouselCollectionView?.reloadData()
-        rebuildRecentCard()
-        rebuildCustomTemplates()
+        reload()
     }
 
     @objc private func handleSyncUpdate() {
+        reload()
+    }
+
+    private func reload() {
         viewModel.load()
+        refreshSections()
+    }
+
+    /// 이미 불러온 뷰모델 상태를 화면에 다시 그린다.
+    private func refreshSections() {
         carouselCollectionView?.reloadData()
+        rebuildRaceTargetCard()
         rebuildRecentCard()
+        rebuildTrainingSessions()
         rebuildCustomTemplates()
     }
 
@@ -98,10 +112,23 @@ final class HomeViewController: UIViewController {
     // MARK: - Build Content
 
     private func buildContent() {
+        // 내 대회 (D-day) — 가장 먼저 보이는 정보
+        let raceContainer = UIView()
+        raceContainer.tag = Tags.raceTargetContainer
+        contentStack.addArrangedSubview(raceContainer)
+
         // Recent workout placeholder
         let recentContainer = UIView()
         recentContainer.tag = Tags.recentContainer
         contentStack.addArrangedSubview(recentContainer)
+
+        // 훈련 세션
+        contentStack.addArrangedSubview(
+            makeSectionHeader(HyroxSimStrings.Localizable.Home.Section.trainingSessions)
+        )
+        let trainingContainer = UIView()
+        trainingContainer.tag = Tags.trainingSessionsContainer
+        contentStack.addArrangedSubview(trainingContainer)
 
         // Carousel
         contentStack.addArrangedSubview(makeSectionHeader("SELECT DIVISION"))
@@ -147,6 +174,73 @@ final class HomeViewController: UIViewController {
         carouselCollectionView.register(PresetCardCell.self, forCellWithReuseIdentifier: PresetCardCell.reuseId)
         carouselCollectionView.heightAnchor.constraint(equalToConstant: 168).isActive = true
         return carouselCollectionView
+    }
+
+    // MARK: - Race Target Card
+
+    private func rebuildRaceTargetCard() {
+        guard let container = contentStack.arrangedSubviews.first(where: { $0.tag == Tags.raceTargetContainer })
+        else { return }
+        container.subviews.forEach { $0.removeFromSuperview() }
+
+        let card = RaceTargetCardView()
+        card.translatesAutoresizingMaskIntoConstraints = false
+        if let countdown = viewModel.raceCountdown {
+            card.configure(with: countdown)
+        } else {
+            card.configureEmpty()
+        }
+        card.addTarget(self, action: #selector(raceTargetTapped), for: .touchUpInside)
+        container.addSubview(card)
+        NSLayoutConstraint.activate([
+            card.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
+            card.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
+            card.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
+            card.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+    }
+
+    @objc private func raceTargetTapped() {
+        delegate?.homeDidTapRaceTarget(viewModel.raceCountdown?.target)
+    }
+
+    // MARK: - Training Sessions
+
+    private func rebuildTrainingSessions() {
+        guard let container = contentStack.arrangedSubviews.first(where: { $0.tag == Tags.trainingSessionsContainer })
+        else { return }
+        container.subviews.forEach { $0.removeFromSuperview() }
+
+        guard !viewModel.trainingSessions.isEmpty else {
+            container.isHidden = true
+            return
+        }
+        container.isHidden = false
+
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 10
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+
+        for (index, item) in viewModel.trainingSessions.enumerated() {
+            let card = TrainingSessionCardView()
+            card.configure(with: item)
+            card.tag = index
+            card.addTarget(self, action: #selector(trainingSessionTapped(_:)), for: .touchUpInside)
+            stack.addArrangedSubview(card)
+        }
+    }
+
+    @objc private func trainingSessionTapped(_ sender: UIControl) {
+        guard sender.tag < viewModel.trainingSessions.count else { return }
+        delegate?.homeDidSelectTemplate(viewModel.trainingSessions[sender.tag].template)
     }
 
     // MARK: - Recent Card

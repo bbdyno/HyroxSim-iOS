@@ -96,3 +96,77 @@
 
 // MARK: - Legal
 "settings.footer.unofficial" = "Unofficial app. Not affiliated with, endorsed by, or connected to HYROX. HYROX is a trademark of its respective owner.";
+
+// MARK: - Summary gap analysis
+"summary.gap.title" = "Time to reclaim";
+"summary.gap.subtitle_format" = "Goal %@ · %@";
+"summary.gap.subtitle_goal_format" = "Goal %@";
+"summary.gap.headline_format" = "%@ to find before you hit your goal";
+"summary.gap.goal_met_format" = "You beat the goal by %@.";
+"summary.gap.no_goal" = "Set a goal to unlock this analysis.";
+"summary.gap.no_reference" = "That goal sits outside our reference results.";
+"summary.gap.share_format" = "%d%% of the gap";
+"summary.gap.remainder_format" = "%d more splits · %@";
+"summary.gap.row.run" = "Running (8 laps)";
+"summary.gap.row.rox_zone" = "Rox Zone";
+
+// MARK: - Summary heart rate zones
+"summary.zones.title" = "HR Zones";
+
+// MARK: - Summary share card
+"summary.share.tagline" = "Simulated with HYROX SIM";
+
+// MARK: - Home / My Race
+"home.section.training_sessions" = "TRAINING SESSIONS";
+"home.race_target.badge" = "MY RACE";
+"home.race_target.dday" = "D-DAY";
+"home.race_target.goal_format" = "Goal %@";
+"home.race_target.no_goal" = "No goal time yet";
+"home.race_target.empty.title" = "Add your race";
+"home.race_target.empty.subtitle" = "Count down the days and set a goal time";
+
+// MARK: - My Race editor
+"race_target.title.new" = "New Race";
+"race_target.title.edit" = "My Race";
+"race_target.field.event_name" = "EVENT";
+"race_target.field.event_name.placeholder" = "HYROX Seoul";
+"race_target.field.city" = "CITY";
+"race_target.field.city.placeholder" = "Seoul";
+"race_target.field.date" = "RACE DAY";
+"race_target.field.division" = "DIVISION";
+"race_target.field.division.undecided" = "Undecided";
+"race_target.field.goal" = "GOAL FINISH TIME";
+"race_target.field.goal.unset" = "No goal";
+"race_target.field.note" = "NOTE";
+"race_target.field.note.placeholder" = "Travel, partner, gear…";
+"race_target.hint.past_date" = "This date has passed. The race is kept as a record but won't appear in the home countdown.";
+"race_target.error.empty_name" = "Enter the event name.";
+"race_target.alert.delete.title" = "Delete race?";
+"race_target.alert.delete.message" = "“%@” will be removed from this phone.";
+
+// MARK: - Training sessions
+"training_session.compromised_run.name" = "Compromised Run";
+"training_session.compromised_run.summary" = "1 km run straight into lunges, 4 rounds. Trains the run that decides your race.";
+"training_session.half_simulation.name" = "Half Simulation";
+"training_session.half_simulation.summary" = "Runs 1–4 with the first four stations, at full race volume.";
+"training_session.station_intervals.name" = "Station Intervals";
+"training_session.station_intervals.summary" = "3 rounds of wall balls, burpees and lunges — the stations that cost the most time.";
+"training_session.roxzone_drill.name" = "ROX Zone Drill";
+"training_session.roxzone_drill.summary" = "400 m run, ROX Zone, station entry. Repeat until transitions are automatic.";
+"training_session.wall_ball_ladder.name" = "Wall Ball Ladder";
+"training_session.wall_ball_ladder.summary" = "Race-volume wall balls broken into a descending ladder: 30·25·20·15·10.";
+
+// MARK: - Garmin connection state
+"settings.row.garmin.subtitle.not_paired" = "No device selected";
+"settings.row.garmin.subtitle.bluetooth_off" = "Bluetooth is off";
+"settings.row.garmin.subtitle.not_found" = "Device not found";
+"settings.row.garmin.subtitle.device_format" = "%@ · %@";
+"settings.row.garmin.disconnect" = "Disconnect Device";
+"settings.row.garmin.disconnect_subtitle" = "Stop syncing with this watch";
+"alert.garmin_disconnect.title" = "Disconnect device?";
+"alert.garmin_disconnect.message" = "HyroxSim will stop syncing with %@. Anything still waiting to be sent is discarded.";
+"button.disconnect" = "Disconnect";
+
+// MARK: - History delete failure
+"alert.delete_workout_failed.title" = "Couldn't delete";
+"alert.delete_workout_failed.message" = "This workout couldn't be deleted. Please try again.";

@@ -96,3 +96,77 @@
 
 // MARK: - Legal
 "settings.footer.unofficial" = "非公式アプリです。HYROXとの提携・後援・関連はありません。HYROXは権利者の商標です。";
+
+// MARK: - Summary gap analysis
+"summary.gap.title" = "短縮できる時間";
+"summary.gap.subtitle_format" = "目標 %@ · %@";
+"summary.gap.subtitle_goal_format" = "目標 %@";
+"summary.gap.headline_format" = "目標まであと %@ の短縮";
+"summary.gap.goal_met_format" = "目標より %@ 速く完走しました。";
+"summary.gap.no_goal" = "目標を設定すると分析を表示できます。";
+"summary.gap.no_reference" = "この目標は参考記録の範囲外です。";
+"summary.gap.share_format" = "全体の差の %d%%";
+"summary.gap.remainder_format" = "残り %d 区間 · %@";
+"summary.gap.row.run" = "ランニング 8本";
+"summary.gap.row.rox_zone" = "ROXゾーン";
+
+// MARK: - Summary heart rate zones
+"summary.zones.title" = "心拍ゾーン";
+
+// MARK: - Summary share card
+"summary.share.tagline" = "HYROX SIM で記録";
+
+// MARK: - Home / My Race
+"home.section.training_sessions" = "トレーニングセッション";
+"home.race_target.badge" = "マイレース";
+"home.race_target.dday" = "D-DAY";
+"home.race_target.goal_format" = "目標 %@";
+"home.race_target.no_goal" = "目標タイム未設定";
+"home.race_target.empty.title" = "大会を追加";
+"home.race_target.empty.subtitle" = "残り日数と目標タイムを管理しましょう";
+
+// MARK: - My Race editor
+"race_target.title.new" = "新しい大会";
+"race_target.title.edit" = "マイレース";
+"race_target.field.event_name" = "大会名";
+"race_target.field.event_name.placeholder" = "HYROX Tokyo";
+"race_target.field.city" = "都市";
+"race_target.field.city.placeholder" = "東京";
+"race_target.field.date" = "開催日";
+"race_target.field.division" = "ディビジョン";
+"race_target.field.division.undecided" = "未定";
+"race_target.field.goal" = "目標フィニッシュタイム";
+"race_target.field.goal.unset" = "目標なし";
+"race_target.field.note" = "メモ";
+"race_target.field.note.placeholder" = "移動、パートナー、装備…";
+"race_target.hint.past_date" = "過去の日付です。記録としては残りますが、ホームのカウントダウンには表示されません。";
+"race_target.error.empty_name" = "大会名を入力してください。";
+"race_target.alert.delete.title" = "大会を削除しますか?";
+"race_target.alert.delete.message" = "“%@” をこの iPhone から削除します。";
+
+// MARK: - Training sessions
+"training_session.compromised_run.name" = "コンプロマイズド・ラン";
+"training_session.compromised_run.summary" = "1 kmラン直後にランジ、4ラウンド。記録を最も左右する疲労下のランを鍛えます。";
+"training_session.half_simulation.name" = "ハーフシミュレーション";
+"training_session.half_simulation.summary" = "ラン1〜4とステーション1〜4を本番と同じ量で。";
+"training_session.station_intervals.name" = "ステーションインターバル";
+"training_session.station_intervals.summary" = "ウォールボール・バーピー・ランジを3ラウンド。ロスが最も大きい3種目です。";
+"training_session.roxzone_drill.name" = "ROXゾーン移行ドリル";
+"training_session.roxzone_drill.summary" = "400 mラン→ROXゾーン→ステーション進入を反復。移行を体に覚えさせます。";
+"training_session.wall_ball_ladder.name" = "ウォールボール・ラダー";
+"training_session.wall_ball_ladder.summary" = "本番と同じ回数を30・25・20・15・10の降順セットに分割。";
+
+// MARK: - Garmin connection state
+"settings.row.garmin.subtitle.not_paired" = "デバイス未選択";
+"settings.row.garmin.subtitle.bluetooth_off" = "Bluetoothがオフです";
+"settings.row.garmin.subtitle.not_found" = "デバイスが見つかりません";
+"settings.row.garmin.subtitle.device_format" = "%@ · %@";
+"settings.row.garmin.disconnect" = "デバイスを解除";
+"settings.row.garmin.disconnect_subtitle" = "この時計との同期を停止します";
+"alert.garmin_disconnect.title" = "デバイスを解除しますか？";
+"alert.garmin_disconnect.message" = "%@ との同期を停止します。未送信の内容は破棄されます。";
+"button.disconnect" = "解除";
+
+// MARK: - History delete failure
+"alert.delete_workout_failed.title" = "削除できませんでした";
+"alert.delete_workout_failed.message" = "この記録を削除できませんでした。もう一度お試しください。";

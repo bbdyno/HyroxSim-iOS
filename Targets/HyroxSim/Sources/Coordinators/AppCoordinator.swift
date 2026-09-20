@@ -23,6 +23,7 @@ public final class AppCoordinator {
     private let workoutMirrorController: WorkoutMirrorController
     private let garminTemplateSyncService: GarminTemplateSyncService
     private let templateGoalOverrideStore = TemplateGoalOverrideStore()
+    private let heartRateProfile = HeartRateProfile()
     private let checkpointStore: WorkoutCheckpointStore
     private let forceDisconnectedMirrorUITest = ProcessInfo.processInfo.arguments.contains("UITestWatchMirrorDisconnected")
     private let isMirrorUITestScenario = ProcessInfo.processInfo.arguments.contains("UITestWatchMirror")
@@ -131,6 +132,15 @@ public final class AppCoordinator {
             self?.refreshHomeIfVisible()
         }
         syncCoordinator.onReceiveTemplateDeleted = { [weak self] _ in
+            self?.refreshHomeIfVisible()
+        }
+        // 원격 삭제는 에코 루프를 막으려고 알림을 쏘지 않으므로 여기서 직접 새로고침한다.
+        syncCoordinator.onReceiveCompletedWorkoutDeleted = { [weak self] _ in
+            self?.refreshHomeIfVisible()
+        }
+        // 워치에서 대회 목표가 올라오는 일은 (아직) 없지만, 메시지는 양방향이라 받으면
+        // 홈을 새로고침한다. 앱 시작 시 워치로 밀어 주는 일은 세션 활성화 콜백이 맡는다.
+        syncCoordinator.onReceiveRaceTarget = { [weak self] _ in
             self?.refreshHomeIfVisible()
         }
 
@@ -575,6 +585,64 @@ extension AppCoordinator: HomeViewControllerDelegate {
     func homeDidSelectRecent(_ workout: CompletedWorkout) {
         showSummary(for: workout, fromHistory: true)
     }
+
+    func homeDidTapRaceTarget(_ target: RaceTarget?) {
+        presentRaceTargetEditor(for: target)
+    }
+}
+
+// MARK: - 내 대회
+
+extension AppCoordinator {
+
+    private func presentRaceTargetEditor(for target: RaceTarget?) {
+        let vc = RaceTargetEditorViewController(
+            target: target,
+            // 새 대회는 직전에 등록해 둔 대회의 디비전을 기본값으로 제안한다.
+            defaultDivision: target?.division ?? lastKnownRaceDivision()
+        )
+        vc.delegate = self
+        let nav = UINavigationController(rootViewController: vc)
+        nav.applyDarkTheme()
+        nav.modalPresentationStyle = .formSheet
+        presentationHost.present(nav, animated: true)
+    }
+
+    private func lastKnownRaceDivision() -> HyroxDivision? {
+        // `fetchRaceTargets()` 는 날짜 오름차순 — 뒤에서부터 보면 가장 나중 대회다.
+        let stored = (try? persistence.fetchRaceTargets()) ?? []
+        return stored.reversed().compactMap(\.division).first
+    }
+}
+
+// MARK: - RaceTargetEditorViewControllerDelegate
+
+extension AppCoordinator: RaceTargetEditorViewControllerDelegate {
+
+    func raceTargetEditorDidCancel() {
+        presentationHost.dismiss(animated: true)
+    }
+
+    func raceTargetEditorDidSave(_ target: RaceTarget) {
+        do {
+            try persistence.upsertRaceTarget(target)
+        } catch {
+            print("[RaceTarget] save failed: \(error)")
+        }
+        try? syncCoordinator.sendRaceTarget(target)
+        presentationHost.dismiss(animated: true)
+        refreshHomeIfVisible()
+    }
+
+    func raceTargetEditorDidRequestDelete(_ target: RaceTarget) {
+        try? persistence.deleteRaceTarget(id: target.id)
+        // 삭제 전용 동기화 메시지가 아직 없다. 남아 있는 대회 중 가장 가까운 것을 다시
+        // 보내 워치가 최신 대회를 잡게 하고, 하나도 없으면 워치는 날짜가 지날 때까지
+        // 마지막 값을 들고 있는다. (TODO: `raceTargetDeleted` 메시지 종류 추가)
+        syncCoordinator.syncAllRaceTargets()
+        presentationHost.dismiss(animated: true)
+        refreshHomeIfVisible()
+    }
 }
 
 // MARK: - SettingsViewControllerDelegate
@@ -664,7 +732,7 @@ extension AppCoordinator {
             locationStream: location,
             heartRateStream: heartRate,
             persistence: persistence,
-            maxHeartRate: 190, // TODO: user settings
+            maxHeartRate: heartRateProfile.observedMax ?? 190,
             syncCoordinator: syncCoordinator,
             checkpointStore: checkpointStore
         )
@@ -735,8 +803,26 @@ extension AppCoordinator {
         presenter.dismiss(animated: true, completion: completion)
     }
 
+    /// 등록해 둔 다가오는 대회의 목표 시간을 격차 분석 기준으로 쓴다.
+    /// 디비전이 다르거나 목표가 없으면 nil — 이때는 운동에 찍힌 구간 목표 합을 쓴다.
+    private func raceGapTarget(for workout: CompletedWorkout) -> GapTarget? {
+        guard
+            let race = try? persistence.fetchUpcomingRaceTarget(),
+            let goal = race.goalDurationSeconds,
+            goal > 0,
+            race.division == workout.division
+        else { return nil }
+        return .finishTime(seconds: TimeInterval(goal))
+    }
+
     func showSummary(for workout: CompletedWorkout, fromHistory: Bool, animated: Bool = true) {
-        let vm = WorkoutSummaryViewModel(workout: workout)
+        // 방금 끝난 운동이면 관측 최대 심박을 먼저 갱신해 존 표시에 반영한다.
+        if !fromHistory { heartRateProfile.record(workout) }
+        let vm = WorkoutSummaryViewModel(
+            workout: workout,
+            maxHeartRate: heartRateProfile.observedMax,
+            gapTarget: raceGapTarget(for: workout)
+        )
         let vc = WorkoutSummaryViewController(viewModel: vm)
         vc.delegate = self
         if fromHistory {

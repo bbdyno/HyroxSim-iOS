@@ -17,6 +17,10 @@ extension Notification.Name {
     /// Posted on the watch after a completed workout arrives via sync and is persisted.
     /// WatchHistoryView observes this to refresh its list in real time.
     public static let hyroxCompletedWorkoutsUpdated = Notification.Name("com.hyroxsim.completedWorkoutsUpdated")
+
+    /// Posted on the watch after a race target arrives from the phone and is persisted.
+    /// HomeView observes this to refresh its D-day strip.
+    public static let hyroxRaceTargetUpdated = Notification.Name("com.hyroxsim.raceTargetUpdated")
 }
 
 /// watchOS-side WatchConnectivity sync coordinator.
@@ -32,6 +36,7 @@ public final class WatchConnectivitySyncCoordinator: NSObject, SyncCoordinator, 
     public var onReceiveCompletedWorkout: ((CompletedWorkout) -> Void)?
     public var onReceiveTemplateDeleted: ((UUID) -> Void)?
     public var onReceiveCompletedWorkoutDeleted: ((UUID) -> Void)?
+    public var onReceiveRaceTarget: ((RaceTarget) -> Void)?
 
     // MARK: - Live workout callbacks (양방향)
     public var onWorkoutStarted: ((WorkoutTemplate, WorkoutOrigin) -> Void)?
@@ -241,7 +246,11 @@ extension WatchConnectivitySyncCoordinator {
                 }
                 onReceiveCompletedWorkoutDeleted?(id)
             case .raceTarget:
-                break // TODO: 대회 목표 수신 배선 (모델·저장은 준비됨)
+                // 폰이 유일한 편집 주체다. 워치는 받아서 보여 주기만 한다.
+                let target = try SyncEnvelopeCoder.decodeRaceTarget(envelope)
+                try persistence.upsertRaceTarget(target)
+                NotificationCenter.default.post(name: .hyroxRaceTargetUpdated, object: nil)
+                onReceiveRaceTarget?(target)
             case .unrecognized:
                 break // 신버전이 보낸 모르는 종류 — 무시
             }

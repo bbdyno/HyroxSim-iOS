@@ -96,3 +96,77 @@
 
 // MARK: - Legal
 "settings.footer.unofficial" = "非官方應用程式。與 HYROX 並無從屬、背書或關聯關係。HYROX 為其權利人之商標。";
+
+// MARK: - Summary gap analysis
+"summary.gap.title" = "可以追回的時間";
+"summary.gap.subtitle_format" = "目標 %@ · %@";
+"summary.gap.subtitle_goal_format" = "目標 %@";
+"summary.gap.headline_format" = "距離目標還需縮短 %@";
+"summary.gap.goal_met_format" = "比目標快了 %@。";
+"summary.gap.no_goal" = "設定目標後即可查看分析。";
+"summary.gap.no_reference" = "此目標超出參考成績範圍。";
+"summary.gap.share_format" = "佔總差距的 %d%%";
+"summary.gap.remainder_format" = "其餘 %d 個區間 · %@";
+"summary.gap.row.run" = "跑步 8 次";
+"summary.gap.row.rox_zone" = "ROX 區";
+
+// MARK: - Summary heart rate zones
+"summary.zones.title" = "心率區間";
+
+// MARK: - Summary share card
+"summary.share.tagline" = "由 HYROX SIM 記錄";
+
+// MARK: - Garmin connection state
+"settings.row.garmin.subtitle.not_paired" = "未選擇裝置";
+"settings.row.garmin.subtitle.bluetooth_off" = "藍牙已關閉";
+"settings.row.garmin.subtitle.not_found" = "找不到裝置";
+"settings.row.garmin.subtitle.device_format" = "%@ · %@";
+"settings.row.garmin.disconnect" = "中斷裝置連線";
+"settings.row.garmin.disconnect_subtitle" = "停止與這支手錶同步";
+"alert.garmin_disconnect.title" = "要中斷裝置連線嗎？";
+"alert.garmin_disconnect.message" = "將停止與 %@ 同步，尚未送出的內容會被捨棄。";
+"button.disconnect" = "中斷連線";
+
+// MARK: - History delete failure
+"alert.delete_workout_failed.title" = "無法刪除";
+"alert.delete_workout_failed.message" = "無法刪除這筆紀錄，請再試一次。";
+
+// MARK: - Home / My Race
+"home.section.training_sessions" = "訓練課表";
+"home.race_target.badge" = "我的比賽";
+"home.race_target.dday" = "D-DAY";
+"home.race_target.goal_format" = "目標 %@";
+"home.race_target.no_goal" = "尚未設定目標時間";
+"home.race_target.empty.title" = "新增比賽";
+"home.race_target.empty.subtitle" = "倒數天數並設定目標完賽時間";
+
+// MARK: - My Race editor
+"race_target.title.new" = "新增比賽";
+"race_target.title.edit" = "我的比賽";
+"race_target.field.event_name" = "賽事名稱";
+"race_target.field.event_name.placeholder" = "HYROX Taipei";
+"race_target.field.city" = "城市";
+"race_target.field.city.placeholder" = "臺北";
+"race_target.field.date" = "比賽日期";
+"race_target.field.division" = "組別";
+"race_target.field.division.undecided" = "未定";
+"race_target.field.goal" = "目標完賽時間";
+"race_target.field.goal.unset" = "無目標";
+"race_target.field.note" = "備註";
+"race_target.field.note.placeholder" = "行程、搭檔、裝備…";
+"race_target.hint.past_date" = "此日期已過。比賽會作為紀錄保留,但不會出現在首頁倒數中。";
+"race_target.error.empty_name" = "請輸入賽事名稱。";
+"race_target.alert.delete.title" = "刪除比賽?";
+"race_target.alert.delete.message" = "“%@” 將從此手機中移除。";
+
+// MARK: - Training sessions
+"training_session.compromised_run.name" = "疲勞跑";
+"training_session.compromised_run.summary" = "1 公里跑接弓步走,共 4 輪。訓練最能決定成績的疲勞狀態跑。";
+"training_session.half_simulation.name" = "半程模擬";
+"training_session.half_simulation.summary" = "跑 1~4 與前四個站點,維持正式比賽的量。";
+"training_session.station_intervals.name" = "站點間歇";
+"training_session.station_intervals.summary" = "牆球、波比跳遠、弓步走 3 輪 —— 最耗時間的三個站點。";
+"training_session.roxzone_drill.name" = "ROX 區轉換訓練";
+"training_session.roxzone_drill.summary" = "400 公尺跑 → ROX 區 → 進入站點,反覆練到轉換成為本能。";
+"training_session.wall_ball_ladder.name" = "牆球階梯";
+"training_session.wall_ball_ladder.summary" = "把正式比賽的牆球次數拆成 30·25·20·15·10 的遞減組。";
