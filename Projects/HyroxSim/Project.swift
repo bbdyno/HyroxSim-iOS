@@ -7,8 +7,8 @@
 
 import ProjectDescription
 
-let appVersion = "1.3.0"
-let appBuildNumber = "2026.07.20.1"
+let appVersion = "1.4.0"
+let appBuildNumber = "2026.09.20.1"
 
 let signingSettings: SettingsDictionary = [
     "SWIFT_VERSION": "5.9",
