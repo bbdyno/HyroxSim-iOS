@@ -600,3 +600,121 @@ h3 {
   line-height: 1.6;
   opacity: 0.65;
 }
+
+/* ── Pace planner ── */
+.planner-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+.planner-field {
+  display: grid;
+  gap: 6px;
+}
+
+.planner-field label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.planner-field select,
+.planner-field input {
+  font: inherit;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+}
+
+.planner-submit {
+  font: inherit;
+  font-weight: 700;
+  padding: 13px 18px;
+  border-radius: 10px;
+  border: 0;
+  background: #ffd700;
+  color: #0b0b0a;
+  cursor: pointer;
+}
+
+.planner-status {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.planner-headline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+
+.planner-headline strong {
+  display: block;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.planner-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.planner-warning {
+  font-size: 13px;
+  color: #ffb84d;
+  margin-bottom: 12px;
+}
+
+.planner-table-wrap { overflow-x: auto; }
+
+.planner-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.planner-table th,
+.planner-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.planner-table th {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.planner-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.planner-total-row td {
+  font-weight: 700;
+  border-bottom: 0;
+}
+
+.planner-coverage,
+.planner-cta {
+  font-size: 13px;
+  opacity: 0.75;
+  margin-top: 12px;
+}
+
+/* 한국어·중국어 제목이 단어 중간에서 끊기지 않도록 */
+.legal-main h1,
+.planner-headline strong,
+.planner-cta {
+  word-break: keep-all;
+}
