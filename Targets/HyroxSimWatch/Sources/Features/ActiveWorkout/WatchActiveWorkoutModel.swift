@@ -65,6 +65,10 @@ final class WatchActiveWorkoutModel {
     private var segmentStartHKDistance: Double = 0
     private var isMirroringActive = false
     private var didStart = false
+    /// 이미 HealthKit builder 에 넣은 구간 기록 개수. 매 advance 마다 나머지만 추가한다.
+    private var addedSegmentEventCount = 0
+    /// GPS 추적이 한 번이라도 살아 있었는지. 종료 시 실내/실외 판정에 쓴다.
+    private var didTrackLocation = false
     private var lastRemoteCommand: (command: WorkoutCommand, at: Date)?
     private var uiTestAutoEndDeadline: Date?
     private var alertedGoalSegmentId: UUID?
@@ -83,7 +87,8 @@ final class WatchActiveWorkoutModel {
         maxHeartRate: Int = 190
     ) {
         self.engine = WorkoutEngine(template: template)
-        self.workoutSession = WatchWorkoutSession()
+        // 워치가 운동 주체인 유일한 경로 — 여기서만 건강 앱 저장을 켠다.
+        self.workoutSession = WatchWorkoutSession(purpose: .recording)
         self.locationAdapter = CoreLocationAdapter()
         self.persistence = persistence
         self.syncCoordinator = syncCoordinator
@@ -157,6 +162,8 @@ final class WatchActiveWorkoutModel {
         do {
             try engine.advance(at: Date())
             segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
+            // 방금 끝난 구간을 건강 앱 운동에 스플릿으로 남긴다.
+            flushSegmentEvents()
             refresh()
             saveCheckpoint()
             if engine.isFinished {
@@ -412,7 +419,6 @@ final class WatchActiveWorkoutModel {
             }
         }
         cleanup()
-        workoutSession.stop()
 
         let completed: CompletedWorkout
         do {
@@ -429,6 +435,20 @@ final class WatchActiveWorkoutModel {
                 segments: engine.records
             )
         }
+
+        // 건강 앱 기록: 마지막 구간까지 이벤트를 채우고, 실측 거리로 실내/실외를 확정해 메타데이터와 함께 저장한다.
+        // 실패해도 로컬 저장·요약 화면에는 영향을 주지 않는다(세션 내부에서 로그만 남긴다).
+        flushSegmentEvents()
+        workoutSession.end(
+            metadata: HealthWorkoutMetadata(
+                templateName: engine.template.name,
+                division: engine.template.division,
+                environment: WorkoutEnvironmentClassifier.classify(
+                    workout: completed,
+                    isLocationTrackingActive: didTrackLocation
+                )
+            )
+        )
 
         // 로컬 저장과 폰 전송은 서로 독립적으로 시도한다. 하나가 실패해도 요약 화면까지는 반드시 진행.
         do {
@@ -489,17 +509,38 @@ extension WatchActiveWorkoutModel: WorkoutDisplaying {
 
 private extension WatchActiveWorkoutModel {
 
+    /// 엔진이 확정한 구간 기록 중 아직 HealthKit builder 에 넣지 않은 것만 추가한다.
+    /// 세션이 아직 시작되기 전이면 세션 쪽에서 버퍼링했다가 시작 직후 반영한다.
+    func flushSegmentEvents() {
+        let records = engine.records
+        guard addedSegmentEventCount < records.count else { return }
+        for record in records[addedSegmentEventCount...] {
+            let title = HealthWorkoutSegmentTitle.make(for: record, in: engine.template.segments)
+            guard let event = HealthWorkoutExport.SegmentEvent(record: record, title: title) else { continue }
+            workoutSession.addSegmentEvent(event)
+        }
+        addedSegmentEventCount = records.count
+    }
+
     func startSensors() {
         sensorStartupTask?.cancel()
         sensorStartupTask = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
+                // 세션 생성 뒤에는 locationType 을 바꿀 수 없어 시작 전에 정한다.
+                // 실측 거리가 아직 없으므로 템플릿 런 거리 + 위치 권한으로 추정하고,
+                // 종료 시 실측 기반으로 `HKMetadataKeyIndoorWorkout` 을 확정한다.
+                workoutSession.plannedEnvironment = WorkoutEnvironmentClassifier.plannedEnvironment(
+                    template: engine.template,
+                    locationAuthorization: locationAdapter.authorizationStatus
+                )
                 try await workoutSession.start()
                 heartRateTask = engine.attachHeartRateStream(workoutSession)
                 segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
                 startMirroring()
 
                 try await locationAdapter.start()
+                didTrackLocation = true
                 locationTask = engine.attachLocationStream(locationAdapter)
             } catch {
                 guard !Task.isCancelled else { return }

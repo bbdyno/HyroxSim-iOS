@@ -8,6 +8,7 @@
 import ActivityKit
 import Foundation
 import Observation
+import os
 import HyroxCore
 import HyroxLiveActivityApple
 import HyroxPersistenceApple
@@ -60,6 +61,8 @@ public final class ActiveWorkoutViewModel {
     private let syncCoordinator: (any SyncCoordinator)?
     private let checkpointStore: WorkoutCheckpointStore
     private let maxHeartRate: Int
+    /// 완료된 운동을 건강 앱에 남기는 어댑터. nil 이면 저장하지 않는다(테스트/비활성 기기).
+    private let healthWorkoutSaver: (any HealthWorkoutSaving)?
 
     /// 체크포인트/복구가 같은 운동을 가리키도록 고정되는 ID (idempotent upsert 용).
     private let workoutId = UUID()
@@ -74,6 +77,15 @@ public final class ActiveWorkoutViewModel {
     private var alertedGoalSegmentId: UUID?
     /// GPS 스트림이 실제로 살아 있는지. 권한 거부/시작 실패 시 false → GPS OFF 표시.
     private var isLocationActive = false
+    /// 이번 운동에서 GPS 추적이 한 번이라도 살아 있었는지. `cleanup()` 이후에도 실내/실외 판정에 쓰인다.
+    private var didTrackLocation = false
+    /// 건강 앱 쓰기 권한 확보 여부. 거부면 저장을 조용히 건너뛴다.
+    private var canSaveToHealth = false
+
+    private static let logger = Logger(
+        subsystem: "com.bbdyno.app.HyroxSim",
+        category: "HealthWorkout"
+    )
 
     /// Live Activity 가 "멈춘 화면"으로 잠금화면에 남지 않도록 하는 stale 여유 시간.
     private static let activityStaleInterval: TimeInterval = 4 * 60
@@ -93,7 +105,8 @@ public final class ActiveWorkoutViewModel {
         persistence: PersistenceController,
         maxHeartRate: Int = 190,
         syncCoordinator: (any SyncCoordinator)? = nil,
-        checkpointStore: WorkoutCheckpointStore = .shared
+        checkpointStore: WorkoutCheckpointStore = .shared,
+        healthWorkoutSaver: (any HealthWorkoutSaving)? = HealthKitWorkoutSaver()
     ) {
         self.engine = WorkoutEngine(template: template)
         self.locationStream = locationStream
@@ -102,6 +115,7 @@ public final class ActiveWorkoutViewModel {
         self.maxHeartRate = maxHeartRate
         self.syncCoordinator = syncCoordinator
         self.checkpointStore = checkpointStore
+        self.healthWorkoutSaver = healthWorkoutSaver
     }
 
     // MARK: - Lifecycle
@@ -146,9 +160,14 @@ public final class ActiveWorkoutViewModel {
         var locationError: Error?
         var heartRateError: Error?
 
+        // 건강 앱 쓰기 권한을 먼저 물어 심박 읽기까지 한 시트에서 끝낸다.
+        // 거부돼도 오류로 올리지 않는다 — 운동 기록 저장은 부가 기능이고 운동은 그대로 진행된다.
+        await prepareHealthWorkoutSaving()
+
         do {
             try await locationStream.start()
             isLocationActive = true
+            didTrackLocation = true
         } catch {
             isLocationActive = false
             locationError = error
@@ -161,6 +180,18 @@ public final class ActiveWorkoutViewModel {
         }
 
         return locationError ?? heartRateError
+    }
+
+    /// 운동 쓰기 권한을 확보한다. 실패는 로그만 남기고 삼킨다 — 운동 진행을 막지 않는다.
+    private func prepareHealthWorkoutSaving() async {
+        guard let healthWorkoutSaver else {
+            canSaveToHealth = false
+            return
+        }
+        canSaveToHealth = await healthWorkoutSaver.requestAuthorization()
+        if !canSaveToHealth {
+            Self.logger.notice("건강 앱 쓰기 권한이 없어 이번 운동은 건강 앱에 저장하지 않습니다.")
+        }
     }
 
     public func advance() {
@@ -651,8 +682,36 @@ public final class ActiveWorkoutViewModel {
             syncCoordinator?.sendWorkoutFinished(origin: .phone)
             isFinished = true
             finishHandler?(completed)
+            // 건강 앱 저장은 요약 화면 표시 뒤에 — 실패하든 느리든 사용자 흐름을 막지 않는다.
+            await saveToHealthIfPossible(completed)
         } catch {
             errorHandler?(error)
+        }
+    }
+
+    /// 완료된 운동을 건강 앱에 남긴다.
+    /// 이 뷰모델은 **폰에서 시작한 운동**만 다루므로 `origin: .phone` 으로 저장한다.
+    /// 워치에서 기록돼 동기화로 들어온 운동은 이 경로를 타지 않는다(워치가 이미 저장했으므로 중복 방지).
+    private func saveToHealthIfPossible(_ workout: CompletedWorkout) async {
+        guard let healthWorkoutSaver, canSaveToHealth else { return }
+
+        let environment = WorkoutEnvironmentClassifier.classify(
+            workout: workout,
+            isLocationTrackingActive: didTrackLocation
+        )
+        guard let export = HealthWorkoutExport(
+            workout: workout,
+            origin: .phone,
+            environment: environment
+        ) else {
+            Self.logger.notice("길이가 0 인 운동이라 건강 앱 저장을 건너뜁니다.")
+            return
+        }
+
+        do {
+            try await healthWorkoutSaver.save(export)
+        } catch {
+            Self.logger.error("건강 앱 저장 실패: \(String(describing: error), privacy: .public)")
         }
     }
 

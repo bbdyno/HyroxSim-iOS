@@ -361,4 +361,235 @@ final class WorkoutEngineTests: XCTestCase {
         // Last record should be a Wall Balls station
         XCTAssertEqual(engine.records.last?.type, .station)
     }
+
+    // MARK: - Health 앱 내보내기 (HealthWorkoutExport)
+
+    /// 구간 이벤트 개수 = 기록된 세그먼트 개수. 피트니스 앱 스플릿이 구간 수만큼 나와야 한다.
+    func testHealthExportHasOneSegmentEventPerSegment() throws {
+        let engine = makeEngine(segmentCount: 5)
+        try engine.start(at: t0)
+        try engine.advance(at: t(60))   // run
+        try engine.advance(at: t(90))   // roxZone
+        try engine.advance(at: t(300))  // station
+        try engine.advance(at: t(360))  // run
+        try engine.finish(at: t(400))   // roxZone (마지막)
+
+        let workout = try engine.makeCompletedWorkout()
+        let export = try XCTUnwrap(
+            HealthWorkoutExport(workout: workout, origin: .phone, environment: .indoor)
+        )
+
+        XCTAssertEqual(workout.segments.count, 5)
+        XCTAssertEqual(export.segmentEvents.count, workout.segments.count)
+        XCTAssertEqual(
+            export.segmentEvents.map(\.title),
+            ["RUN 1", "ROX ZONE", "SkiErg", "RUN 2", "ROX ZONE"]
+        )
+        // 모든 이벤트는 길이가 있고 운동 구간 안에 들어와야 한다 — HealthKit 이 그 밖의 이벤트를 거부한다.
+        for event in export.segmentEvents {
+            XCTAssertGreaterThan(event.duration, 0)
+            XCTAssertGreaterThanOrEqual(event.startedAt, export.startedAt)
+            XCTAssertLessThanOrEqual(event.endedAt, export.finishedAt)
+        }
+    }
+
+    /// 길이가 0 인 구간(실수로 즉시 advance)은 HealthKit 이 받지 않으므로 빼고 내보낸다.
+    func testHealthExportDropsZeroLengthSegments() throws {
+        let engine = makeEngine(segmentCount: 3)
+        try engine.start(at: t0)
+        try engine.advance(at: t0)      // 길이 0 인 run
+        try engine.advance(at: t(120))  // roxZone
+        try engine.finish(at: t(300))   // station
+
+        let workout = try engine.makeCompletedWorkout()
+        let export = try XCTUnwrap(
+            HealthWorkoutExport(workout: workout, origin: .phone, environment: .indoor)
+        )
+
+        XCTAssertEqual(workout.segments.count, 3)
+        XCTAssertEqual(export.segmentEvents.count, 2)
+        XCTAssertEqual(export.segmentEvents.map(\.title), ["ROX ZONE", "SkiErg"])
+    }
+
+    func testHealthExportCarriesTemplateDivisionAndIndoorMetadata() throws {
+        let template = WorkoutTemplate(
+            name: "Race day",
+            division: .menOpenSingle,
+            segments: [.run(), .station(.skiErg)]
+        )
+        let engine = WorkoutEngine(template: template)
+        try engine.start(at: t0)
+        try engine.advance(at: t(240))
+        try engine.finish(at: t(600))
+
+        let workout = try engine.makeCompletedWorkout()
+        let export = try XCTUnwrap(
+            HealthWorkoutExport(workout: workout, origin: .watch, environment: .indoor)
+        )
+
+        XCTAssertTrue(export.isIndoor)
+        XCTAssertEqual(export.origin, .watch)
+        XCTAssertEqual(export.customMetadata[HealthWorkoutMetadataKey.templateName], "Race day")
+        XCTAssertEqual(
+            export.customMetadata[HealthWorkoutMetadataKey.division],
+            HyroxDivision.menOpenSingle.rawValue
+        )
+        XCTAssertEqual(export.customMetadata[HealthWorkoutMetadataKey.origin], "watch")
+        XCTAssertEqual(export.duration, 600, accuracy: 0.001)
+    }
+
+    func testHealthExportIsNilForZeroLengthWorkout() {
+        let workout = CompletedWorkout(
+            templateName: "Empty",
+            startedAt: t0,
+            finishedAt: t0,
+            segments: []
+        )
+        XCTAssertNil(HealthWorkoutExport(workout: workout, origin: .phone, environment: .indoor))
+    }
+
+    func testSegmentEventIsNilForZeroLengthRecord() {
+        let record = SegmentRecord(
+            segmentId: UUID(),
+            index: 0,
+            type: .run,
+            startedAt: t0,
+            endedAt: t0
+        )
+        XCTAssertNil(HealthWorkoutExport.SegmentEvent(record: record, title: "RUN 1"))
+    }
+
+    // MARK: - 중복 저장 방지 정책
+
+    func testOnlyTheRecordingDeviceSavesToHealth() {
+        // 폰에서 시작한 운동은 폰이 저장한다.
+        XCTAssertTrue(HealthWorkoutSavePolicy.shouldSave(origin: .phone, recordedOn: .phone))
+        // 워치 운동은 워치가 이미 저장했으므로 폰은 건너뛴다.
+        XCTAssertFalse(HealthWorkoutSavePolicy.shouldSave(origin: .watch, recordedOn: .phone))
+        XCTAssertTrue(HealthWorkoutSavePolicy.shouldSave(origin: .watch, recordedOn: .watch))
+        XCTAssertFalse(HealthWorkoutSavePolicy.shouldSave(origin: .phone, recordedOn: .watch))
+    }
+
+    // MARK: - 실내/실외 판정
+
+    /// 위도 1도 ≈ 111,195 m. 원하는 실측 거리를 만드는 두 점짜리 런 기록.
+    private func makeRunRecord(
+        index: Int,
+        plannedMeters: Double,
+        measuredMeters: Double
+    ) -> SegmentRecord {
+        let degreesPerMeter = 1.0 / 111_194.9
+        let samples = [
+            LocationSample(timestamp: t0, latitude: 0, longitude: 0, horizontalAccuracy: 5),
+            LocationSample(
+                timestamp: t(60),
+                latitude: measuredMeters * degreesPerMeter,
+                longitude: 0,
+                horizontalAccuracy: 5
+            )
+        ]
+        return SegmentRecord(
+            segmentId: UUID(),
+            index: index,
+            type: .run,
+            startedAt: t0,
+            endedAt: t(60),
+            measurements: SegmentMeasurements(locationSamples: measuredMeters > 0 ? samples : []),
+            plannedDistanceMeters: plannedMeters
+        )
+    }
+
+    private func makeWorkout(with records: [SegmentRecord]) -> CompletedWorkout {
+        CompletedWorkout(
+            templateName: "Test",
+            startedAt: t0,
+            finishedAt: t(600),
+            segments: records
+        )
+    }
+
+    func testClassifyIsIndoorWhenLocationNeverTracked() {
+        let workout = makeWorkout(with: [
+            makeRunRecord(index: 0, plannedMeters: 1000, measuredMeters: 1000)
+        ])
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.classify(workout: workout, isLocationTrackingActive: false),
+            .indoor
+        )
+    }
+
+    func testClassifyIsOutdoorWhenGPSMatchesPlannedDistance() {
+        let workout = makeWorkout(with: [
+            makeRunRecord(index: 0, plannedMeters: 1000, measuredMeters: 980),
+            makeRunRecord(index: 1, plannedMeters: 1000, measuredMeters: 1010)
+        ])
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.classify(workout: workout, isLocationTrackingActive: true),
+            .outdoor
+        )
+    }
+
+    /// 트레드밀·실내 트랙: GPS 로는 거의 움직이지 않는다.
+    func testClassifyIsIndoorWhenGPSShowsNoRealMovement() {
+        let workout = makeWorkout(with: [
+            makeRunRecord(index: 0, plannedMeters: 1000, measuredMeters: 20),
+            makeRunRecord(index: 1, plannedMeters: 1000, measuredMeters: 0)
+        ])
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.classify(workout: workout, isLocationTrackingActive: true),
+            .indoor
+        )
+    }
+
+    func testClassifyFallsBackToAbsoluteDistanceWithoutPlannedDistance() {
+        let outdoor = makeWorkout(with: [
+            makeRunRecord(index: 0, plannedMeters: 0, measuredMeters: 500)
+        ])
+        let indoor = makeWorkout(with: [
+            makeRunRecord(index: 0, plannedMeters: 0, measuredMeters: 40)
+        ])
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.classify(workout: outdoor, isLocationTrackingActive: true),
+            .outdoor
+        )
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.classify(workout: indoor, isLocationTrackingActive: true),
+            .indoor
+        )
+    }
+
+    func testPlannedEnvironmentUsesLocationAuthorization() {
+        let withRuns = WorkoutTemplate(name: "Runs", segments: [.run(), .station(.skiErg)])
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.plannedEnvironment(
+                template: withRuns, locationAuthorization: .authorized
+            ),
+            .outdoor
+        )
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.plannedEnvironment(
+                template: withRuns, locationAuthorization: .denied
+            ),
+            .indoor
+        )
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.plannedEnvironment(
+                template: withRuns, locationAuthorization: .notDetermined
+            ),
+            .indoor
+        )
+    }
+
+    func testPlannedEnvironmentIsIndoorWithoutRunDistance() {
+        let stationsOnly = WorkoutTemplate(
+            name: "Stations",
+            segments: [.station(.skiErg), .station(.rowing)]
+        )
+        XCTAssertEqual(
+            WorkoutEnvironmentClassifier.plannedEnvironment(
+                template: stationsOnly, locationAuthorization: .authorized
+            ),
+            .indoor
+        )
+    }
 }
