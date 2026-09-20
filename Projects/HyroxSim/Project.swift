@@ -20,19 +20,28 @@ let versionSettings: SettingsDictionary = [
     "CURRENT_PROJECT_VERSION": .string(appBuildNumber)
 ]
 
+/// 릴리스는 기본적으로 이름이 정해진 배포 프로필을 쓰는 수동 서명이다.
+/// 새 머신처럼 그 인증서·프로필이 없는 곳에서는 `TUIST_AUTOMATIC_SIGNING=1 tuist generate` 로
+/// 자동 서명 프로젝트를 만들어 아카이브한다(Xcode 가 인증서·프로필을 직접 만들어 준다).
+let usesAutomaticSigning = Environment.automaticSigning.getBoolean(default: false)
+
 let automaticSigningBase: SettingsDictionary = [
     "CODE_SIGN_STYLE": "Automatic"
 ]
 
-let manualDevelopmentSigningBase: SettingsDictionary = [
-    "CODE_SIGN_STYLE": "Manual",
-    "CODE_SIGN_IDENTITY": "Apple Development"
-]
+let manualDevelopmentSigningBase: SettingsDictionary = usesAutomaticSigning
+    ? ["CODE_SIGN_STYLE": "Automatic"]
+    : [
+        "CODE_SIGN_STYLE": "Manual",
+        "CODE_SIGN_IDENTITY": "Apple Development"
+    ]
 
-let manualDistributionSigningBase: SettingsDictionary = [
-    "CODE_SIGN_STYLE": "Manual",
-    "CODE_SIGN_IDENTITY": "Apple Distribution"
-]
+let manualDistributionSigningBase: SettingsDictionary = usesAutomaticSigning
+    ? ["CODE_SIGN_STYLE": "Automatic"]
+    : [
+        "CODE_SIGN_STYLE": "Manual",
+        "CODE_SIGN_IDENTITY": "Apple Distribution"
+    ]
 
 let iosAppBaseSettings: SettingsDictionary = automaticSigningBase
     .merging(versionSettings) { _, new in new }
@@ -42,28 +51,28 @@ let iosAppBaseSettings: SettingsDictionary = automaticSigningBase
 
 let watchAppBaseSettings: SettingsDictionary = manualDevelopmentSigningBase
     .merging(versionSettings) { _, new in new }
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim WatchOS Provisioning"
     ]) { _, new in new }
 
 let widgetBaseSettings: SettingsDictionary = manualDevelopmentSigningBase
     .merging(versionSettings) { _, new in new }
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"
     ]) { _, new in new }
 
 let iosAppDistributionSettings: SettingsDictionary = manualDistributionSigningBase
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Distribution Provisioning"
     ]) { _, new in new }
 
 let watchAppDistributionSettings: SettingsDictionary = manualDistributionSigningBase
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim WatchOS Distribution Provisioning"
     ]) { _, new in new }
 
 let widgetDistributionSettings: SettingsDictionary = manualDistributionSigningBase
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Distribution Provisioning"
     ]) { _, new in new }
 
