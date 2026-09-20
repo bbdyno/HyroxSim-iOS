@@ -29,6 +29,11 @@ struct WorkoutDisplayView<Model: WorkoutDisplaying & AnyObject>: View {
             TabView {
                 metricsPage(in: proxy)
 
+                // 대회용 랩 카운터 — 워치 자체 운동에서만 붙는다(폰 미러는 폰이 센다).
+                if model.supportsLapCounter {
+                    RaceLapPage(model: model, accentColor: accentColor)
+                }
+
                 WorkoutActionPage(
                     isPaused: model.isPaused,
                     onTogglePause: {

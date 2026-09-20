@@ -296,9 +296,16 @@ final class TemplateDetailViewController: UIViewController {
 
     @objc private func editGoalsTapped() {
         let rootVC: UIViewController
+        // 페이스 데이터는 8×1km + 공식 스테이션 8개 경기에서 뽑은 것이라,
+        // 구조를 바꾼 템플릿(하프·2km 런·커스텀 스테이션)은 디비전이 남아 있어도 플래너로 보내지 않는다.
         if template.division != nil,
+           template.isStandardHyroxCourse,
            let pacePlanner = try? PaceReferenceLoader.loadPacePlanner() {
-            let planner = PacePlannerViewController(template: template, planner: pacePlanner)
+            let planner = PacePlannerViewController(
+                template: template,
+                planner: pacePlanner,
+                goalOverrideStore: TemplateGoalOverrideStore()
+            )
             planner.delegate = self
             rootVC = planner
         } else {

@@ -253,7 +253,7 @@ final class AddStationSheetViewController: UIViewController {
     private func formattedTargetValue() -> String {
         switch targetType {
         case .reps:
-            return "\(Int(targetValue))"
+            return "\(LocalizedDecimalFormatter.safeInt(targetValue))"
         case .distance, .duration:
             return LocalizedDecimalFormatter.string(from: targetValue)
         case .none:
@@ -300,19 +300,64 @@ final class AddStationSheetViewController: UIViewController {
 
     @objc private func saveTapped() {
         view.endEditing(true)
-        let val = LocalizedDecimalFormatter.value(from: targetField.text ?? "") ?? targetValue
+
         let target: StationTarget
         switch targetType {
-        case .distance: target = .distance(meters: val)
-        case .reps: target = .reps(count: Int(val))
-        case .duration: target = .duration(seconds: val)
-        case .none: target = .none
+        case .distance:
+            guard let meters = validatedTargetValue(
+                in: NumericInputLimits.distanceMeters,
+                message: "Enter a distance between 1 and 100,000 m."
+            ) else { return }
+            target = .distance(meters: meters)
+        case .reps:
+            guard let reps = validatedTargetValue(
+                in: NumericInputLimits.reps,
+                message: "Enter a rep count between 1 and 10,000."
+            ) else { return }
+            target = .reps(count: LocalizedDecimalFormatter.safeInt(reps))
+        case .duration:
+            guard let seconds = validatedTargetValue(
+                in: NumericInputLimits.durationSeconds,
+                message: "Enter a duration between 0 s and 24 h (86,400 s)."
+            ) else { return }
+            target = .duration(seconds: seconds)
+        case .none:
+            target = .none
         }
+
         var wKg: Double?; var wNote: String?
         if weightSwitch.isOn {
-            wKg = LocalizedDecimalFormatter.value(from: weightField.text ?? "")
+            let text = weightField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !text.isEmpty {
+                guard let kg = LocalizedDecimalFormatter.finiteValue(from: text),
+                      NumericInputLimits.weightKilograms.contains(kg) else {
+                    presentInvalidValueAlert(message: "Enter a weight between 0 and 1,000 kg.")
+                    return
+                }
+                wKg = kg
+            }
             wNote = weightNoteField.text?.isEmpty == true ? nil : weightNoteField.text
         }
         delegate?.addStation(.station(selectedKind, target: target, weightKg: wKg, weightNote: wNote), mode: mode)
+    }
+
+    /// 타겟 입력값을 검증한다. 비어 있으면 현재 값을 쓰고, 비정상이거나 범위를 벗어나면 알림 후 nil.
+    private func validatedTargetValue(in range: ClosedRange<Double>, message: String) -> Double? {
+        let text = targetField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let parsed = text.isEmpty ? targetValue : LocalizedDecimalFormatter.finiteValue(from: text)
+        guard let parsed, range.contains(parsed) else {
+            presentInvalidValueAlert(message: message)
+            return nil
+        }
+        return parsed
+    }
+
+    private func presentInvalidValueAlert(message: String) {
+        let alert = DarkAlertController(
+            title: HyroxSimStrings.Localizable.Alert.Error.title,
+            message: message
+        )
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+        present(alert, animated: true)
     }
 }

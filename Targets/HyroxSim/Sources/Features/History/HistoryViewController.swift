@@ -35,6 +35,12 @@ final class HistoryViewController: UIViewController {
         applyDarkNavBarAppearance()
         setupTableView()
         setupEmptyLabel()
+
+        // 워치·가민에서 기록이 도착하거나 삭제가 전파되면 화면이 바로 따라간다.
+        viewModel.onWorkoutsChanged = { [weak self] in
+            self?.reloadFromViewModel()
+        }
+        viewModel.startObserving()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -82,6 +88,20 @@ final class HistoryViewController: UIViewController {
         emptyLabel.isHidden = !viewModel.workouts.isEmpty
         tableView.isHidden = viewModel.workouts.isEmpty
     }
+
+    private func reloadFromViewModel() {
+        tableView.reloadData()
+        updateEmptyState()
+    }
+
+    private func presentDeleteFailure() {
+        let alert = DarkAlertController(
+            title: HyroxSimStrings.Localizable.Alert.DeleteWorkoutFailed.title,
+            message: HyroxSimStrings.Localizable.Alert.DeleteWorkoutFailed.message
+        )
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+        present(alert, animated: true)
+    }
 }
 
 // MARK: - DataSource
@@ -101,10 +121,19 @@ extension HistoryViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         let delete = UIContextualAction(style: .destructive, title: nil) { [weak self] _, _, done in
             guard let self else { return }
-            self.viewModel.delete(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: .automatic)
-            self.updateEmptyState()
-            done(true)
+            do {
+                try self.viewModel.delete(at: indexPath.row)
+                tableView.deleteRows(at: [indexPath], with: .automatic)
+                self.updateEmptyState()
+                done(true)
+            } catch {
+                // 저장에 실패했으면 행을 지우면 안 된다. 스와이프를 되돌리고
+                // 사용자에게 알린다 — 예전에는 `try?` 라 행만 사라졌다가
+                // 다음에 화면에 들어오면 되살아났다.
+                done(false)
+                self.reloadFromViewModel()
+                self.presentDeleteFailure()
+            }
         }
         delete.image = UIImage(systemName: "trash.fill")
         delete.backgroundColor = .systemRed

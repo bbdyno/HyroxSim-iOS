@@ -3,6 +3,10 @@
 "pace_planner.mode.hint.equal" = "Run 1~8 均匀分配";
 "pace_planner.mode.hint.adaptive" = "基于数据的各 Run 分配";
 "pace_planner.percentile.format" = "前 %.1f%%";
+"pace_planner.data_range.hint" = "数据范围 %@ – %@";
+"pace_planner.warning.too_fast" = "目标快于数据范围。可规划的最快目标为 %@。";
+"pace_planner.warning.too_slow" = "目标慢于数据范围。可规划的最慢目标为 %@。";
+"pace_planner.warning.unbalanced" = "无法精确分配该目标，请选择相近的时间。";
 
 // MARK: - Alerts
 "alert.end_workout.title" = "结束训练?";
@@ -89,3 +93,249 @@
 "history.empty" = "尚无训练记录。\n完成你的第一场 HYROX!";
 "builder.empty" = "点击下方按钮添加第一个分段";
 "workout.swipe_back_hint" = "滑动返回";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "非官方应用。与 HYROX 无隶属、认可或关联关系。HYROX 为其权利人的商标。";
+
+// MARK: - Summary gap analysis
+"summary.gap.title" = "可以追回的时间";
+"summary.gap.subtitle_format" = "目标 %@ · %@";
+"summary.gap.subtitle_goal_format" = "目标 %@";
+"summary.gap.headline_format" = "距离目标还需缩短 %@";
+"summary.gap.goal_met_format" = "比目标快了 %@。";
+"summary.gap.no_goal" = "设置目标后即可查看分析。";
+"summary.gap.no_reference" = "该目标超出了参考成绩范围。";
+"summary.gap.share_format" = "占总差距的 %d%%";
+"summary.gap.remainder_format" = "其余 %d 个区间 · %@";
+"summary.gap.row.run" = "跑步 8 次";
+"summary.gap.row.rox_zone" = "ROX 区";
+
+// MARK: - Summary heart rate zones
+"summary.zones.title" = "心率区间";
+
+// MARK: - Summary share card
+"summary.share.tagline" = "由 HYROX SIM 记录";
+
+// MARK: - Garmin connection state
+"settings.row.garmin.subtitle.not_paired" = "未选择设备";
+"settings.row.garmin.subtitle.bluetooth_off" = "蓝牙已关闭";
+"settings.row.garmin.subtitle.not_found" = "未找到设备";
+"settings.row.garmin.subtitle.device_format" = "%@ · %@";
+"settings.row.garmin.disconnect" = "断开设备";
+"settings.row.garmin.disconnect_subtitle" = "停止与这块手表同步";
+"alert.garmin_disconnect.title" = "断开设备？";
+"alert.garmin_disconnect.message" = "将停止与 %@ 同步，尚未发送的内容会被丢弃。";
+"button.disconnect" = "断开";
+
+// MARK: - History delete failure
+"alert.delete_workout_failed.title" = "无法删除";
+"alert.delete_workout_failed.message" = "无法删除这条记录，请重试。";
+
+// MARK: - Home / My Race
+"home.section.training_sessions" = "训练课表";
+"home.race_target.badge" = "我的比赛";
+"home.race_target.dday" = "D-DAY";
+"home.race_target.goal_format" = "目标 %@";
+"home.race_target.no_goal" = "尚未设定目标时间";
+"home.race_target.empty.title" = "添加比赛";
+"home.race_target.empty.subtitle" = "倒数天数并设定目标完赛时间";
+
+// MARK: - My Race editor
+"race_target.title.new" = "新建比赛";
+"race_target.title.edit" = "我的比赛";
+"race_target.field.event_name" = "赛事名称";
+"race_target.field.event_name.placeholder" = "HYROX Shanghai";
+"race_target.field.city" = "城市";
+"race_target.field.city.placeholder" = "上海";
+"race_target.field.date" = "比赛日期";
+"race_target.field.division" = "组别";
+"race_target.field.division.undecided" = "未定";
+"race_target.field.goal" = "目标完赛时间";
+"race_target.field.goal.unset" = "无目标";
+"race_target.field.note" = "备注";
+"race_target.field.note.placeholder" = "行程、搭档、装备…";
+"race_target.hint.past_date" = "该日期已过。比赛会作为记录保留,但不会出现在首页倒计时中。";
+"race_target.error.empty_name" = "请输入赛事名称。";
+"race_target.alert.delete.title" = "删除比赛?";
+"race_target.alert.delete.message" = "“%@” 将从此手机中移除。";
+
+// MARK: - Training sessions
+"training_session.compromised_run.name" = "疲劳跑";
+"training_session.compromised_run.summary" = "1 公里跑接弓步走,共 4 轮。训练最能决定成绩的疲劳状态跑。";
+"training_session.half_simulation.name" = "半程模拟";
+"training_session.half_simulation.summary" = "跑 1~4 与前四个站点,保持正式比赛的量。";
+"training_session.station_intervals.name" = "站点间歇";
+"training_session.station_intervals.summary" = "墙球、波比跳远、弓步走 3 轮 —— 最耗时间的三个站点。";
+"training_session.roxzone_drill.name" = "ROX 区转换训练";
+"training_session.roxzone_drill.summary" = "400 米跑 → ROX 区 → 进入站点,反复练到转换成为本能。";
+"training_session.wall_ball_ladder.name" = "墙球阶梯";
+"training_session.wall_ball_ladder.summary" = "把正式比赛的墙球次数拆成 30·25·20·15·10 的递减组。";
+
+// MARK: - Race Day — hub
+"race_day.hub.title" = "比赛日";
+"race_day.hub.pace_card.title" = "比赛配速卡";
+"race_day.hub.pace_card.subtitle" = "分段目标与累计目标时间";
+"race_day.hub.checklist.title" = "比赛日检查清单";
+"race_day.hub.checklist.subtitle" = "规则、装备、补给与热身";
+"race_day.hub.no_race" = "未登记比赛 — 使用本次训练的目标";
+"race_day.hub.goal_format" = "目标 %@";
+"race_day.hub.dday_format" = "D-%d";
+"race_day.hub.dday_today" = "D-DAY";
+"race_day.hub.past_race" = "比赛已结束";
+
+// MARK: - Race Day — pace card
+"race_day.pace_card.title" = "配速卡";
+"race_day.pace_card.column.segment" = "分段";
+"race_day.pace_card.column.split" = "分段目标";
+"race_day.pace_card.column.cumulative" = "累计";
+"race_day.pace_card.scaled_notice" = "分段目标已按比赛目标缩放。";
+"race_day.pace_card.fast_lane_hint" = "规则手册：配速快于 4:00/km 的跑步需使用 Fast Lane。";
+"race_day.pace_card.no_goal.title" = "本次训练没有目标时间";
+"race_day.pace_card.no_goal.message" = "设置分段目标或完赛目标后，配速卡会自动填充。";
+"race_day.pace_card.share" = "保存或分享图片";
+"race_day.pace_card.share_failed" = "无法生成图片";
+
+// MARK: - Race Day — checklist screen
+"race_day.checklist.title" = "比赛日检查清单";
+"race_day.checklist.section.rule" = "规则";
+"race_day.checklist.section.gear" = "装备";
+"race_day.checklist.section.nutrition" = "补给与热身";
+"race_day.checklist.section.rule.footer" = "依据 HYROX 26/27 规则手册。";
+"race_day.checklist.reset" = "重置清单";
+"race_day.checklist.reset.title" = "要重置清单吗？";
+"race_day.checklist.reset.message" = "所有项目将恢复为未勾选。";
+"race_day.checklist.past_race_notice" = "该比赛已结束。为下一场重置清单。";
+"race_day.checklist.progress_format" = "%1$d / %2$d";
+
+// MARK: - Race Day — workout screen
+"race_day.workout.add_lap" = "增加圈数";
+"race_day.workout.remove_lap" = "减少圈数";
+"race_day.workout.race_mode" = "比赛模式";
+"race_day.workout.open" = "比赛日";
+"race_day.workout.lap_hint" = "圈数需自行计数";
+
+// MARK: - Race Day — checklist items (rules, from the 26/27 rulebook)
+"race_day.checklist.chip_ankle.title" = "计时芯片绑在脚踝";
+"race_day.checklist.chip_ankle.evidence" = "规则手册：芯片须戴在脚踝，未佩戴即为 DNS。";
+"race_day.checklist.assigned_wave.title" = "只在指定出发波次起跑";
+"race_day.checklist.assigned_wave.evidence" = "规则手册：在非指定波次起跑将被取消资格。";
+"race_day.checklist.count_laps.title" = "跑步圈数自行计数";
+"race_day.checklist.count_laps.evidence" = "规则手册：计圈是选手的责任。漏圈将罚 3、5 或 7 分钟，或直接取消资格。";
+"race_day.checklist.finish_every_station.title" = "每个项目都要完整完成";
+"race_day.checklist.finish_every_station.evidence" = "规则手册：项目未完成属于取消资格，而非时间罚则。";
+"race_day.checklist.sandbag_shoulder.title" = "沙袋不要离开肩膀";
+"race_day.checklist.sandbag_shoulder.evidence" = "规则手册：沙袋每次从肩上掉落罚 15 秒。";
+"race_day.checklist.event_chalk_only.title" = "只使用赛会提供的镁粉";
+"race_day.checklist.event_chalk_only.evidence" = "规则手册：仅允许赛会提供的镁粉，自带将罚 2 分钟。";
+"race_day.checklist.no_pouring_drinks.title" = "不要把饮料倒在身上";
+"race_day.checklist.no_pouring_drinks.evidence" = "规则手册：将饮料倒在身上罚 2 分钟。";
+"race_day.checklist.fast_lane.title" = "配速快于 4:00/km 时走 Fast Lane";
+"race_day.checklist.fast_lane.evidence" = "规则手册：配速快于 4:00/km 的跑步需使用 Fast Lane。";
+
+// MARK: - Race Day — checklist items (gear)
+"race_day.checklist.bib_front.title" = "号码布别在正面并保持可见";
+"race_day.checklist.shoes_laced.title" = "穿好比赛鞋，鞋带打双结";
+"race_day.checklist.grips_ready.title" = "备好雪橇与负重用手套或护掌";
+"race_day.checklist.bag_drop.title" = "换洗衣物与毛巾寄存";
+"race_day.checklist.devices_charged.title" = "手表与手机已充电，比赛模板已就绪";
+
+// MARK: - Race Day — checklist items (fuel & warm-up)
+"race_day.checklist.main_meal.title" = "出发波次前 3 小时正餐";
+"race_day.checklist.light_carbs.title" = "赛前 60 分钟补充少量碳水";
+"race_day.checklist.hydration.title" = "最后 2 小时补水 500 毫升";
+"race_day.checklist.caffeine.title" = "起跑前 45 分钟摄入咖啡因";
+"race_day.checklist.warm_up.title" = "出发前 30 分钟开始热身";
+
+// MARK: - 进展追踪
+"home.action.progress" = "进展";
+"progress.title" = "进展";
+"progress.load_failed" = "无法读取记录";
+"progress.empty.title" = "可比较的记录还不够";
+"progress.empty.message" = "累计两条官方赛道记录后，这里会追踪完赛时间、百分位、跑步掉速，以及最耗时的项目。";
+"progress.empty.count_format" = "目前共 %d 条";
+"progress.section.finish" = "完赛时间";
+"progress.section.percentile" = "百分位";
+"progress.section.running" = "跑步";
+"progress.section.segments" = "时间都花在哪里";
+"progress.finish.best_format" = "最佳 %@";
+"progress.finish.delta_faster_format" = "比首次快了 %@";
+"progress.finish.delta_slower_format" = "比首次慢了 %@";
+"progress.finish.delta_same" = "与首次持平";
+"progress.percentile.value_format" = "前 %.1f%%";
+"progress.percentile.unavailable" = "该组别的参考数据还不够。";
+"progress.running.first_pace" = "第一趟跑";
+"progress.running.fade" = "第 8 趟 / 第 1 趟";
+"progress.running.fade_hint" = "1.00 表示你把第一趟的配速保持到了最后。开头冲得越快，这个数字越大。";
+"progress.segments.first_marker" = "菱形表示首次记录。";
+"progress.footer.division_format" = "仅比较 %@ 的记录";
+"progress.footer.dataset_format" = "百分位基准：%@ 数据";
+"progress.footer.skipped_format" = "已跳过 %d 条无法读取或赛道不同的记录";
+
+// MARK: - 比赛规划工具（我的比赛入口）
+"race_target.section.planning" = "规划";
+"race_target.action.team_split" = "分工计划";
+"race_target.action.team_split.subtitle" = "和搭档分配各个站点";
+"race_target.action.benchmark" = "PFT 基准测试";
+"race_target.action.benchmark.subtitle" = "用一次体能测试确定组别";
+
+// MARK: - 分工规划
+"team_split.title" = "分工计划";
+"team_split.format.doubles" = "双人 · 2人";
+"team_split.format.relay" = "接力 · 4人";
+"team_split.section.goal" = "团队目标";
+"team_split.section.workload" = "各自负荷";
+"team_split.section.stations" = "站点分工";
+"team_split.rule.doubles" = "站点可以自由分配，但跑步必须两人一起完成。一人领先会被罚时 1 分钟，超过三次即取消资格，因此跑步时间不参与分配，算作团队共同时间。";
+"team_split.rule.relay" = "每人完成 2 ×（1 km + 一个站点），因此跑步和站点一起分配。重量按各自性别的 Open 标准。";
+"team_split.summary.projected" = "预计完赛";
+"team_split.summary.shared_run" = "一起跑的时间";
+"team_split.summary.run_per_athlete" = "每人跑步";
+"team_split.summary.load_gap" = "负荷差距";
+"team_split.summary.even" = "分配均衡";
+"team_split.member.stations" = "站点";
+"team_split.member.running" = "跑步";
+"team_split.member.rest" = "休息";
+"team_split.button.reset" = "恢复均衡分工";
+"team_split.warning.imbalance" = "一人承担了站点工作的 %d%%。跑步仍要一起完成，承担更多的一方会决定全队节奏。";
+"team_split.note.reference" = "站点时间来自该完赛时间段的 %@ 比赛成绩。";
+"team_split.note.estimated" = "接力没有公开的成绩表，这里按 %@ 成绩的比例缩放得出，仅供参考。";
+"team_split.share.format" = "%d%%";
+
+// MARK: - PFT 基准测试
+"pft.template.name" = "HYROX PFT";
+"pft.template.summary" = "官方体能测试：1 km 跑、波比跳远 50、弓步 100 m、划船 1 km、俯卧撑 30、墙球 100。";
+"pft.step.run.name" = "跑步";
+"pft.step.burpee_broad_jumps.name" = "波比跳远";
+"pft.step.lunges.name" = "弓步";
+"pft.step.row.name" = "划船";
+"pft.step.push_ups.name" = "松手俯卧撑";
+"pft.step.wall_balls.name" = "墙球";
+"benchmark.title" = "PFT 基准测试";
+"benchmark.section.protocol" = "测试流程";
+"benchmark.section.time" = "我的成绩";
+"benchmark.section.division" = "对照组别";
+"benchmark.section.result" = "结果";
+"benchmark.section.splits" = "分段百分位";
+"benchmark.section.next" = "下一步";
+"benchmark.recommend.pro" = "PRO";
+"benchmark.recommend.open" = "OPEN";
+"benchmark.recommend.headline" = "这个成绩更适合 %@。";
+"benchmark.projection.title" = "预计 HYROX 完赛";
+"benchmark.projection.range" = "%@ – %@";
+"benchmark.projection.basis" = "基于 %@ 成绩";
+"benchmark.projection.percentile" = "前 %d%% – %d%%";
+"benchmark.note.source" = "Pro 15–25 分钟、Open 25–35 分钟是报道的参考值，并非官方公式，请把范围当作参考。";
+"benchmark.note.outside_band" = "该成绩在报道的 15–35 分钟区间之外，因此范围放得更宽。";
+"benchmark.record.source" = "来自 %@ 的 PFT 记录";
+"benchmark.record.none" = "还没有 PFT 记录。可以手动输入成绩，或用 PFT 模板跑一次以解锁分段百分位。";
+"benchmark.record.edited" = "分段百分位只对应已记录的成绩。";
+"benchmark.splits.empty" = "在应用内完成一次 PFT，即可逐段与比赛成绩对比。";
+"benchmark.splits.approximate" = "约";
+"benchmark.splits.percentile" = "前 %.1f%%";
+"benchmark.next.body" = "接下来做一次完整模拟赛。完成后的总结里有差距分析，能看出时间到底花在哪里。";
+"benchmark.unavailable" = "该组别暂时还没有参考成绩。";
+
+// MARK: - Race day entry
+"home.action.race_day" = "比赛当天工具";
+"training_session.pft_benchmark.name" = "体能测试 (PFT)";
+"training_session.pft_benchmark.summary" = "官方六项测试 — 每隔几周重复一次，了解当前水平。";

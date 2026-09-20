@@ -3,6 +3,10 @@
 "pace_planner.mode.hint.equal" = "Run 1~8 동일 분배";
 "pace_planner.mode.hint.adaptive" = "데이터 기반 Run별 분배";
 "pace_planner.percentile.format" = "상위 %.1f%%";
+"pace_planner.data_range.hint" = "데이터 범위 %@ – %@";
+"pace_planner.warning.too_fast" = "데이터보다 빠른 목표입니다. 계획할 수 있는 가장 빠른 목표는 %@ 입니다.";
+"pace_planner.warning.too_slow" = "데이터보다 느린 목표입니다. 계획할 수 있는 가장 느린 목표는 %@ 입니다.";
+"pace_planner.warning.unbalanced" = "이 목표는 정확히 분배할 수 없습니다. 근처 시간을 골라 주세요.";
 
 // MARK: - Alerts
 "alert.end_workout.title" = "운동 종료?";
@@ -89,3 +93,249 @@
 "history.empty" = "운동 기록이 없습니다.\n첫 HYROX를 완주해보세요!";
 "builder.empty" = "아래 버튼을 눌러 첫 세그먼트를 추가하세요";
 "workout.swipe_back_hint" = "스와이프해서 뒤로";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "비공식 앱입니다. HYROX와 제휴·후원·연관 관계가 없습니다. HYROX는 해당 권리자의 상표입니다.";
+
+// MARK: - Summary gap analysis
+"summary.gap.title" = "되찾을 수 있는 시간";
+"summary.gap.subtitle_format" = "목표 %@ · %@";
+"summary.gap.subtitle_goal_format" = "목표 %@";
+"summary.gap.headline_format" = "목표까지 %@ 더 줄이면 돼요";
+"summary.gap.goal_met_format" = "목표보다 %@ 빨랐어요.";
+"summary.gap.no_goal" = "목표를 설정하면 분석을 볼 수 있어요.";
+"summary.gap.no_reference" = "이 목표는 참고 기록 범위를 벗어났어요.";
+"summary.gap.share_format" = "전체 격차의 %d%%";
+"summary.gap.remainder_format" = "나머지 %d개 구간 · %@";
+"summary.gap.row.run" = "러닝 8회";
+"summary.gap.row.rox_zone" = "록스존";
+
+// MARK: - Summary heart rate zones
+"summary.zones.title" = "심박 존";
+
+// MARK: - Summary share card
+"summary.share.tagline" = "HYROX SIM 으로 기록";
+
+// MARK: - Home / My Race
+"home.section.training_sessions" = "훈련 세션";
+"home.race_target.badge" = "내 대회";
+"home.race_target.dday" = "D-DAY";
+"home.race_target.goal_format" = "목표 %@";
+"home.race_target.no_goal" = "목표 시간 미정";
+"home.race_target.empty.title" = "대회 추가";
+"home.race_target.empty.subtitle" = "남은 일수를 세고 목표 시간을 정하세요";
+
+// MARK: - My Race editor
+"race_target.title.new" = "새 대회";
+"race_target.title.edit" = "내 대회";
+"race_target.field.event_name" = "대회명";
+"race_target.field.event_name.placeholder" = "HYROX Seoul";
+"race_target.field.city" = "도시";
+"race_target.field.city.placeholder" = "서울";
+"race_target.field.date" = "대회일";
+"race_target.field.division" = "디비전";
+"race_target.field.division.undecided" = "미정";
+"race_target.field.goal" = "목표 완주 시간";
+"race_target.field.goal.unset" = "목표 없음";
+"race_target.field.note" = "메모";
+"race_target.field.note.placeholder" = "숙소, 동반 출전자, 준비물…";
+"race_target.hint.past_date" = "이미 지난 날짜입니다. 기록으로는 남지만 홈 카운트다운에는 표시되지 않습니다.";
+"race_target.error.empty_name" = "대회명을 입력하세요.";
+"race_target.alert.delete.title" = "대회 삭제?";
+"race_target.alert.delete.message" = "“%@”을(를) 이 폰에서 지웁니다.";
+
+// MARK: - Training sessions
+"training_session.compromised_run.name" = "컴프로마이즈드 런";
+"training_session.compromised_run.summary" = "1 km 런 직후 런지, 4라운드. 기록을 가장 크게 가르는 피로 상태 러닝을 훈련합니다.";
+"training_session.half_simulation.name" = "하프 시뮬레이션";
+"training_session.half_simulation.summary" = "런 1~4 + 스테이션 1~4를 대회 볼륨 그대로.";
+"training_session.station_intervals.name" = "스테이션 인터벌";
+"training_session.station_intervals.summary" = "월볼 · 버피 · 런지 3라운드. 시간 손실이 가장 큰 세 종목입니다.";
+"training_session.roxzone_drill.name" = "록스존 전환 드릴";
+"training_session.roxzone_drill.summary" = "400 m 런 → 록스존 → 스테이션 진입 반복. 전환이 몸에 붙을 때까지.";
+"training_session.wall_ball_ladder.name" = "월볼 사다리";
+"training_session.wall_ball_ladder.summary" = "대회 볼륨 월볼을 30·25·20·15·10 내림차순 세트로 나눠서.";
+
+// MARK: - Garmin connection state
+"settings.row.garmin.subtitle.not_paired" = "기기를 선택하지 않음";
+"settings.row.garmin.subtitle.bluetooth_off" = "블루투스가 꺼짐";
+"settings.row.garmin.subtitle.not_found" = "기기를 찾을 수 없음";
+"settings.row.garmin.subtitle.device_format" = "%@ · %@";
+"settings.row.garmin.disconnect" = "기기 해제";
+"settings.row.garmin.disconnect_subtitle" = "이 워치와 동기화를 중단합니다";
+"alert.garmin_disconnect.title" = "기기를 해제할까요?";
+"alert.garmin_disconnect.message" = "%@ 와의 동기화를 중단합니다. 아직 보내지 못한 내용은 버려집니다.";
+"button.disconnect" = "해제";
+
+// MARK: - History delete failure
+"alert.delete_workout_failed.title" = "삭제하지 못했어요";
+"alert.delete_workout_failed.message" = "이 기록을 삭제하지 못했어요. 다시 시도해 주세요.";
+
+// MARK: - Race Day — hub
+"race_day.hub.title" = "레이스 데이";
+"race_day.hub.pace_card.title" = "레이스 페이스 카드";
+"race_day.hub.pace_card.subtitle" = "구간 목표와 누적 목표 시각";
+"race_day.hub.checklist.title" = "대회 당일 체크리스트";
+"race_day.hub.checklist.subtitle" = "규정·장비·영양과 워밍업";
+"race_day.hub.no_race" = "등록된 대회가 없어 이 운동의 목표를 사용합니다";
+"race_day.hub.goal_format" = "목표 %@";
+"race_day.hub.dday_format" = "D-%d";
+"race_day.hub.dday_today" = "D-DAY";
+"race_day.hub.past_race" = "지난 대회";
+
+// MARK: - Race Day — pace card
+"race_day.pace_card.title" = "페이스 카드";
+"race_day.pace_card.column.segment" = "구간";
+"race_day.pace_card.column.split" = "구간 목표";
+"race_day.pace_card.column.cumulative" = "누적";
+"race_day.pace_card.scaled_notice" = "대회 목표에 맞춰 구간 목표를 조정했습니다.";
+"race_day.pace_card.fast_lane_hint" = "룰북: 4:00/km 이하로 뛰는 런은 Fast Lane 을 사용합니다.";
+"race_day.pace_card.no_goal.title" = "이 운동에는 목표 시간이 없습니다";
+"race_day.pace_card.no_goal.message" = "구간 목표나 목표 완주 시간을 정하면 페이스 카드가 채워집니다.";
+"race_day.pace_card.share" = "이미지로 저장·공유";
+"race_day.pace_card.share_failed" = "이미지를 만들지 못했습니다";
+
+// MARK: - Race Day — checklist screen
+"race_day.checklist.title" = "대회 당일 체크리스트";
+"race_day.checklist.section.rule" = "규정";
+"race_day.checklist.section.gear" = "장비";
+"race_day.checklist.section.nutrition" = "영양·워밍업";
+"race_day.checklist.section.rule.footer" = "HYROX 26/27 룰북 기준입니다.";
+"race_day.checklist.reset" = "체크리스트 초기화";
+"race_day.checklist.reset.title" = "체크리스트를 초기화할까요?";
+"race_day.checklist.reset.message" = "모든 항목의 체크가 해제됩니다.";
+"race_day.checklist.past_race_notice" = "지난 대회입니다. 다음 대회를 위해 초기화하세요.";
+"race_day.checklist.progress_format" = "%1$d / %2$d";
+
+// MARK: - Race Day — workout screen
+"race_day.workout.add_lap" = "랩 추가";
+"race_day.workout.remove_lap" = "랩 취소";
+"race_day.workout.race_mode" = "레이스 모드";
+"race_day.workout.open" = "레이스 데이";
+"race_day.workout.lap_hint" = "랩은 직접 세세요";
+
+// MARK: - Race Day — checklist items (rules, from the 26/27 rulebook)
+"race_day.checklist.chip_ankle.title" = "칩을 발목에 착용";
+"race_day.checklist.chip_ankle.evidence" = "룰북: 칩은 발목에 착용합니다. 미착용 출발은 DNS.";
+"race_day.checklist.assigned_wave.title" = "배정된 웨이브에서만 출발";
+"race_day.checklist.assigned_wave.evidence" = "룰북: 배정되지 않은 웨이브에서 출발하면 실격.";
+"race_day.checklist.count_laps.title" = "런 랩은 본인이 센다";
+"race_day.checklist.count_laps.evidence" = "룰북: 랩 계수는 선수 책임. 누락 시 3분·5분·7분 또는 실격.";
+"race_day.checklist.finish_every_station.title" = "스테이션을 끝까지 완료";
+"race_day.checklist.finish_every_station.evidence" = "룰북: 스테이션 미완료는 시간 페널티가 아니라 실격.";
+"race_day.checklist.sandbag_shoulder.title" = "샌드백을 어깨에서 떨어뜨리지 않기";
+"race_day.checklist.sandbag_shoulder.evidence" = "룰북: 샌드백이 어깨에서 떨어질 때마다 15초.";
+"race_day.checklist.event_chalk_only.title" = "행사에서 제공한 초크만 사용";
+"race_day.checklist.event_chalk_only.evidence" = "룰북: 주최 측 초크만 허용. 개인 초크는 2분.";
+"race_day.checklist.no_pouring_drinks.title" = "음료를 몸에 붓지 않기";
+"race_day.checklist.no_pouring_drinks.evidence" = "룰북: 음료를 몸에 부으면 2분.";
+"race_day.checklist.fast_lane.title" = "4:00/km 이하면 Fast Lane 사용";
+"race_day.checklist.fast_lane.evidence" = "룰북: 4:00/km 이하 페이스의 런은 Fast Lane 을 사용.";
+
+// MARK: - Race Day — checklist items (gear)
+"race_day.checklist.bib_front.title" = "배번을 앞면에 잘 보이게 부착";
+"race_day.checklist.shoes_laced.title" = "레이스 슈즈 착용, 끈 이중 매듭";
+"race_day.checklist.grips_ready.title" = "썰매·캐리용 장갑 또는 그립 준비";
+"race_day.checklist.bag_drop.title" = "여벌 옷과 수건을 짐 보관소에";
+"race_day.checklist.devices_charged.title" = "워치·폰 충전, 레이스 템플릿 준비";
+
+// MARK: - Race Day — checklist items (fuel & warm-up)
+"race_day.checklist.main_meal.title" = "웨이브 3시간 전 본식사";
+"race_day.checklist.light_carbs.title" = "60분 전 가벼운 탄수화물";
+"race_day.checklist.hydration.title" = "마지막 2시간 동안 물 500ml";
+"race_day.checklist.caffeine.title" = "출발 45분 전 카페인";
+"race_day.checklist.warm_up.title" = "웨이브 30분 전 워밍업 시작";
+
+// MARK: - 진척 추적
+"home.action.progress" = "진척";
+"progress.title" = "진척";
+"progress.load_failed" = "기록을 불러오지 못했어요";
+"progress.empty.title" = "아직 비교할 기록이 부족해요";
+"progress.empty.message" = "공식 코스 기록이 두 건 모이면 완주 시간, 퍼센타일, 러닝 저하율, 그리고 시간을 가장 많이 잃는 구간을 추적해 드려요.";
+"progress.empty.count_format" = "지금까지 %d건";
+"progress.section.finish" = "완주 시간";
+"progress.section.percentile" = "퍼센타일";
+"progress.section.running" = "러닝";
+"progress.section.segments" = "시간을 어디서 쓰는가";
+"progress.finish.best_format" = "최고 기록 %@";
+"progress.finish.delta_faster_format" = "첫 기록보다 %@ 빨라졌어요";
+"progress.finish.delta_slower_format" = "첫 기록보다 %@ 느려졌어요";
+"progress.finish.delta_same" = "첫 기록과 같아요";
+"progress.percentile.value_format" = "상위 %.1f%%";
+"progress.percentile.unavailable" = "이 디비전은 아직 비교할 참조 데이터가 부족해요.";
+"progress.running.first_pace" = "첫 런";
+"progress.running.fade" = "런 8 / 런 1";
+"progress.running.fade_hint" = "1.00이면 첫 런 속도를 끝까지 지켰다는 뜻이에요. 초반에 과속할수록 이 숫자가 커집니다.";
+"progress.segments.first_marker" = "마름모 표시가 첫 기록이에요.";
+"progress.footer.division_format" = "%@ 기록만 비교합니다";
+"progress.footer.dataset_format" = "퍼센타일 기준: %@ 데이터";
+"progress.footer.skipped_format" = "읽을 수 없거나 다른 코스인 기록 %d건은 제외했어요";
+
+// MARK: - 대회 계획 도구 (내 대회 진입 행)
+"race_target.section.planning" = "계획";
+"race_target.action.team_split" = "분담 계획";
+"race_target.action.team_split.subtitle" = "파트너와 스테이션을 나눠요";
+"race_target.action.benchmark" = "PFT 벤치마크";
+"race_target.action.benchmark.subtitle" = "체력 테스트 한 번으로 디비전을 정해요";
+
+// MARK: - 분담 플래너
+"team_split.title" = "분담 계획";
+"team_split.format.doubles" = "더블스 · 2인";
+"team_split.format.relay" = "릴레이 · 4인";
+"team_split.section.goal" = "팀 목표";
+"team_split.section.workload" = "사람별 부하";
+"team_split.section.stations" = "스테이션 분담";
+"team_split.rule.doubles" = "스테이션은 자유롭게 나누지만 런은 둘이 함께 뛰어야 해요. 한 명이 앞서 가면 1분 페널티, 동행 위반이 3회를 넘으면 실격이라 러닝 시간은 나누지 않고 팀 공통으로 둡니다.";
+"team_split.rule.relay" = "1인당 2 × (1 km + 스테이션 1종)이라 런도 스테이션과 함께 나눠요. 무게는 각자 성별 Open 기준입니다.";
+"team_split.summary.projected" = "예상 완주";
+"team_split.summary.shared_run" = "함께 뛰는 시간";
+"team_split.summary.run_per_athlete" = "1인당 러닝";
+"team_split.summary.load_gap" = "부하 차이";
+"team_split.summary.even" = "차이 없음";
+"team_split.member.stations" = "스테이션";
+"team_split.member.running" = "러닝";
+"team_split.member.rest" = "휴식";
+"team_split.button.reset" = "균등 분담으로 되돌리기";
+"team_split.warning.imbalance" = "한 명이 스테이션 작업의 %d%%를 맡고 있어요. 런은 함께 뛰어야 하니 더 많이 맡은 쪽이 팀 페이스를 정하게 됩니다.";
+"team_split.note.reference" = "스테이션 시간은 이 완주 시간대의 %@ 대회 기록에서 가져왔어요.";
+"team_split.note.estimated" = "릴레이는 공개된 기록 표가 없어 %@ 기록의 비율을 목표에 맞춰 늘린 값이에요. 참고용입니다.";
+"team_split.share.format" = "%d%%";
+
+// MARK: - PFT 벤치마크
+"pft.template.name" = "HYROX PFT";
+"pft.template.summary" = "공식 체력 테스트: 1 km 런, 버피 브로드 점프 50, 런지 100 m, 로잉 1 km, 푸시업 30, 월볼 100.";
+"pft.step.run.name" = "런";
+"pft.step.burpee_broad_jumps.name" = "버피 브로드 점프";
+"pft.step.lunges.name" = "런지";
+"pft.step.row.name" = "로잉";
+"pft.step.push_ups.name" = "핸드 릴리즈 푸시업";
+"pft.step.wall_balls.name" = "월볼";
+"benchmark.title" = "PFT 벤치마크";
+"benchmark.section.protocol" = "테스트 구성";
+"benchmark.section.time" = "내 기록";
+"benchmark.section.division" = "비교 기준 디비전";
+"benchmark.section.result" = "결과";
+"benchmark.section.splits" = "구간 퍼센타일";
+"benchmark.section.next" = "다음 단계";
+"benchmark.recommend.pro" = "PRO";
+"benchmark.recommend.open" = "OPEN";
+"benchmark.recommend.headline" = "이 기록은 %@ 쪽이에요.";
+"benchmark.projection.title" = "예상 HYROX 완주";
+"benchmark.projection.range" = "%@ – %@";
+"benchmark.projection.basis" = "%@ 기록 기준";
+"benchmark.projection.percentile" = "상위 %d%% – %d%%";
+"benchmark.note.source" = "Pro 15–25분 · Open 25–35분은 공식 산출식이 아니라 보도된 기준값이에요. 범위는 참고용으로만 보세요.";
+"benchmark.note.outside_band" = "보도 기준 구간(15–35분) 밖이라 범위를 더 넓게 잡았어요.";
+"benchmark.record.source" = "%@에 기록한 PFT";
+"benchmark.record.none" = "아직 PFT 기록이 없어요. 시간을 직접 입력하거나, PFT 템플릿으로 한 번 뛰면 구간 비교까지 볼 수 있어요.";
+"benchmark.record.edited" = "구간 퍼센타일은 기록된 시간에만 적용돼요.";
+"benchmark.splits.empty" = "앱에서 PFT를 실행하면 구간별로 대회 기록과 비교해 드려요.";
+"benchmark.splits.approximate" = "어림";
+"benchmark.splits.percentile" = "상위 %.1f%%";
+"benchmark.next.body" = "다음은 풀 시뮬레이션이에요. 완료 후 요약 화면의 격차 분석에서 시간을 어디서 잃는지 볼 수 있어요.";
+"benchmark.unavailable" = "이 디비전은 아직 참조 기록이 없어요.";
+
+// MARK: - Race day entry
+"home.action.race_day" = "대회 당일 준비";
+"training_session.pft_benchmark.name" = "체력 테스트 (PFT)";
+"training_session.pft_benchmark.summary" = "공식 6종 테스트 — 몇 주에 한 번 반복해 현재 위치를 확인합니다.";

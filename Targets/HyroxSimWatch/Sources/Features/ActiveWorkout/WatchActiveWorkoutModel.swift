@@ -42,6 +42,15 @@ final class WatchActiveWorkoutModel {
     private(set) var gpsStrong: Bool = false  // simple on/off for watch (compact)
     private(set) var gpsActive: Bool = true
 
+    // MARK: - 레이스 데이
+    /// 현재 런에서 선수가 직접 센 바퀴 수. 구간이 바뀌면 0 으로 돌아가고 기록에는 남기지 않는다.
+    private(set) var lapCount: Int = 0
+    /// 랩을 셀 수 있는 구간(런)인지.
+    private(set) var isLapCounterAvailable: Bool = false
+    @ObservationIgnored private var lapCounter = RaceLapCounter()
+    /// 로컬 저장 실패 여부. 요약 화면 경고 표시용 (결과는 체크포인트로 남아 다음 실행에서 재시도).
+    private(set) var didFailToSave: Bool = false
+
     enum AccentKind { case run, roxZone, station }
 
     private var lastKnownBpm: Int?
@@ -54,17 +63,25 @@ final class WatchActiveWorkoutModel {
     private let syncCoordinator: (any SyncCoordinator)?
     private let maxHeartRate: Int
 
-    private var displayTask: Task<Void, Never>?
-    private var locationTask: Task<Void, Never>?
-    private var heartRateTask: Task<Void, Never>?
-    private var sensorStartupTask: Task<Void, Never>?
-    private var mirroringTask: Task<Void, Never>?
+    // Task 핸들은 관찰 대상이 아니다. @ObservationIgnored 여야 nonisolated deinit 에서 취소할 수 있다.
+    @ObservationIgnored private var displayTask: Task<Void, Never>?
+    @ObservationIgnored private var locationTask: Task<Void, Never>?
+    @ObservationIgnored private var heartRateTask: Task<Void, Never>?
+    @ObservationIgnored private var sensorStartupTask: Task<Void, Never>?
+    @ObservationIgnored private var mirroringTask: Task<Void, Never>?
     private var segmentStartHKDistance: Double = 0
     private var isMirroringActive = false
     private var didStart = false
+    /// 이미 HealthKit builder 에 넣은 구간 기록 개수. 매 advance 마다 나머지만 추가한다.
+    private var addedSegmentEventCount = 0
+    /// GPS 추적이 한 번이라도 살아 있었는지. 종료 시 실내/실외 판정에 쓴다.
+    private var didTrackLocation = false
     private var lastRemoteCommand: (command: WorkoutCommand, at: Date)?
     private var uiTestAutoEndDeadline: Date?
     private var alertedGoalSegmentId: UUID?
+    private var workoutStartedAt: Date?
+    private let checkpointStore = WorkoutCheckpointStore.shared
+    private let checkpointId = UUID()
 
     var finishHandler: ((CompletedWorkout) -> Void)?
     var errorHandler: ((Error) -> Void)?
@@ -77,11 +94,21 @@ final class WatchActiveWorkoutModel {
         maxHeartRate: Int = 190
     ) {
         self.engine = WorkoutEngine(template: template)
-        self.workoutSession = WatchWorkoutSession()
+        // 워치가 운동 주체인 유일한 경로 — 여기서만 건강 앱 저장을 켠다.
+        self.workoutSession = WatchWorkoutSession(purpose: .recording)
         self.locationAdapter = CoreLocationAdapter()
         self.persistence = persistence
         self.syncCoordinator = syncCoordinator
         self.maxHeartRate = maxHeartRate
+    }
+
+    /// 모델이 해제되면 브로드캐스트 루프와 센서 태스크도 함께 끝낸다 — 좀비 태스크 방지.
+    deinit {
+        displayTask?.cancel()
+        sensorStartupTask?.cancel()
+        locationTask?.cancel()
+        heartRateTask?.cancel()
+        mirroringTask?.cancel()
     }
 
     /// TimelineView에서 매 틱마다 호출 — UI 갱신용
@@ -97,7 +124,11 @@ final class WatchActiveWorkoutModel {
         guard !didStart else { return }
         didStart = true
         do {
-            try engine.start(at: Date())
+            let startedAt = Date()
+            try engine.start(at: startedAt)
+            workoutStartedAt = startedAt
+            WatchLocalWorkoutActivity.shared.begin()
+            saveCheckpoint()
             if uiTestAutoEndDeadline == nil,
                ProcessInfo.processInfo.arguments.contains("UITestAutoEndWatchWorkout") {
                 uiTestAutoEndDeadline = Date().addingTimeInterval(6)
@@ -138,7 +169,10 @@ final class WatchActiveWorkoutModel {
         do {
             try engine.advance(at: Date())
             segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
+            // 방금 끝난 구간을 건강 앱 운동에 스플릿으로 남긴다.
+            flushSegmentEvents()
             refresh()
+            saveCheckpoint()
             if engine.isFinished {
                 Task { await finishAndSave() }
             }
@@ -156,6 +190,7 @@ final class WatchActiveWorkoutModel {
             }
             isPaused.toggle()
             refresh()
+            saveCheckpoint()
         } catch { errorHandler?(error) }
     }
 
@@ -189,8 +224,12 @@ final class WatchActiveWorkoutModel {
             totalGoalText = "—"
             totalDeltaText = "—"
             isOverTotalGoal = false
+            syncLapCounter(to: nil, segmentType: nil)
             return
         }
+
+        // 구간이 바뀌면 랩은 0 부터 다시 센다.
+        syncLapCounter(to: current.id, segmentType: current.type)
 
         let live = engine.liveMeasurementsSnapshot
         let segElapsed = engine.segmentElapsed(at: now)
@@ -346,15 +385,39 @@ final class WatchActiveWorkoutModel {
     /// UI 갱신은 TimelineView가 담당. 이 타이머는 백그라운드 브로드캐스트 전용.
     /// TimelineView가 보이지 않을 때도 폰에 실시간 전송을 유지하기 위해 필요.
     private func startDisplayTimer() {
-        displayTask = Task { [weak self] in
+        displayTask?.cancel()
+        displayTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
-                await MainActor.run { self?.broadcastLiveState() }
+                // 모델이 해제되면 루프도 즉시 끝낸다 — 해제 후 브로드캐스트가 남지 않도록.
+                guard let self else { break }
+                broadcastLiveState()
             }
         }
     }
 
+    /// 진행 상황을 파일에 남겨 크래시·강제 종료 시 다음 실행에서 복구할 수 있게 한다.
+    /// `finishedAt` 이 있으면 정상 종료 후 저장 실패 케이스 — 다음 실행에서 저장을 재시도한다.
+    private func saveCheckpoint(finishedAt: Date? = nil, id: UUID? = nil) {
+        guard let workoutStartedAt else { return }
+        checkpointStore.save(
+            WorkoutCheckpoint(
+                id: id ?? checkpointId,
+                templateName: engine.template.name,
+                division: engine.template.division,
+                startedAt: workoutStartedAt,
+                updatedAt: Date(),
+                segments: engine.records,
+                isFinished: finishedAt != nil,
+                finishedAt: finishedAt
+            )
+        )
+    }
+
     private func finishAndSave() async {
+        // 어떤 경로로 끝나도 로컬 운동 플래그는 반드시 해제한다.
+        defer { WatchLocalWorkoutActivity.shared.end() }
+
         syncCoordinator?.sendWorkoutFinished(origin: .watch)
         if isMirroringActive {
             Task { [workoutSession] in
@@ -367,16 +430,57 @@ final class WatchActiveWorkoutModel {
             }
         }
         cleanup()
-        workoutSession.stop()
+
+        let completed: CompletedWorkout
         do {
-            let completed = try engine.makeCompletedWorkout()
-            try persistence.saveCompletedWorkout(completed)
-            try? syncCoordinator?.sendCompletedWorkout(completed)
-            isFinished = true
-            finishHandler?(completed)
+            completed = try engine.makeCompletedWorkout()
         } catch {
+            // 엔진 상태가 어긋나도 운동 화면에 갇히면 안 된다. 기록해 둔 구간으로 결과를 만든다.
+            errorHandler?(error)
+            completed = CompletedWorkout(
+                id: checkpointId,
+                templateName: engine.template.name,
+                division: engine.template.division,
+                startedAt: workoutStartedAt ?? engine.records.first?.startedAt ?? Date(),
+                finishedAt: engine.records.last?.endedAt ?? Date(),
+                segments: engine.records
+            )
+        }
+
+        // 건강 앱 기록: 마지막 구간까지 이벤트를 채우고, 실측 거리로 실내/실외를 확정해 메타데이터와 함께 저장한다.
+        // 실패해도 로컬 저장·요약 화면에는 영향을 주지 않는다(세션 내부에서 로그만 남긴다).
+        flushSegmentEvents()
+        workoutSession.end(
+            metadata: HealthWorkoutMetadata(
+                templateName: engine.template.name,
+                division: engine.template.division,
+                environment: WorkoutEnvironmentClassifier.classify(
+                    workout: completed,
+                    isLocationTrackingActive: didTrackLocation
+                )
+            )
+        )
+
+        // 로컬 저장과 폰 전송은 서로 독립적으로 시도한다. 하나가 실패해도 요약 화면까지는 반드시 진행.
+        do {
+            try persistence.saveCompletedWorkout(completed)
+            didFailToSave = false
+            checkpointStore.clear()
+        } catch {
+            didFailToSave = true
+            // 저장 실패한 결과는 체크포인트로 남겨 다음 실행에서 재시도한다.
+            saveCheckpoint(finishedAt: completed.finishedAt, id: completed.id)
             errorHandler?(error)
         }
+
+        do {
+            try syncCoordinator?.sendCompletedWorkout(completed)
+        } catch {
+            print("[WatchWorkout] Failed to send completed workout: \(error)")
+        }
+
+        isFinished = true
+        finishHandler?(completed)
     }
 
     private func cleanup() {
@@ -397,9 +501,42 @@ final class WatchActiveWorkoutModel {
     }
 }
 
+// MARK: - 랩 카운터
+
+extension WatchActiveWorkoutModel {
+
+    /// 랩 카운터를 현재 구간에 맞춘다. 구간이 바뀌면 0 으로 초기화한다.
+    /// 랩은 런에서만 세므로 다른 구간에서는 카운터 페이지를 비활성으로 표시한다.
+    private func syncLapCounter(to segmentId: UUID?, segmentType: SegmentType?) {
+        lapCounter.syncSegment(segmentId)
+        if lapCount != lapCounter.count { lapCount = lapCounter.count }
+        let available = segmentType == .run
+        if isLapCounterAvailable != available { isLapCounterAvailable = available }
+    }
+}
+
 // MARK: - WorkoutDisplaying
 
 extension WatchActiveWorkoutModel: WorkoutDisplaying {
+
+    /// 워치 자체 운동만 랩을 센다 — 대회장 트랙에서는 손목이 가장 가깝다.
+    var supportsLapCounter: Bool { true }
+
+    func incrementLap() {
+        lapCounter.increment()
+        lapCount = lapCounter.count
+    }
+
+    func decrementLap() {
+        lapCounter.decrement()
+        lapCount = lapCounter.count
+    }
+
+    func setLapCount(_ value: Int) {
+        lapCounter.set(value)
+        if lapCount != lapCounter.count { lapCount = lapCounter.count }
+    }
+
     var accent: WorkoutDisplayAccent {
         switch accentKind {
         case .run: return .run
@@ -416,17 +553,38 @@ extension WatchActiveWorkoutModel: WorkoutDisplaying {
 
 private extension WatchActiveWorkoutModel {
 
+    /// 엔진이 확정한 구간 기록 중 아직 HealthKit builder 에 넣지 않은 것만 추가한다.
+    /// 세션이 아직 시작되기 전이면 세션 쪽에서 버퍼링했다가 시작 직후 반영한다.
+    func flushSegmentEvents() {
+        let records = engine.records
+        guard addedSegmentEventCount < records.count else { return }
+        for record in records[addedSegmentEventCount...] {
+            let title = HealthWorkoutSegmentTitle.make(for: record, in: engine.template.segments)
+            guard let event = HealthWorkoutExport.SegmentEvent(record: record, title: title) else { continue }
+            workoutSession.addSegmentEvent(event)
+        }
+        addedSegmentEventCount = records.count
+    }
+
     func startSensors() {
         sensorStartupTask?.cancel()
         sensorStartupTask = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
+                // 세션 생성 뒤에는 locationType 을 바꿀 수 없어 시작 전에 정한다.
+                // 실측 거리가 아직 없으므로 템플릿 런 거리 + 위치 권한으로 추정하고,
+                // 종료 시 실측 기반으로 `HKMetadataKeyIndoorWorkout` 을 확정한다.
+                workoutSession.plannedEnvironment = WorkoutEnvironmentClassifier.plannedEnvironment(
+                    template: engine.template,
+                    locationAuthorization: locationAdapter.authorizationStatus
+                )
                 try await workoutSession.start()
                 heartRateTask = engine.attachHeartRateStream(workoutSession)
                 segmentStartHKDistance = workoutSession.cumulativeDistanceMeters
                 startMirroring()
 
                 try await locationAdapter.start()
+                didTrackLocation = true
                 locationTask = engine.attachLocationStream(locationAdapter)
             } catch {
                 guard !Task.isCancelled else { return }

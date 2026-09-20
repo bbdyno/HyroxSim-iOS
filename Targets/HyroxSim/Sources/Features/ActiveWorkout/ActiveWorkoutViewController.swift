@@ -38,6 +38,18 @@ final class ActiveWorkoutViewController: UIViewController {
     private let pauseOverlay = UIView()
     private let pauseLabel = UILabel()
 
+    // MARK: - 레이스 데이
+
+    private let raceModeButton = UIButton(type: .system)
+    private let raceDayButton = UIButton(type: .system)
+    private let lapCard = UIView()
+    private let lapCaptionLabel = UILabel()
+    private let lapCountLabel = UILabel()
+    private let lapMinusButton = UIButton(type: .system)
+    private let lapPlusButton = UIButton(type: .system)
+    /// 레이스 모드 스타일을 매 틱마다 다시 적용하지 않도록 마지막 상태를 기억한다.
+    private var appliedRaceMode: Bool?
+
     init(viewModel: ActiveWorkoutViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
@@ -59,6 +71,8 @@ final class ActiveWorkoutViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         UIApplication.shared.isIdleTimerDisabled = true
+        // 레이스 데이 화면처럼 위에 올라온 모달에서 돌아왔을 때 화면이 멈춰 있지 않도록.
+        startUITimer()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -104,9 +118,13 @@ final class ActiveWorkoutViewController: UIViewController {
         infoSecondaryMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
         heartMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
 
-        let topRow = UIStackView(arrangedSubviews: [gpsStatusView, UIView()])
+        setupRaceControls()
+        setupLapCard()
+
+        let topRow = UIStackView(arrangedSubviews: [gpsStatusView, raceDayButton, raceModeButton])
         topRow.axis = .horizontal
         topRow.alignment = .center
+        topRow.spacing = 8
 
         goalTitleLabel.font = .systemFont(ofSize: 11, weight: .black)
         goalTitleLabel.textColor = UIColor.white.withAlphaComponent(0.55)
@@ -184,6 +202,7 @@ final class ActiveWorkoutViewController: UIViewController {
         contentStack.setCustomSpacing(4, after: segmentMetric)
         contentStack.addArrangedSubview(totalMetric)
         contentStack.addArrangedSubview(goalCard)
+        contentStack.addArrangedSubview(lapCard)
         contentStack.addArrangedSubview(infoRow)
         contentStack.addArrangedSubview(heartMetric)
         view.addSubview(contentStack)
@@ -214,6 +233,131 @@ final class ActiveWorkoutViewController: UIViewController {
             pauseLabel.centerXAnchor.constraint(equalTo: pauseOverlay.centerXAnchor),
             pauseLabel.centerYAnchor.constraint(equalTo: pauseOverlay.centerYAnchor)
         ])
+    }
+
+    // MARK: - 레이스 데이 컨트롤
+
+    /// 상단의 레이스 모드 토글과 레이스 데이 진입 버튼.
+    ///
+    /// 레이스 데이 화면은 코디네이터를 거치지 않고 운동 화면에서 직접 띄운다.
+    /// 대회장에서 페이스 카드·체크리스트를 다시 보려면 운동을 끝낼 필요가 없어야 하기 때문이다.
+    private func setupRaceControls() {
+        var raceConfig = UIButton.Configuration.plain()
+        raceConfig.attributedTitle = Self.raceButtonTitle(isOn: false)
+        raceConfig.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10)
+        raceModeButton.configuration = raceConfig
+        raceModeButton.layer.cornerRadius = 12
+        raceModeButton.layer.borderWidth = 1
+        raceModeButton.addTarget(self, action: #selector(raceModeTapped), for: .touchUpInside)
+        raceModeButton.accessibilityLabel = RaceDayLocalization.Workout.raceModeToggle
+        raceModeButton.setContentHuggingPriority(.required, for: .horizontal)
+
+        var dayConfig = UIButton.Configuration.plain()
+        dayConfig.image = UIImage(systemName: "flag.checkered")
+        dayConfig.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 8, bottom: 5, trailing: 8)
+        raceDayButton.configuration = dayConfig
+        raceDayButton.tintColor = UIColor.white.withAlphaComponent(0.7)
+        raceDayButton.addTarget(self, action: #selector(raceDayTapped), for: .touchUpInside)
+        raceDayButton.accessibilityLabel = RaceDayLocalization.Workout.openRaceDay
+        raceDayButton.setContentHuggingPriority(.required, for: .horizontal)
+    }
+
+    /// 런 랩 카운터. 대회장 트랙은 랩을 선수가 직접 세야 해서 수동 증감만 제공한다.
+    /// 기록에는 남지 않는 화면 보조 정보다.
+    private func setupLapCard() {
+        lapCaptionLabel.text = "LAP"
+        lapCaptionLabel.font = .systemFont(ofSize: 11, weight: .black)
+        lapCaptionLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+
+        let hintLabel = UILabel()
+        hintLabel.text = RaceDayLocalization.Workout.lapHint
+        hintLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        hintLabel.textColor = UIColor.white.withAlphaComponent(0.4)
+        hintLabel.numberOfLines = 1
+        hintLabel.adjustsFontSizeToFitWidth = true
+        hintLabel.minimumScaleFactor = 0.7
+
+        lapCountLabel.font = .monospacedDigitSystemFont(ofSize: 52, weight: .black)
+        lapCountLabel.textColor = .white
+        lapCountLabel.textAlignment = .center
+        lapCountLabel.text = "0"
+        lapCountLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        for (button, symbol, action) in [
+            (lapMinusButton, "minus", #selector(lapMinusTapped)),
+            (lapPlusButton, "plus", #selector(lapPlusTapped))
+        ] {
+            var config = UIButton.Configuration.plain()
+            config.image = UIImage(
+                systemName: symbol,
+                withConfiguration: UIImage.SymbolConfiguration(pointSize: 20, weight: .bold)
+            )
+            button.configuration = config
+            button.tintColor = .white
+            button.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+            button.layer.cornerRadius = 24
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.widthAnchor.constraint(equalToConstant: 48).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 48).isActive = true
+            button.addTarget(self, action: action, for: .touchUpInside)
+        }
+        lapMinusButton.accessibilityLabel = RaceDayLocalization.Workout.removeLap
+        lapPlusButton.accessibilityLabel = RaceDayLocalization.Workout.addLap
+
+        let captionStack = UIStackView(arrangedSubviews: [lapCaptionLabel, hintLabel])
+        captionStack.axis = .vertical
+        captionStack.alignment = .leading
+        captionStack.spacing = 2
+
+        let row = UIStackView(arrangedSubviews: [captionStack, lapMinusButton, lapCountLabel, lapPlusButton])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 10
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        lapCard.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        lapCard.layer.cornerRadius = 18
+        lapCard.layer.borderWidth = 1
+        lapCard.layer.borderColor = DesignTokens.Color.accentDim.cgColor
+        lapCard.isHidden = true
+        lapCard.addSubview(row)
+
+        NSLayoutConstraint.activate([
+            row.topAnchor.constraint(equalTo: lapCard.topAnchor, constant: 8),
+            row.leadingAnchor.constraint(equalTo: lapCard.leadingAnchor, constant: 14),
+            row.trailingAnchor.constraint(equalTo: lapCard.trailingAnchor, constant: -10),
+            row.bottomAnchor.constraint(equalTo: lapCard.bottomAnchor, constant: -8)
+        ])
+    }
+
+    /// 켜짐/꺼짐에 따라 색만 바뀌는 "RACE" 라벨.
+    private static func raceButtonTitle(isOn: Bool) -> AttributedString {
+        var title = AttributedString("RACE")
+        title.font = UIFont.systemFont(ofSize: 12, weight: .black)
+        title.foregroundColor = isOn ? UIColor.black : UIColor.white.withAlphaComponent(0.6)
+        return title
+    }
+
+    @objc private func raceModeTapped() {
+        viewModel.toggleRaceMode()
+        UISelectionFeedbackGenerator().selectionChanged()
+        applyState()
+    }
+
+    @objc private func raceDayTapped() {
+        RaceDayEntry.present(from: self, context: viewModel.makeRaceDayContext())
+    }
+
+    @objc private func lapPlusTapped() {
+        viewModel.incrementLap()
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        applyState()
+    }
+
+    @objc private func lapMinusTapped() {
+        viewModel.decrementLap()
+        UISelectionFeedbackGenerator().selectionChanged()
+        applyState()
     }
 
     private func setupButtons() {
@@ -282,6 +426,7 @@ final class ActiveWorkoutViewController: UIViewController {
     }
 
     private func startUITimer() {
+        guard uiTimer == nil, !viewModel.isFinished else { return }
         uiTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
             self?.applyState()
         }
@@ -316,6 +461,8 @@ final class ActiveWorkoutViewController: UIViewController {
         totalValueLabel.text = viewModel.totalGoalText
         totalDeltaLabel.text = viewModel.totalDeltaText
         totalDeltaLabel.textColor = deltaColor(isOver: viewModel.isOverTotalGoal, isPlaceholder: !hasTotal)
+
+        applyRaceState()
 
         switch viewModel.accentKind {
         case .run, .roxZone:
@@ -355,6 +502,46 @@ final class ActiveWorkoutViewController: UIViewController {
         if viewModel.isFinished {
             stopUITimer()
         }
+    }
+
+    /// 레이스 모드 표시. 누적 델타를 키우고, 런 구간이면 랩 카운터를 연다.
+    ///
+    /// 대회에서 의미 있는 숫자는 "이 구간이 목표보다 빠른가"가 아니라
+    /// **"지금까지 누적으로 앞서 있는가"** 다. 레이스 모드에서는 그 숫자를 가장 크게 둔다.
+    private func applyRaceState() {
+        let isRaceMode = viewModel.isRaceMode
+
+        lapCountLabel.text = "\(viewModel.lapCount)"
+        lapCard.isHidden = !(isRaceMode && viewModel.isLapCounterAvailable)
+        lapMinusButton.isEnabled = viewModel.lapCount > 0
+        lapMinusButton.alpha = viewModel.lapCount > 0 ? 1 : 0.35
+
+        guard appliedRaceMode != isRaceMode else { return }
+        appliedRaceMode = isRaceMode
+
+        totalDeltaLabel.font = .monospacedDigitSystemFont(
+            ofSize: isRaceMode ? 44 : 28,
+            weight: .black
+        )
+        totalTitleLabel.font = .systemFont(ofSize: isRaceMode ? 13 : 11, weight: .black)
+        totalTitleLabel.textColor = isRaceMode
+            ? DesignTokens.Color.accent
+            : UIColor.white.withAlphaComponent(0.55)
+        goalTitleLabel.alpha = isRaceMode ? 0.7 : 1
+        goalValueLabel.alpha = isRaceMode ? 0.7 : 1
+        goalDeltaLabel.font = .monospacedDigitSystemFont(
+            ofSize: isRaceMode ? 20 : 24,
+            weight: .black
+        )
+
+        raceModeButton.tintColor = isRaceMode ? .black : UIColor.white.withAlphaComponent(0.6)
+        raceModeButton.backgroundColor = isRaceMode ? DesignTokens.Color.accent : .clear
+        raceModeButton.layer.borderColor = isRaceMode
+            ? DesignTokens.Color.accent.cgColor
+            : UIColor.white.withAlphaComponent(0.25).cgColor
+        raceModeButton.configuration?.attributedTitle = Self.raceButtonTitle(isOn: isRaceMode)
+        raceModeButton.accessibilityValue = isRaceMode ? "1" : "0"
+        raceModeButton.accessibilityTraits = isRaceMode ? [.button, .selected] : [.button]
     }
 
     private func flashGoalCard() {

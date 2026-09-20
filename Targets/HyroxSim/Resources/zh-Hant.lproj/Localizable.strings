@@ -3,6 +3,10 @@
 "pace_planner.mode.hint.equal" = "Run 1~8 均勻分配";
 "pace_planner.mode.hint.adaptive" = "基於數據的各 Run 分配";
 "pace_planner.percentile.format" = "前 %.1f%%";
+"pace_planner.data_range.hint" = "資料範圍 %@ – %@";
+"pace_planner.warning.too_fast" = "目標快於資料範圍。可規劃的最快目標為 %@。";
+"pace_planner.warning.too_slow" = "目標慢於資料範圍。可規劃的最慢目標為 %@。";
+"pace_planner.warning.unbalanced" = "無法精確分配此目標，請選擇相近的時間。";
 
 // MARK: - Alerts
 "alert.end_workout.title" = "結束訓練?";
@@ -89,3 +93,249 @@
 "history.empty" = "尚無訓練記錄。\n完成你的第一場 HYROX!";
 "builder.empty" = "點擊下方按鈕新增第一個分段";
 "workout.swipe_back_hint" = "滑動返回";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "非官方應用程式。與 HYROX 並無從屬、背書或關聯關係。HYROX 為其權利人之商標。";
+
+// MARK: - Summary gap analysis
+"summary.gap.title" = "可以追回的時間";
+"summary.gap.subtitle_format" = "目標 %@ · %@";
+"summary.gap.subtitle_goal_format" = "目標 %@";
+"summary.gap.headline_format" = "距離目標還需縮短 %@";
+"summary.gap.goal_met_format" = "比目標快了 %@。";
+"summary.gap.no_goal" = "設定目標後即可查看分析。";
+"summary.gap.no_reference" = "此目標超出參考成績範圍。";
+"summary.gap.share_format" = "佔總差距的 %d%%";
+"summary.gap.remainder_format" = "其餘 %d 個區間 · %@";
+"summary.gap.row.run" = "跑步 8 次";
+"summary.gap.row.rox_zone" = "ROX 區";
+
+// MARK: - Summary heart rate zones
+"summary.zones.title" = "心率區間";
+
+// MARK: - Summary share card
+"summary.share.tagline" = "由 HYROX SIM 記錄";
+
+// MARK: - Garmin connection state
+"settings.row.garmin.subtitle.not_paired" = "未選擇裝置";
+"settings.row.garmin.subtitle.bluetooth_off" = "藍牙已關閉";
+"settings.row.garmin.subtitle.not_found" = "找不到裝置";
+"settings.row.garmin.subtitle.device_format" = "%@ · %@";
+"settings.row.garmin.disconnect" = "中斷裝置連線";
+"settings.row.garmin.disconnect_subtitle" = "停止與這支手錶同步";
+"alert.garmin_disconnect.title" = "要中斷裝置連線嗎？";
+"alert.garmin_disconnect.message" = "將停止與 %@ 同步，尚未送出的內容會被捨棄。";
+"button.disconnect" = "中斷連線";
+
+// MARK: - History delete failure
+"alert.delete_workout_failed.title" = "無法刪除";
+"alert.delete_workout_failed.message" = "無法刪除這筆紀錄，請再試一次。";
+
+// MARK: - Home / My Race
+"home.section.training_sessions" = "訓練課表";
+"home.race_target.badge" = "我的比賽";
+"home.race_target.dday" = "D-DAY";
+"home.race_target.goal_format" = "目標 %@";
+"home.race_target.no_goal" = "尚未設定目標時間";
+"home.race_target.empty.title" = "新增比賽";
+"home.race_target.empty.subtitle" = "倒數天數並設定目標完賽時間";
+
+// MARK: - My Race editor
+"race_target.title.new" = "新增比賽";
+"race_target.title.edit" = "我的比賽";
+"race_target.field.event_name" = "賽事名稱";
+"race_target.field.event_name.placeholder" = "HYROX Taipei";
+"race_target.field.city" = "城市";
+"race_target.field.city.placeholder" = "臺北";
+"race_target.field.date" = "比賽日期";
+"race_target.field.division" = "組別";
+"race_target.field.division.undecided" = "未定";
+"race_target.field.goal" = "目標完賽時間";
+"race_target.field.goal.unset" = "無目標";
+"race_target.field.note" = "備註";
+"race_target.field.note.placeholder" = "行程、搭檔、裝備…";
+"race_target.hint.past_date" = "此日期已過。比賽會作為紀錄保留,但不會出現在首頁倒數中。";
+"race_target.error.empty_name" = "請輸入賽事名稱。";
+"race_target.alert.delete.title" = "刪除比賽?";
+"race_target.alert.delete.message" = "“%@” 將從此手機中移除。";
+
+// MARK: - Training sessions
+"training_session.compromised_run.name" = "疲勞跑";
+"training_session.compromised_run.summary" = "1 公里跑接弓步走,共 4 輪。訓練最能決定成績的疲勞狀態跑。";
+"training_session.half_simulation.name" = "半程模擬";
+"training_session.half_simulation.summary" = "跑 1~4 與前四個站點,維持正式比賽的量。";
+"training_session.station_intervals.name" = "站點間歇";
+"training_session.station_intervals.summary" = "牆球、波比跳遠、弓步走 3 輪 —— 最耗時間的三個站點。";
+"training_session.roxzone_drill.name" = "ROX 區轉換訓練";
+"training_session.roxzone_drill.summary" = "400 公尺跑 → ROX 區 → 進入站點,反覆練到轉換成為本能。";
+"training_session.wall_ball_ladder.name" = "牆球階梯";
+"training_session.wall_ball_ladder.summary" = "把正式比賽的牆球次數拆成 30·25·20·15·10 的遞減組。";
+
+// MARK: - Race Day — hub
+"race_day.hub.title" = "比賽日";
+"race_day.hub.pace_card.title" = "比賽配速卡";
+"race_day.hub.pace_card.subtitle" = "分段目標與累計目標時間";
+"race_day.hub.checklist.title" = "比賽日檢查清單";
+"race_day.hub.checklist.subtitle" = "規則、裝備、補給與熱身";
+"race_day.hub.no_race" = "未登記比賽 — 使用本次訓練的目標";
+"race_day.hub.goal_format" = "目標 %@";
+"race_day.hub.dday_format" = "D-%d";
+"race_day.hub.dday_today" = "D-DAY";
+"race_day.hub.past_race" = "比賽已結束";
+
+// MARK: - Race Day — pace card
+"race_day.pace_card.title" = "配速卡";
+"race_day.pace_card.column.segment" = "分段";
+"race_day.pace_card.column.split" = "分段目標";
+"race_day.pace_card.column.cumulative" = "累計";
+"race_day.pace_card.scaled_notice" = "分段目標已依比賽目標調整。";
+"race_day.pace_card.fast_lane_hint" = "規則手冊：配速快於 4:00/km 的跑步須使用 Fast Lane。";
+"race_day.pace_card.no_goal.title" = "本次訓練沒有目標時間";
+"race_day.pace_card.no_goal.message" = "設定分段目標或完賽目標後，配速卡會自動填入。";
+"race_day.pace_card.share" = "儲存或分享圖片";
+"race_day.pace_card.share_failed" = "無法產生圖片";
+
+// MARK: - Race Day — checklist screen
+"race_day.checklist.title" = "比賽日檢查清單";
+"race_day.checklist.section.rule" = "規則";
+"race_day.checklist.section.gear" = "裝備";
+"race_day.checklist.section.nutrition" = "補給與熱身";
+"race_day.checklist.section.rule.footer" = "依據 HYROX 26/27 規則手冊。";
+"race_day.checklist.reset" = "重設清單";
+"race_day.checklist.reset.title" = "要重設清單嗎？";
+"race_day.checklist.reset.message" = "所有項目將恢復為未勾選。";
+"race_day.checklist.past_race_notice" = "該比賽已結束。為下一場重設清單。";
+"race_day.checklist.progress_format" = "%1$d / %2$d";
+
+// MARK: - Race Day — workout screen
+"race_day.workout.add_lap" = "增加圈數";
+"race_day.workout.remove_lap" = "減少圈數";
+"race_day.workout.race_mode" = "比賽模式";
+"race_day.workout.open" = "比賽日";
+"race_day.workout.lap_hint" = "圈數需自行計數";
+
+// MARK: - Race Day — checklist items (rules, from the 26/27 rulebook)
+"race_day.checklist.chip_ankle.title" = "計時晶片綁在腳踝";
+"race_day.checklist.chip_ankle.evidence" = "規則手冊：晶片須戴在腳踝，未佩戴即為 DNS。";
+"race_day.checklist.assigned_wave.title" = "只在指定出發波次起跑";
+"race_day.checklist.assigned_wave.evidence" = "規則手冊：在非指定波次起跑將被取消資格。";
+"race_day.checklist.count_laps.title" = "跑步圈數自行計數";
+"race_day.checklist.count_laps.evidence" = "規則手冊：計圈是選手的責任。漏圈將罰 3、5 或 7 分鐘，或直接取消資格。";
+"race_day.checklist.finish_every_station.title" = "每個項目都要完整完成";
+"race_day.checklist.finish_every_station.evidence" = "規則手冊：項目未完成屬於取消資格，而非時間罰則。";
+"race_day.checklist.sandbag_shoulder.title" = "沙袋不要離開肩膀";
+"race_day.checklist.sandbag_shoulder.evidence" = "規則手冊：沙袋每次從肩上掉落罰 15 秒。";
+"race_day.checklist.event_chalk_only.title" = "只使用賽會提供的鎂粉";
+"race_day.checklist.event_chalk_only.evidence" = "規則手冊：僅允許賽會提供的鎂粉，自備將罰 2 分鐘。";
+"race_day.checklist.no_pouring_drinks.title" = "不要把飲料倒在身上";
+"race_day.checklist.no_pouring_drinks.evidence" = "規則手冊：將飲料倒在身上罰 2 分鐘。";
+"race_day.checklist.fast_lane.title" = "配速快於 4:00/km 時走 Fast Lane";
+"race_day.checklist.fast_lane.evidence" = "規則手冊：配速快於 4:00/km 的跑步須使用 Fast Lane。";
+
+// MARK: - Race Day — checklist items (gear)
+"race_day.checklist.bib_front.title" = "號碼布別在正面並保持可見";
+"race_day.checklist.shoes_laced.title" = "穿好比賽鞋，鞋帶打雙結";
+"race_day.checklist.grips_ready.title" = "備好雪橇與負重用手套或護掌";
+"race_day.checklist.bag_drop.title" = "換洗衣物與毛巾寄存";
+"race_day.checklist.devices_charged.title" = "手錶與手機已充電，比賽範本已就緒";
+
+// MARK: - Race Day — checklist items (fuel & warm-up)
+"race_day.checklist.main_meal.title" = "出發波次前 3 小時正餐";
+"race_day.checklist.light_carbs.title" = "賽前 60 分鐘補充少量碳水";
+"race_day.checklist.hydration.title" = "最後 2 小時補水 500 毫升";
+"race_day.checklist.caffeine.title" = "起跑前 45 分鐘攝取咖啡因";
+"race_day.checklist.warm_up.title" = "出發前 30 分鐘開始熱身";
+
+// MARK: - 進展追蹤
+"home.action.progress" = "進展";
+"progress.title" = "進展";
+"progress.load_failed" = "無法讀取紀錄";
+"progress.empty.title" = "可比較的紀錄還不夠";
+"progress.empty.message" = "累積兩筆官方賽道紀錄後，這裡會追蹤完賽時間、百分位、跑步掉速，以及最耗時的項目。";
+"progress.empty.count_format" = "目前共 %d 筆";
+"progress.section.finish" = "完賽時間";
+"progress.section.percentile" = "百分位";
+"progress.section.running" = "跑步";
+"progress.section.segments" = "時間都花在哪裡";
+"progress.finish.best_format" = "最佳 %@";
+"progress.finish.delta_faster_format" = "比首次快了 %@";
+"progress.finish.delta_slower_format" = "比首次慢了 %@";
+"progress.finish.delta_same" = "與首次相同";
+"progress.percentile.value_format" = "前 %.1f%%";
+"progress.percentile.unavailable" = "這個組別的參考資料還不夠。";
+"progress.running.first_pace" = "第一趟跑";
+"progress.running.fade" = "第 8 趟 / 第 1 趟";
+"progress.running.fade_hint" = "1.00 表示你把第一趟的配速維持到最後。開頭衝得越快，這個數字越大。";
+"progress.segments.first_marker" = "菱形表示首次紀錄。";
+"progress.footer.division_format" = "僅比較 %@ 的紀錄";
+"progress.footer.dataset_format" = "百分位基準：%@ 資料";
+"progress.footer.skipped_format" = "已略過 %d 筆無法讀取或賽道不同的紀錄";
+
+// MARK: - 比賽規劃工具（我的比賽入口）
+"race_target.section.planning" = "規劃";
+"race_target.action.team_split" = "分工計畫";
+"race_target.action.team_split.subtitle" = "和夥伴分配各個站點";
+"race_target.action.benchmark" = "PFT 基準測試";
+"race_target.action.benchmark.subtitle" = "用一次體能測試決定組別";
+
+// MARK: - 分工規劃
+"team_split.title" = "分工計畫";
+"team_split.format.doubles" = "雙人 · 2人";
+"team_split.format.relay" = "接力 · 4人";
+"team_split.section.goal" = "團隊目標";
+"team_split.section.workload" = "各自負荷";
+"team_split.section.stations" = "站點分工";
+"team_split.rule.doubles" = "站點可以自由分配，但跑步必須兩人一起完成。一人超前會被罰時 1 分鐘，超過三次即取消資格，因此跑步時間不參與分配，算作團隊共同時間。";
+"team_split.rule.relay" = "每人完成 2 ×（1 km + 一個站點），因此跑步與站點一起分配。重量依各自性別的 Open 標準。";
+"team_split.summary.projected" = "預計完賽";
+"team_split.summary.shared_run" = "一起跑的時間";
+"team_split.summary.run_per_athlete" = "每人跑步";
+"team_split.summary.load_gap" = "負荷差距";
+"team_split.summary.even" = "分配平均";
+"team_split.member.stations" = "站點";
+"team_split.member.running" = "跑步";
+"team_split.member.rest" = "休息";
+"team_split.button.reset" = "回復平均分工";
+"team_split.warning.imbalance" = "一人承擔了站點工作的 %d%%。跑步仍要一起完成，承擔較多的一方會決定全隊節奏。";
+"team_split.note.reference" = "站點時間來自該完賽時間帶的 %@ 比賽成績。";
+"team_split.note.estimated" = "接力沒有公開的成績表，這裡依 %@ 成績的比例縮放得出，僅供參考。";
+"team_split.share.format" = "%d%%";
+
+// MARK: - PFT 基準測試
+"pft.template.name" = "HYROX PFT";
+"pft.template.summary" = "官方體能測試：1 km 跑、波比跳遠 50、弓步 100 m、划船 1 km、伏地挺身 30、牆球 100。";
+"pft.step.run.name" = "跑步";
+"pft.step.burpee_broad_jumps.name" = "波比跳遠";
+"pft.step.lunges.name" = "弓步";
+"pft.step.row.name" = "划船";
+"pft.step.push_ups.name" = "鬆手伏地挺身";
+"pft.step.wall_balls.name" = "牆球";
+"benchmark.title" = "PFT 基準測試";
+"benchmark.section.protocol" = "測試流程";
+"benchmark.section.time" = "我的成績";
+"benchmark.section.division" = "對照組別";
+"benchmark.section.result" = "結果";
+"benchmark.section.splits" = "分段百分位";
+"benchmark.section.next" = "下一步";
+"benchmark.recommend.pro" = "PRO";
+"benchmark.recommend.open" = "OPEN";
+"benchmark.recommend.headline" = "這個成績更適合 %@。";
+"benchmark.projection.title" = "預計 HYROX 完賽";
+"benchmark.projection.range" = "%@ – %@";
+"benchmark.projection.basis" = "依 %@ 成績";
+"benchmark.projection.percentile" = "前 %d%% – %d%%";
+"benchmark.note.source" = "Pro 15–25 分鐘、Open 25–35 分鐘是報導的參考值，並非官方公式，請將範圍當作參考。";
+"benchmark.note.outside_band" = "該成績在報導的 15–35 分鐘區間之外，因此範圍放得更寬。";
+"benchmark.record.source" = "來自 %@ 的 PFT 紀錄";
+"benchmark.record.none" = "還沒有 PFT 紀錄。可以手動輸入成績，或用 PFT 範本跑一次以解鎖分段百分位。";
+"benchmark.record.edited" = "分段百分位只對應已紀錄的成績。";
+"benchmark.splits.empty" = "在 App 內完成一次 PFT，即可逐段與比賽成績比較。";
+"benchmark.splits.approximate" = "約";
+"benchmark.splits.percentile" = "前 %.1f%%";
+"benchmark.next.body" = "接下來做一次完整模擬賽。完成後的總結裡有差距分析，能看出時間究竟花在哪裡。";
+"benchmark.unavailable" = "該組別暫時還沒有參考成績。";
+
+// MARK: - Race day entry
+"home.action.race_day" = "比賽當天工具";
+"training_session.pft_benchmark.name" = "體能測試 (PFT)";
+"training_session.pft_benchmark.summary" = "官方六項測試 — 每隔幾週重複一次，了解目前水準。";

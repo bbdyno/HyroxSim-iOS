@@ -72,6 +72,39 @@ final class WorkoutBuilderViewModelTests: XCTestCase {
         XCTAssertEqual(vm.segments[2].type, .run)
     }
 
+    // MARK: - Reorder
+
+    func testReorderSegmentsFollowsGivenOrder() throws {
+        let vm = WorkoutBuilderViewModel(startingFrom: nil, persistence: try makePersistence())
+        let run = WorkoutSegment.run(distanceMeters: 500)
+        let rox = WorkoutSegment.roxZone()
+        let station = WorkoutSegment.station(.skiErg)
+        vm.addSegment(run)
+        vm.addSegment(rox)
+        vm.addSegment(station)
+
+        vm.reorderSegments(to: [station.id, run.id, rox.id])
+
+        XCTAssertEqual(vm.segments.map(\.id), [station.id, run.id, rox.id])
+    }
+
+    func testReorderSegmentsNeverDropsSegments() throws {
+        // '+ Add' 행 아래로 드래그해 섹션 밖으로 나간 항목이 생겨도 세그먼트가 사라지면 안 된다.
+        let vm = WorkoutBuilderViewModel(startingFrom: nil, persistence: try makePersistence())
+        let run = WorkoutSegment.run(distanceMeters: 500)
+        let rox = WorkoutSegment.roxZone()
+        let station = WorkoutSegment.station(.skiErg)
+        vm.addSegment(run)
+        vm.addSegment(rox)
+        vm.addSegment(station)
+
+        // rox 가 빠지고, 알 수 없는 ID 가 섞여 들어온 경우
+        vm.reorderSegments(to: [UUID(), station.id, run.id])
+
+        XCTAssertEqual(vm.segments.count, 3)
+        XCTAssertEqual(vm.segments.map(\.id), [station.id, run.id, rox.id])
+    }
+
     // MARK: - Estimated Duration
 
     func testEstimatedDurationPositive() throws {

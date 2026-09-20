@@ -36,10 +36,14 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     private let advanceControl = SlideActionControl()
     private let pauseButton = UIButton(type: .system)
     private let endButton = UIButton(type: .system)
+    /// 연결 상태와 무관하게 항상 누를 수 있는 "미러 닫기" 컨트롤.
+    private let closeButton = UIButton(type: .system)
 
     private var lastState: LiveWorkoutState?
     private var isConnected = true
     private var alertedGoalSegmentIndex: Int?
+    /// 마지막으로 워치 상태를 받은 시각. 연결 판단의 기준.
+    private(set) var lastStateReceivedAt: Date?
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -67,7 +71,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         UIApplication.shared.isIdleTimerDisabled = false
     }
 
-    func updateState(_ state: LiveWorkoutState) {
+    func updateState(_ state: LiveWorkoutState, receivedAt: Date = Date()) {
         loadViewIfNeeded()
 
         if state.isOverGoal, alertedGoalSegmentIndex != state.currentSegmentIndex {
@@ -76,9 +80,10 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         }
 
         lastState = state
-
-        watchBadge.text = isConnected ? "⌚ LIVE FROM APPLE WATCH" : "⌚ WATCH DISCONNECTED"
-        watchBadge.textColor = isConnected ? DesignTokens.Color.accent : .systemRed
+        // 상태가 다시 들어왔다는 것 자체가 "연결됨" 의 증거 — 컨트롤을 자동 복구한다.
+        lastStateReceivedAt = receivedAt
+        isConnected = true
+        applyConnectionBadge()
 
         gpsLabel.text = gpsText(for: state)
         gpsLabel.textColor = gpsColor(for: state)
@@ -139,20 +144,24 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     func showDisconnected() {
         loadViewIfNeeded()
         isConnected = false
-        watchBadge.text = "⌚ WATCH DISCONNECTED"
-        watchBadge.textColor = .systemRed
+        applyConnectionBadge()
         setControlsEnabled(false)
     }
 
     func showReconnected() {
         loadViewIfNeeded()
         isConnected = true
-        watchBadge.text = "⌚ LIVE FROM APPLE WATCH"
-        watchBadge.textColor = DesignTokens.Color.accent
+        applyConnectionBadge()
         setControlsEnabled(true)
         if let lastState {
-            updateState(lastState)
+            // 마지막 수신 시각은 유지 — 재연결 표시가 수신 기록을 위조하면 안 된다.
+            updateState(lastState, receivedAt: lastStateReceivedAt ?? Date())
         }
+    }
+
+    private func applyConnectionBadge() {
+        watchBadge.text = isConnected ? "⌚ LIVE FROM APPLE WATCH" : "⌚ WATCH DISCONNECTED"
+        watchBadge.textColor = isConnected ? DesignTokens.Color.accent : .systemRed
     }
 
     private func setupUI() {
@@ -172,7 +181,11 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         watchBadge.textColor = DesignTokens.Color.accent
         watchBadge.textAlignment = .center
         watchBadge.text = "⌚ LIVE FROM APPLE WATCH"
+        watchBadge.adjustsFontSizeToFitWidth = true
+        watchBadge.minimumScaleFactor = 0.7
         watchBadge.accessibilityIdentifier = "liveMirror.watchBadge"
+
+        setupCloseButton()
 
         gpsLabel.font = .systemFont(ofSize: 11, weight: .bold)
         gpsLabel.textAlignment = .center
@@ -201,10 +214,10 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         topMeta.axis = .vertical
         topMeta.spacing = 4
 
-        let topRow = UIStackView(arrangedSubviews: [topMeta, totalMetric])
+        let topRow = UIStackView(arrangedSubviews: [closeButton, topMeta, totalMetric])
         topRow.axis = .horizontal
         topRow.alignment = .center
-        topRow.spacing = 16
+        topRow.spacing = 12
 
         goalTitleLabel.text = "GOAL"
         goalTitleLabel.font = .systemFont(ofSize: 11, weight: .black)
@@ -265,6 +278,24 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         ])
     }
 
+    /// 워치가 끊겨도 화면에 갇히지 않도록, 연결 상태와 무관하게 항상 동작하는 닫기 버튼.
+    /// `setControlsEnabled(_:)` 의 대상이 아니라는 점이 핵심이다.
+    private func setupCloseButton() {
+        let size: CGFloat = 34
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        closeButton.setImage(UIImage(systemName: "chevron.down"), for: .normal)
+        closeButton.tintColor = DesignTokens.Color.textPrimary
+        closeButton.backgroundColor = UIColor.black.withAlphaComponent(0.25)
+        closeButton.layer.cornerRadius = size / 2
+        closeButton.widthAnchor.constraint(equalToConstant: size).isActive = true
+        closeButton.heightAnchor.constraint(equalToConstant: size).isActive = true
+        closeButton.setContentHuggingPriority(.required, for: .horizontal)
+        closeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        closeButton.accessibilityIdentifier = "liveMirror.closeButton"
+        closeButton.accessibilityLabel = "CLOSE MIRROR"
+        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+    }
+
     private func setupButtons() {
         let buttonSize: CGFloat = 54
         let margin: CGFloat = 24
@@ -317,6 +348,10 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         pauseButton.alpha = alpha
         endButton.alpha = alpha
         advanceControl.alpha = alpha
+    }
+
+    @objc private func closeTapped() {
+        delegate?.mirrorDidClose()
     }
 
     @objc private func advanceTriggered() {

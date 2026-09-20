@@ -47,7 +47,7 @@ struct ActiveWorkoutView: View {
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $showSummary) {
             if let workout = completedWorkout {
-                SummaryView(workout: workout, onDone: {
+                SummaryView(workout: workout, saveFailed: model.didFailToSave, onDone: {
                     navigationPath = NavigationPath()
                 })
             }

@@ -12,19 +12,43 @@ Tuist 4.x로 프로젝트 관리.
 - 새 세션은 초기 분석 전에 최신 handoff를 먼저 읽고 이어서 작업
 - handoff에는 절대경로 대신 repo-relative path를 기록하고, simulator ID 같은 머신 의존 값은 재탐색 명령만 남김
 
+## 개발 환경 준비 (새 머신)
+
+```bash
+brew install mise            # Tuist 버전 관리 (Homebrew tap 은 Homebrew 7 에서 실패함)
+mise install                 # .mise.toml 에 고정된 Tuist 설치
+./scripts/setup-garmin-sdk.sh  # ConnectIQ.xcframework (gitignore 대상)
+```
+
+- `mise activate` 를 셸에 넣지 않았다면 `mise exec tuist -- tuist ...` 형태로 실행
+- Tuist 버전은 `.mise.toml` 에 고정. 올릴 때는 이 파일만 수정
+
 ## 빌드
 
 ```bash
 tuist install
 tuist generate
+# iOS 스킴이 워치 앱·위젯까지 함께 빌드한다
 xcodebuild build -workspace HyroxSim.xcworkspace -scheme HyroxSim \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
 xcodebuild build -workspace HyroxSim.xcworkspace -scheme HyroxSimWatch \
-  -sdk watchsimulator -destination 'platform=watchOS Simulator,name=Apple Watch Series 11 (46mm)'
+  -destination 'platform=watchOS Simulator,name=Apple Watch Series 12 (46mm)'
 ```
 
 - 파일 추가/삭제 후 반드시 `tuist generate` 실행
-- 테스트: `xcodebuild test -workspace HyroxSim.xcworkspace -scheme HyroxSim ...`
+- 시뮬레이터 이름은 머신마다 다르다. `xcrun simctl list devices available` 로 확인
+- 테스트
+
+```bash
+xcodebuild test -workspace HyroxSim.xcworkspace -scheme HyroxKitTests \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
+xcodebuild test -workspace HyroxSim.xcworkspace -scheme HyroxSim \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -only-testing:HyroxSimTests
+xcodebuild test -workspace HyroxSim.xcworkspace -scheme HyroxSim \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -only-testing:HyroxSimUITests
+```
+
+- PR 마다 GitHub Actions(`.github/workflows/ci.yml`)에서 같은 빌드·테스트가 돌아간다
 
 ## 아키텍처
 

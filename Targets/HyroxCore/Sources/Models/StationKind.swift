@@ -35,6 +35,33 @@ public enum StationKind: Codable, Hashable, Sendable {
         }
     }
 
+    /// Key used for this station in the bundled pace data (`pace_planner.json`)
+    /// and in every `[String: Int]` station dictionary derived from it.
+    /// `nil` for `.custom` — custom stations have no reference data.
+    public var dataKey: String? {
+        switch self {
+        case .skiErg: return "skiErg"
+        case .sledPush: return "sledPush"
+        case .sledPull: return "sledPull"
+        case .burpeeBroadJumps: return "burpeeBroadJumps"
+        case .rowing: return "rowing"
+        case .farmersCarry: return "farmersCarry"
+        case .sandbagLunges: return "sandbagLunges"
+        case .wallBalls: return "wallBalls"
+        case .custom: return nil
+        }
+    }
+
+    /// The 8 official HYROX stations in race order.
+    public static let standardOrder: [StationKind] = [
+        .skiErg, .sledPush, .sledPull, .burpeeBroadJumps,
+        .rowing, .farmersCarry, .sandbagLunges, .wallBalls
+    ]
+
+    /// `dataKey` of the 8 official stations, in race order.
+    /// Single source of truth for every station lookup into the pace data.
+    public static let standardDataKeys: [String] = standardOrder.compactMap(\.dataKey)
+
     /// Default target for this station (division-independent)
     public var defaultTarget: StationTarget {
         switch self {

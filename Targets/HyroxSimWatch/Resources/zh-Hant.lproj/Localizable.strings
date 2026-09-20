@@ -13,3 +13,16 @@
 
 // MARK: - Alerts
 "alert.end_workout_confirmation.message" = "僅當你要立即停止此訓練時,才使用紅色控制項。";
+
+// MARK: - Phone mirror / recovery
+"mirror.stale" = "未收到手機更新";
+"mirror.close" = "關閉鏡像";
+"summary.save_failed" = "儲存失敗 — 下次啟動時重試";
+
+// MARK: - My Race
+"race_target.dday" = "D-DAY";
+
+// MARK: - Race Day
+"race_day.lap_hint" = "圈數需自行計數";
+"race_day.add_lap" = "增加圈數";
+"race_day.remove_lap" = "減少圈數";

@@ -5,6 +5,7 @@
 //  Created by bbdyno on 4/7/26.
 //
 
+import StoreKit
 import UIKit
 import HyroxCore
 
@@ -26,14 +27,16 @@ final class WorkoutSummaryViewController: UIViewController {
     weak var delegate: WorkoutSummaryViewControllerDelegate?
 
     private let viewModel: WorkoutSummaryViewModel
+    private let reviewGate: ReviewRequestGate
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private var expandedRunGroups: Set<String> = []
     private var detailContainers: [String: UIView] = [:]
     private var chevronViews: [String: UIImageView] = [:]
 
-    init(viewModel: WorkoutSummaryViewModel) {
+    init(viewModel: WorkoutSummaryViewModel, reviewGate: ReviewRequestGate? = nil) {
         self.viewModel = viewModel
+        self.reviewGate = reviewGate ?? ReviewRequestGate()
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -60,15 +63,32 @@ final class WorkoutSummaryViewController: UIViewController {
         rebuildContent()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        requestReviewIfEarned()
+    }
+
     @objc private func doneTapped() {
         delegate?.summaryDidTapDone()
     }
 
+    /// 방금 끝난 운동이 조건을 만족할 때만 스토어 리뷰 시트를 띄운다.
+    ///
+    /// 조건 판단은 `ReviewRequestGate` 가 한다. 시트를 실제로 띄울 수 없으면(씬이 없으면)
+    /// 아무 기록도 남기지 않아서, 다음 기회에 다시 판단된다.
+    private func requestReviewIfEarned() {
+        guard let scene = view.window?.windowScene else { return }
+        guard reviewGate.evaluate(viewModel.workout) else { return }
+
+        SKStoreReviewController.requestReview(in: scene)
+        reviewGate.markRequested()
+    }
+
     @objc private func shareTapped() {
-        guard let shareImage = makeShareImage() else { return }
+        let shareImage = SummaryShareCardRenderer(content: viewModel.shareCardContent).makeImage()
 
         let activityViewController = UIActivityViewController(
-            activityItems: [shareImage],
+            activityItems: [shareImage, viewModel.shareText],
             applicationActivities: nil
         )
         if let popover = activityViewController.popoverPresentationController {
@@ -128,6 +148,7 @@ final class WorkoutSummaryViewController: UIViewController {
         addSpacer(2)
         addHeader()
         addSpacer(10)
+        addGapCard()
         addSeparator()
         addSpacer(10)
         addTableHeader(["Split", "Time", "Delta"])
@@ -153,7 +174,174 @@ final class WorkoutSummaryViewController: UIViewController {
         addSpacer(2)
         addSummaryRow("Avg Pace", viewModel.averagePaceText)
         addHeartRateRow()
+        addHeartRateZonesSection()
         addSpacer(12)
+    }
+
+    // MARK: - 격차 분석 카드
+
+    private func addGapCard() {
+        let card = viewModel.gapCard
+        guard card.isVisible else { return }
+
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 6
+
+        let titleLabel = makeLabel(
+            card.title.uppercased(),
+            font: .systemFont(ofSize: 12, weight: .black),
+            color: DesignTokens.Color.accent
+        )
+        stack.addArrangedSubview(titleLabel)
+
+        if let subtitle = card.subtitle {
+            stack.addArrangedSubview(
+                makeLabel(subtitle, font: .systemFont(ofSize: 11, weight: .medium), color: DesignTokens.Color.textTertiary)
+            )
+        }
+
+        if let message = card.message {
+            let messageLabel = makeLabel(
+                message,
+                font: .systemFont(ofSize: 13, weight: card.status == .gaps ? .bold : .medium),
+                color: card.status == .gaps ? DesignTokens.Color.textPrimary : DesignTokens.Color.textSecondary
+            )
+            messageLabel.numberOfLines = 0
+            stack.addArrangedSubview(messageLabel)
+        }
+
+        if !card.rows.isEmpty {
+            stack.addArrangedSubview(makeSpacerView(4))
+            for row in card.rows {
+                stack.addArrangedSubview(makeGapRow(row))
+            }
+        }
+
+        if let remainderText = card.remainderText {
+            stack.addArrangedSubview(
+                makeLabel(remainderText, font: .systemFont(ofSize: 11, weight: .medium), color: DesignTokens.Color.textTertiary)
+            )
+        }
+
+        let container = UIView()
+        container.backgroundColor = DesignTokens.Color.cardBackground
+        container.layer.cornerRadius = DesignTokens.Radius.card
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 14),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 14),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -14),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -14)
+        ])
+
+        contentStack.addArrangedSubview(container)
+        addSpacer(10)
+    }
+
+    private func makeGapRow(_ row: WorkoutSummaryViewModel.GapRow) -> UIView {
+        let titleLabel = makeLabel(row.title, font: .systemFont(ofSize: 13, weight: .semibold), color: DesignTokens.Color.textPrimary)
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let deltaLabel = makeLabel(
+            row.deltaText,
+            font: .monospacedDigitSystemFont(ofSize: 14, weight: .black),
+            color: accentColor(for: row.accent)
+        )
+        deltaLabel.textAlignment = .right
+        deltaLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let headerRow = UIStackView(arrangedSubviews: [titleLabel, deltaLabel])
+        headerRow.axis = .horizontal
+        headerRow.alignment = .firstBaseline
+        headerRow.spacing = Layout.rowSpacing
+
+        let shareLabel = makeLabel(row.shareText, font: .systemFont(ofSize: 10, weight: .medium), color: DesignTokens.Color.textTertiary)
+
+        let stack = UIStackView(arrangedSubviews: [headerRow, makeGapBar(ratio: row.barRatio, accent: row.accent), shareLabel])
+        stack.axis = .vertical
+        stack.spacing = 4
+
+        let container = UIView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 5),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -5)
+        ])
+        return container
+    }
+
+    private func makeGapBar(ratio: Double, accent: WorkoutSummaryViewModel.AccentKind) -> UIView {
+        let track = UIView()
+        track.backgroundColor = DesignTokens.Color.surfaceElevated
+        track.layer.cornerRadius = 3
+        track.translatesAutoresizingMaskIntoConstraints = false
+        track.heightAnchor.constraint(equalToConstant: 6).isActive = true
+
+        let fill = UIView()
+        fill.backgroundColor = accentColor(for: accent)
+        fill.layer.cornerRadius = 3
+        fill.translatesAutoresizingMaskIntoConstraints = false
+        track.addSubview(fill)
+
+        // multiplier 는 0 이 될 수 없다. 아주 작은 격차도 막대가 보이도록 최소 폭을 준다.
+        let clamped = ratio.isFinite ? min(1, max(0.04, ratio)) : 0.04
+        NSLayoutConstraint.activate([
+            fill.topAnchor.constraint(equalTo: track.topAnchor),
+            fill.bottomAnchor.constraint(equalTo: track.bottomAnchor),
+            fill.leadingAnchor.constraint(equalTo: track.leadingAnchor),
+            fill.widthAnchor.constraint(equalTo: track.widthAnchor, multiplier: CGFloat(clamped))
+        ])
+        return track
+    }
+
+    private func accentColor(for accent: WorkoutSummaryViewModel.AccentKind) -> UIColor {
+        switch accent {
+        case .run:
+            return DesignTokens.Color.runAccent
+        case .roxZone:
+            return DesignTokens.Color.roxZoneAccent
+        case .station:
+            return DesignTokens.Color.stationAccent
+        }
+    }
+
+    // MARK: - 심박 존
+
+    /// 최대 심박을 알 때만 존 분포를 그린다. 뷰모델이 빈 배열을 주면 섹션 자체를 만들지 않는다.
+    private func addHeartRateZonesSection() {
+        let zones = viewModel.heartRateZoneDistribution.filter { $0.ratio > 0 }
+        guard !zones.isEmpty else { return }
+
+        addSpacer(10)
+        contentStack.addArrangedSubview(
+            makeLabel(
+                HyroxSimStrings.Localizable.Summary.Zones.title.uppercased(),
+                font: .systemFont(ofSize: 12, weight: .black),
+                color: DesignTokens.Color.accent
+            )
+        )
+        addSpacer(6)
+
+        let barView = StackedZoneBarView()
+        barView.zones = zones.map {
+            StackedZoneBarView.ZoneData(
+                zone: $0.zone,
+                ratio: $0.ratio,
+                durationText: $0.durationText
+            )
+        }
+        contentStack.addArrangedSubview(barView)
+    }
+
+    private func makeSpacerView(_ height: CGFloat) -> UIView {
+        let spacer = UIView()
+        spacer.heightAnchor.constraint(equalToConstant: height).isActive = true
+        return spacer
     }
 
     private func addHeader() {
@@ -610,24 +798,6 @@ final class WorkoutSummaryViewController: UIViewController {
             return .systemRed
         case .neutral:
             return DesignTokens.Color.textSecondary
-        }
-    }
-
-    private func makeShareImage() -> UIImage? {
-        view.layoutIfNeeded()
-
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = view.window?.screen.scale ?? UIScreen.main.scale
-
-        let contentHeight = max(scrollView.contentSize.height, contentStack.frame.maxY)
-        let imageSize = CGSize(width: scrollView.bounds.width, height: contentHeight)
-        let renderer = UIGraphicsImageRenderer(size: imageSize, format: format)
-        return renderer.image { _ in
-            DesignTokens.Color.background.setFill()
-            UIBezierPath(rect: CGRect(origin: .zero, size: imageSize)).fill()
-
-            let drawRect = CGRect(origin: contentStack.frame.origin, size: contentStack.bounds.size)
-            contentStack.drawHierarchy(in: drawRect, afterScreenUpdates: true)
         }
     }
 

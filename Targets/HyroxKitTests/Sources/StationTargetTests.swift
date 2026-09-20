@@ -33,4 +33,13 @@ final class StationTargetTests: XCTestCase {
     func testDurationFormattedWithOddSeconds() {
         XCTAssertEqual(StationTarget.duration(seconds: 65).formatted, "01:05")
     }
+
+    /// 손상된 템플릿(무한대·NaN·Int 범위 초과)을 표시해도 트랩하지 않는다 (P0 크래시 회귀 방지)
+    func testExtremeTargetsDoNotTrap() {
+        XCTAssertEqual(StationTarget.distance(meters: .nan).formatted, "0 m")
+        XCTAssertEqual(StationTarget.distance(meters: -1).formatted, "0 m")
+        XCTAssertFalse(StationTarget.distance(meters: 1e19).formatted.isEmpty)
+        XCTAssertFalse(StationTarget.duration(seconds: .infinity).formatted.isEmpty)
+        XCTAssertEqual(StationTarget.duration(seconds: .nan).formatted, "00:00")
+    }
 }

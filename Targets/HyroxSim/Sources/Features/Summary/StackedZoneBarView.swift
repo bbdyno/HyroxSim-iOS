@@ -21,17 +21,26 @@ final class StackedZoneBarView: UIView {
     private var zoneLayers: [CALayer] = []
     private let labelsStack = UIStackView()
 
+    private static let barHeight: CGFloat = 24
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         layer.cornerRadius = 8
         clipsToBounds = true
-        backgroundColor = .systemFill
+        backgroundColor = DesignTokens.Color.surfaceElevated
 
         labelsStack.axis = .horizontal
         labelsStack.distribution = .fillEqually
         labelsStack.spacing = 2
         labelsStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(labelsStack)
+
+        // 레이아웃마다 다시 걸면 같은 제약이 무한히 쌓인다. 한 번만 건다.
+        NSLayoutConstraint.activate([
+            labelsStack.topAnchor.constraint(equalTo: topAnchor, constant: Self.barHeight + 4),
+            labelsStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            labelsStack.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
     }
 
     @available(*, unavailable)
@@ -43,14 +52,13 @@ final class StackedZoneBarView: UIView {
         zoneLayers.removeAll()
         labelsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        let barHeight: CGFloat = 24
         var xOffset: CGFloat = 0
         let totalWidth = bounds.width
 
         for data in zones {
             let width = totalWidth * data.ratio
             let zoneLayer = CALayer()
-            zoneLayer.frame = CGRect(x: xOffset, y: 0, width: width, height: barHeight)
+            zoneLayer.frame = CGRect(x: xOffset, y: 0, width: width, height: Self.barHeight)
             zoneLayer.backgroundColor = color(for: data.zone).cgColor
             layer.addSublayer(zoneLayer)
             zoneLayers.append(zoneLayer)
@@ -59,16 +67,12 @@ final class StackedZoneBarView: UIView {
             let label = UILabel()
             label.text = "\(data.zone.label) \(data.durationText)"
             label.font = .preferredFont(forTextStyle: .caption2)
-            label.textColor = .secondaryLabel
+            label.textColor = DesignTokens.Color.textSecondary
             label.textAlignment = .center
+            label.adjustsFontSizeToFitWidth = true
+            label.minimumScaleFactor = 0.7
             labelsStack.addArrangedSubview(label)
         }
-
-        NSLayoutConstraint.activate([
-            labelsStack.topAnchor.constraint(equalTo: topAnchor, constant: barHeight + 4),
-            labelsStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            labelsStack.trailingAnchor.constraint(equalTo: trailingAnchor)
-        ])
     }
 
     override var intrinsicContentSize: CGSize {
