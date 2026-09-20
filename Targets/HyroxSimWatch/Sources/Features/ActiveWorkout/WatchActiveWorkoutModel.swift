@@ -41,6 +41,13 @@ final class WatchActiveWorkoutModel {
     private(set) var isLastSegment: Bool = false
     private(set) var gpsStrong: Bool = false  // simple on/off for watch (compact)
     private(set) var gpsActive: Bool = true
+
+    // MARK: - 레이스 데이
+    /// 현재 런에서 선수가 직접 센 바퀴 수. 구간이 바뀌면 0 으로 돌아가고 기록에는 남기지 않는다.
+    private(set) var lapCount: Int = 0
+    /// 랩을 셀 수 있는 구간(런)인지.
+    private(set) var isLapCounterAvailable: Bool = false
+    @ObservationIgnored private var lapCounter = RaceLapCounter()
     /// 로컬 저장 실패 여부. 요약 화면 경고 표시용 (결과는 체크포인트로 남아 다음 실행에서 재시도).
     private(set) var didFailToSave: Bool = false
 
@@ -217,8 +224,12 @@ final class WatchActiveWorkoutModel {
             totalGoalText = "—"
             totalDeltaText = "—"
             isOverTotalGoal = false
+            syncLapCounter(to: nil, segmentType: nil)
             return
         }
+
+        // 구간이 바뀌면 랩은 0 부터 다시 센다.
+        syncLapCounter(to: current.id, segmentType: current.type)
 
         let live = engine.liveMeasurementsSnapshot
         let segElapsed = engine.segmentElapsed(at: now)
@@ -490,9 +501,42 @@ final class WatchActiveWorkoutModel {
     }
 }
 
+// MARK: - 랩 카운터
+
+extension WatchActiveWorkoutModel {
+
+    /// 랩 카운터를 현재 구간에 맞춘다. 구간이 바뀌면 0 으로 초기화한다.
+    /// 랩은 런에서만 세므로 다른 구간에서는 카운터 페이지를 비활성으로 표시한다.
+    private func syncLapCounter(to segmentId: UUID?, segmentType: SegmentType?) {
+        lapCounter.syncSegment(segmentId)
+        if lapCount != lapCounter.count { lapCount = lapCounter.count }
+        let available = segmentType == .run
+        if isLapCounterAvailable != available { isLapCounterAvailable = available }
+    }
+}
+
 // MARK: - WorkoutDisplaying
 
 extension WatchActiveWorkoutModel: WorkoutDisplaying {
+
+    /// 워치 자체 운동만 랩을 센다 — 대회장 트랙에서는 손목이 가장 가깝다.
+    var supportsLapCounter: Bool { true }
+
+    func incrementLap() {
+        lapCounter.increment()
+        lapCount = lapCounter.count
+    }
+
+    func decrementLap() {
+        lapCounter.decrement()
+        lapCount = lapCounter.count
+    }
+
+    func setLapCount(_ value: Int) {
+        lapCounter.set(value)
+        if lapCount != lapCounter.count { lapCount = lapCounter.count }
+    }
+
     var accent: WorkoutDisplayAccent {
         switch accentKind {
         case .run: return .run

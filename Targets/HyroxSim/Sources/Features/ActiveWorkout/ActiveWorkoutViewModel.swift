@@ -42,6 +42,20 @@ public final class ActiveWorkoutViewModel {
     public private(set) var isLastSegment: Bool = false
     public private(set) var gpsStatus: GPSStatus = .searching
 
+    // MARK: - 레이스 데이 (대회 당일 표시)
+
+    /// 레이스 모드. 켜면 누적 델타를 크게 강조하고 런 구간에서 랩 카운터를 노출한다.
+    /// 대회 당일 내내 유지돼야 해서 기기에 저장한다.
+    public private(set) var isRaceMode: Bool = RaceDayPreferences.shared.isRaceModeEnabled
+    /// 현재 런 구간에서 선수가 직접 센 바퀴 수. 기록에는 남기지 않는다.
+    public private(set) var lapCount: Int = 0
+    /// 랩 카운터를 보여줄 구간인지. 랩은 런에서만 의미가 있다.
+    public private(set) var isLapCounterAvailable: Bool = false
+    /// 다음 구간 이름 ("Wall Balls"). 마지막 구간이면 nil.
+    public private(set) var nextTargetLabel: String?
+    /// 다음 구간의 목표 시간 ("04:10"). 목표가 없으면 nil.
+    public private(set) var nextTargetGoalText: String?
+
     public enum AccentKind { case run, roxZone, station }
 
     /// GPS signal quality based on horizontalAccuracy of most recent sample
@@ -77,10 +91,12 @@ public final class ActiveWorkoutViewModel {
     private var alertedGoalSegmentId: UUID?
     /// GPS 스트림이 실제로 살아 있는지. 권한 거부/시작 실패 시 false → GPS OFF 표시.
     private var isLocationActive = false
+    /// 런 구간 랩 카운터. 구간이 바뀌면 스스로 0 으로 돌아간다.
+    private var lapCounter = RaceLapCounter()
     /// 이번 운동에서 GPS 추적이 한 번이라도 살아 있었는지. `cleanup()` 이후에도 실내/실외 판정에 쓰인다.
     private var didTrackLocation = false
     /// 건강 앱 쓰기 권한 확보 여부. 거부면 저장을 조용히 건너뛴다.
-    private var canSaveToHealth = false
+    private var healthAuthorizationTask: Task<Bool, Never>?
 
     private static let logger = Logger(
         subsystem: "com.bbdyno.app.HyroxSim",
@@ -160,9 +176,10 @@ public final class ActiveWorkoutViewModel {
         var locationError: Error?
         var heartRateError: Error?
 
-        // 건강 앱 쓰기 권한을 먼저 물어 심박 읽기까지 한 시트에서 끝낸다.
-        // 거부돼도 오류로 올리지 않는다 — 운동 기록 저장은 부가 기능이고 운동은 그대로 진행된다.
-        await prepareHealthWorkoutSaving()
+        // 건강 앱 쓰기 권한은 **기다리지 않고** 요청만 걸어 둔다. 사용자가 시트에 답할 때까지
+        // 운동 시작이 멈추면, 위치 권한에서 고쳤던 문제를 그대로 반복하게 된다.
+        // 결과는 종료 시점에 확인한다(그때는 기다려도 운동에 영향이 없다).
+        startHealthAuthorizationIfNeeded()
 
         do {
             try await locationStream.start()
@@ -182,16 +199,20 @@ public final class ActiveWorkoutViewModel {
         return locationError ?? heartRateError
     }
 
-    /// 운동 쓰기 권한을 확보한다. 실패는 로그만 남기고 삼킨다 — 운동 진행을 막지 않는다.
-    private func prepareHealthWorkoutSaving() async {
-        guard let healthWorkoutSaver else {
-            canSaveToHealth = false
-            return
-        }
-        canSaveToHealth = await healthWorkoutSaver.requestAuthorization()
-        if !canSaveToHealth {
+    /// 운동 쓰기 권한 요청을 시작만 해 둔다. 결과는 `resolveHealthAuthorization()` 에서 읽는다.
+    private func startHealthAuthorizationIfNeeded() {
+        guard let healthWorkoutSaver, healthAuthorizationTask == nil else { return }
+        healthAuthorizationTask = Task { await healthWorkoutSaver.requestAuthorization() }
+    }
+
+    /// 종료 시점에 권한 결과를 확인한다. 실패는 로그만 남기고 삼킨다 — 운동 진행을 막지 않는다.
+    private func resolveHealthAuthorization() async -> Bool {
+        guard let healthAuthorizationTask else { return false }
+        let granted = await healthAuthorizationTask.value
+        if !granted {
             Self.logger.notice("건강 앱 쓰기 권한이 없어 이번 운동은 건강 앱에 저장하지 않습니다.")
         }
+        return granted
     }
 
     public func advance() {
@@ -238,6 +259,41 @@ public final class ActiveWorkoutViewModel {
         cleanup()
         checkpointStore.clear()
         cancelHandler?()
+    }
+
+    // MARK: - 레이스 데이
+
+    /// 이번 운동이 쓰는 템플릿. 페이스 카드가 구간 목표를 읽어 가는 원본.
+    public var template: WorkoutTemplate { engine.template }
+
+    /// 레이스 모드 토글. 화면 표시만 바꾸고 엔진/기록에는 손대지 않는다.
+    public func setRaceMode(_ enabled: Bool) {
+        guard isRaceMode != enabled else { return }
+        isRaceMode = enabled
+        RaceDayPreferences.shared.isRaceModeEnabled = enabled
+    }
+
+    public func toggleRaceMode() {
+        setRaceMode(!isRaceMode)
+    }
+
+    /// 한 바퀴 추가. 대회장 트랙은 선수가 직접 세야 한다.
+    public func incrementLap() {
+        lapCounter.increment()
+        lapCount = lapCounter.count
+    }
+
+    /// 잘못 누른 한 바퀴 취소. 0 밑으로는 내려가지 않는다.
+    public func decrementLap() {
+        lapCounter.decrement()
+        lapCount = lapCounter.count
+    }
+
+    /// 레이스 데이 화면(페이스 카드·체크리스트)에 넘길 맥락.
+    /// 등록된 대회가 있으면 그 목표를, 없으면 템플릿 목표를 쓴다.
+    public func makeRaceDayContext() -> RaceDayContext {
+        let raceTarget = try? persistence.fetchUpcomingRaceTarget()
+        return RaceDayContext(template: template, raceTarget: raceTarget ?? nil)
     }
 
     // MARK: - Sync (워치 양방향 연동)
@@ -322,6 +378,9 @@ public final class ActiveWorkoutViewModel {
             nextDisplayTitle = nil
             isOverGoal = false
             isOverTotalGoal = false
+            syncLapCounter(to: nil, segmentType: nil)
+            nextTargetLabel = nil
+            nextTargetGoalText = nil
             return
         }
 
@@ -329,6 +388,14 @@ public final class ActiveWorkoutViewModel {
         let live = engine.liveMeasurementsSnapshot
         currentDisplayTitle = displayTitle(for: current, at: index)
         nextDisplayTitle = nextDisplayTitle(after: index, currentType: current.type)
+
+        // 구간이 바뀌면 랩은 0 부터 다시 센다.
+        syncLapCounter(to: current.id, segmentType: current.type)
+
+        // Live Activity 가 보여줄 "다음 구간 목표".
+        let nextTarget = resolveNextTarget(currentIndex: index)
+        nextTargetLabel = nextTarget?.label
+        nextTargetGoalText = nextTarget?.goalText
 
         // Delta calculation: Run/Rox uses combined Run+Rox goal vs cumulative elapsed.
         let goalInfo = resolveGoalAndDelta(currentIndex: index, segElapsed: segElapsed)
@@ -414,6 +481,50 @@ public final class ActiveWorkoutViewModel {
 
         updateLiveActivity()
         broadcastLiveState()
+    }
+
+    /// 랩 카운터를 현재 구간에 맞춘다. 구간이 바뀌면 0 으로 초기화된다.
+    /// 랩은 런에서만 의미가 있어 전환/스테이션 구간에서는 카운터를 숨긴다.
+    private func syncLapCounter(to segmentId: UUID?, segmentType: SegmentType?) {
+        lapCounter.syncSegment(segmentId)
+        lapCount = lapCounter.count
+        isLapCounterAvailable = segmentType == .run
+    }
+
+    /// 전환 구간을 건너뛴 "다음 구간"의 이름과 목표 시간.
+    /// 런 블록이면 뒤따르는 전환 구간 목표까지 합쳐 실제로 써야 할 시간을 보여준다.
+    func resolveNextTarget(currentIndex: Int) -> (label: String, goalText: String?)? {
+        let segments = engine.template.segments
+        var index = currentIndex + 1
+
+        while segments.indices.contains(index) {
+            let segment = segments[index]
+            guard segment.type != .roxZone else {
+                index += 1
+                continue
+            }
+
+            let goal: TimeInterval? = {
+                switch segment.type {
+                case .station:
+                    return segment.goalDurationSeconds
+                case .run:
+                    let start = max(blockStartIndex(runIndex: index), currentIndex + 1)
+                    let end = max(blockEndIndex(runIndex: index), start)
+                    let goals = segments[start...end].compactMap(\.goalDurationSeconds)
+                    return goals.isEmpty ? nil : goals.reduce(0, +)
+                case .roxZone:
+                    return nil
+                }
+            }()
+
+            return (
+                displayTitle(for: segment, at: index),
+                goal.map(DurationFormatter.ms)
+            )
+        }
+
+        return nil
     }
 
     /// 현재 세그먼트/블록의 raw goal + 현재 세그먼트 이전까지의 누적 실행 시간.
@@ -693,7 +804,7 @@ public final class ActiveWorkoutViewModel {
     /// 이 뷰모델은 **폰에서 시작한 운동**만 다루므로 `origin: .phone` 으로 저장한다.
     /// 워치에서 기록돼 동기화로 들어온 운동은 이 경로를 타지 않는다(워치가 이미 저장했으므로 중복 방지).
     private func saveToHealthIfPossible(_ workout: CompletedWorkout) async {
-        guard let healthWorkoutSaver, canSaveToHealth else { return }
+        guard let healthWorkoutSaver, await resolveHealthAuthorization() else { return }
 
         let environment = WorkoutEnvironmentClassifier.classify(
             workout: workout,
@@ -784,7 +895,9 @@ public final class ActiveWorkoutViewModel {
             heartRate: heartRateText,
             accentKind: { switch accentKind { case .run: "run"; case .roxZone: "roxZone"; case .station: "station" } }(),
             isPaused: isPaused,
-            isLastSegment: isLastSegment
+            isLastSegment: isLastSegment,
+            nextSegmentLabel: nextTargetLabel,
+            nextSegmentGoal: nextTargetGoalText
         )
     }
 }
