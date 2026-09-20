@@ -39,6 +39,10 @@ extension HyroxPresets {
         for division: HyroxDivision,
         localizedName: (TrainingSessionKind) -> String = { $0.defaultName }
     ) -> WorkoutTemplate {
+        // 공식 PFT 는 디비전 볼륨이 아니라 고정 프로토콜이라 전용 빌더를 쓴다.
+        if kind == .pftBenchmark {
+            return pftBenchmark(for: division, name: localizedName(kind))
+        }
         let plan = TrainingSessionBuilder.plan(for: kind, division: division)
         return WorkoutTemplate(
             id: kind.templateId,
@@ -76,6 +80,10 @@ private enum TrainingSessionBuilder {
         case .stationIntervals: return stationIntervals(division: division)
         case .roxZoneDrill: return roxZoneDrill(division: division)
         case .wallBallLadder: return wallBallLadder(division: division)
+        case .pftBenchmark:
+            // PFT 는 고정 프로토콜이라 아래 `trainingSession(_:for:)` 에서 전용 프리셋으로 처리한다.
+            // 여기까지 오면 안 되지만, 방어적으로 빈 계획을 돌려준다.
+            return Plan(segments: [], usesRoxZone: false)
         }
     }
 

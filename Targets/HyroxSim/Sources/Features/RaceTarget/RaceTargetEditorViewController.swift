@@ -38,6 +38,20 @@ final class RaceTargetEditorViewController: UIViewController {
     private let saveButton = UIButton(type: .system)
     private lazy var doneToolbar: UIToolbar = makeDoneToolbar()
 
+    /// 계획 도구 진입 버튼. 분담 계획은 2인 디비전에서만 의미가 있어 선택에 따라 숨는다.
+    private lazy var teamSplitRow = makeToolRow(
+        title: TeamSplitStrings.entryTitle,
+        subtitle: TeamSplitStrings.entrySubtitle,
+        symbol: "person.2.fill",
+        action: #selector(teamSplitTapped)
+    )
+    private lazy var benchmarkRow = makeToolRow(
+        title: BenchmarkStrings.entryTitle,
+        subtitle: BenchmarkStrings.entrySubtitle,
+        symbol: "stopwatch.fill",
+        action: #selector(benchmarkTapped)
+    )
+
     private var selectedHours = 1
     private var selectedMinutes = 30
     private var selectedSeconds = 0
@@ -216,6 +230,53 @@ final class RaceTargetEditorViewController: UIViewController {
 
         contentStack.addArrangedSubview(makeFieldHeader(HyroxSimStrings.Localizable.RaceTarget.Field.note))
         contentStack.addArrangedSubview(makeNoteRow())
+
+        contentStack.addArrangedSubview(makeFieldHeader(TeamSplitStrings.planningSection))
+        contentStack.addArrangedSubview(teamSplitRow)
+        contentStack.addArrangedSubview(benchmarkRow)
+    }
+
+    /// 제목 + 한 줄 설명이 붙은 진입 버튼. 시스템 기본 셀 대신 직접 그린다.
+    private func makeToolRow(
+        title: String,
+        subtitle: String,
+        symbol: String,
+        action: Selector
+    ) -> UIButton {
+        let button = UIButton(type: .system)
+        var config = UIButton.Configuration.filled()
+        config.title = title
+        config.subtitle = subtitle
+        config.image = UIImage(systemName: symbol)
+        config.imagePadding = 14
+        config.imagePlacement = .leading
+        config.baseBackgroundColor = DesignTokens.Color.surface
+        config.baseForegroundColor = DesignTokens.Color.accent
+        config.cornerStyle = .large
+        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .systemFont(ofSize: 16, weight: .semibold)
+            outgoing.foregroundColor = UIColor.white
+            return outgoing
+        }
+        config.subtitleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .systemFont(ofSize: 12, weight: .medium)
+            outgoing.foregroundColor = DesignTokens.Color.textTertiary
+            return outgoing
+        }
+        button.configuration = config
+        button.contentHorizontalAlignment = .leading
+        button.addTarget(self, action: action, for: .touchUpInside)
+        return button
+    }
+
+    /// 계획 도구를 다크 테마 모달로 띄운다.
+    private func presentTool(_ viewController: UIViewController) {
+        let nav = UINavigationController(rootViewController: viewController)
+        nav.applyDarkTheme()
+        present(nav, animated: true)
     }
 
     private func makeFieldHeader(_ text: String) -> UIView {
@@ -393,6 +454,7 @@ final class RaceTargetEditorViewController: UIViewController {
         updateGoalDisplay()
         updateDivisionChips()
         updatePastDateHint()
+        updateToolRows()
     }
 
     private func updateGoalDisplay() {
@@ -423,6 +485,11 @@ final class RaceTargetEditorViewController: UIViewController {
         pastDateHintLabel.isHidden = !form.isPastDate()
     }
 
+    /// 분담 계획은 2인 디비전(더블스·혼성)에서만 보여 준다. 싱글 출전자에게는 나눌 상대가 없다.
+    private func updateToolRows() {
+        teamSplitRow.isHidden = !(form.division?.isDoubles ?? false)
+    }
+
     // MARK: - Actions
 
     @objc private func dateChanged() {
@@ -434,6 +501,32 @@ final class RaceTargetEditorViewController: UIViewController {
         guard sender.tag < divisionOptions.count else { return }
         form.division = divisionOptions[sender.tag]
         updateDivisionChips()
+        updateToolRows()
+    }
+
+    /// 분담 계획 화면. 저장 전 상태에서도 열 수 있어야 하므로 입력값을 먼저 반영한다.
+    @objc private func teamSplitTapped() {
+        view.endEditing(true)
+        syncControlsToForm()
+        presentTool(
+            TeamSplitPlannerViewController(
+                division: (form.division ?? .mixedDouble).doublesCounterpart,
+                goalSeconds: form.goalDurationSeconds ?? 0,
+                raceTargetId: form.existing?.id
+            )
+        )
+    }
+
+    /// PFT 벤치마크 화면. 저장된 기록에 닿을 수 있으면 최근 PFT 를 넘긴다.
+    @objc private func benchmarkTapped() {
+        view.endEditing(true)
+        syncControlsToForm()
+        presentTool(
+            PFTBenchmarkViewController(
+                record: (delegate as? BenchmarkRecordProviding)?.latestPFTRecord(),
+                defaultDivision: form.division
+            )
+        )
     }
 
     @objc private func goalSwitchChanged() {

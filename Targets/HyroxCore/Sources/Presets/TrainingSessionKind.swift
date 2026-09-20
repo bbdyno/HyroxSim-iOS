@@ -27,6 +27,8 @@ public enum TrainingSessionKind: String, CaseIterable, Codable, Hashable, Sendab
     case roxZoneDrill
     /// 월볼 100회를 내림차순 세트로 쪼갠 사다리.
     case wallBallLadder
+    /// 공식 PFT(체력 테스트). 디비전 추천과 예상 완주 범위의 입력이 된다.
+    case pftBenchmark
 
     // MARK: - 지역화
 
@@ -44,6 +46,7 @@ public enum TrainingSessionKind: String, CaseIterable, Codable, Hashable, Sendab
         case .stationIntervals: return "Station Intervals"
         case .roxZoneDrill: return "ROX Zone Drill"
         case .wallBallLadder: return "Wall Ball Ladder"
+        case .pftBenchmark: return "Physical Fitness Test"
         }
     }
 
@@ -60,6 +63,8 @@ public enum TrainingSessionKind: String, CaseIterable, Codable, Hashable, Sendab
             return "Short run, ROX Zone, station entry — repeated until transitions are automatic."
         case .wallBallLadder:
             return "Race-volume wall balls broken into a descending ladder."
+        case .pftBenchmark:
+            return "The official six-part fitness test — a benchmark you can repeat every few weeks."
         }
     }
 
@@ -92,6 +97,7 @@ public enum TrainingSessionKind: String, CaseIterable, Codable, Hashable, Sendab
         case .stationIntervals: return "station_intervals"
         case .roxZoneDrill: return "roxzone_drill"
         case .wallBallLadder: return "wall_ball_ladder"
+        case .pftBenchmark: return "pft_benchmark"
         }
     }
 
@@ -103,6 +109,9 @@ public enum TrainingSessionKind: String, CaseIterable, Codable, Hashable, Sendab
         case .stationIntervals: return "4B1F0C4E-7A6D-4E1B-9C20-5E7A1D3F03FF"
         case .roxZoneDrill: return "4B1F0C4E-7A6D-4E1B-9C20-5E7A1D3F04FF"
         case .wallBallLadder: return "4B1F0C4E-7A6D-4E1B-9C20-5E7A1D3F05FF"
+        // PFT 는 전용 프리셋(HyroxBenchmarkPresets)이 만든다. 같은 템플릿을 가리켜야
+        // 홈 목록과 기록 판별(세그먼트 ID)이 어긋나지 않는다.
+        case .pftBenchmark: return PFTBenchmark.templateIdString
         }
     }
 }
