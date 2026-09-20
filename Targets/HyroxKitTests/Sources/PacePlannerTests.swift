@@ -5,6 +5,7 @@
 //  Created by bbdyno on 4/17/26.
 //
 
+import CryptoKit
 import XCTest
 @testable import HyroxCore
 
@@ -539,5 +540,645 @@ final class StandardHyroxCourseTests: XCTestCase {
 
         XCTAssertEqual(template.segments.count, 32)
         XCTAssertFalse(template.isStandardHyroxCourse)
+    }
+}
+
+// MARK: - v4 Dataset Fixtures
+
+/// A minimal but fully valid `schema_version` 4 table.
+///
+/// Three grid points, eight stations, and component values that add up to
+/// `overall_s` exactly — the same invariants the published files hold, small enough
+/// that a test can reason about every number in it.
+enum PaceDatasetFixture {
+
+    static let gridP: [Double] = [10, 50, 90]
+    static let overallS: [Int] = [3600, 4500, 5400]
+    /// Every station carries the same curve, so the eight of them total 800/1000/1200.
+    static let stationCurve: [Int] = [100, 125, 150]
+    static let runRoxS: [Int] = [2800, 3500, 4200]
+
+    static func stations(overriding key: String? = nil, with curve: [Int]? = nil) -> [String: [Int]] {
+        var result: [String: [Int]] = [:]
+        for standard in StationKind.standardDataKeys {
+            result[standard] = stationCurve
+        }
+        if let key {
+            if let curve {
+                result[key] = curve
+            } else {
+                result.removeValue(forKey: key)
+            }
+        }
+        return result
+    }
+
+    static func make(
+        schemaVersion: Int = 4,
+        datasetVersion: String = "2026.09.15",
+        divisionKey: String = HyroxDivision.menOpenSingle.rawValue,
+        gridP: [Double] = PaceDatasetFixture.gridP,
+        overallS: [Int] = PaceDatasetFixture.overallS,
+        runRoxS: [Int] = PaceDatasetFixture.runRoxS,
+        stationsS: [String: [Int]]? = nil,
+        ageGroups: [PaceDatasetAgeGroup] = [
+            PaceDatasetAgeGroup(ageGroup: "30-34", n: 1_000, gridP: [25, 75], overallS: [4_000, 5_000])
+        ]
+    ) -> PaceDataset {
+        PaceDataset(
+            schemaVersion: schemaVersion,
+            datasetVersion: datasetVersion,
+            divisionKey: divisionKey,
+            gridP: gridP,
+            overallS: overallS,
+            components: PaceDatasetComponents(
+                runRoxS: runRoxS,
+                stationsS: stationsS ?? stations()
+            ),
+            ageGroups: ageGroups
+        )
+    }
+}
+
+// MARK: - Bundled v4 Snapshot
+
+final class PaceDatasetBundleTests: XCTestCase {
+
+    func testBundledSnapshotCoversEveryDivision() throws {
+        let snapshot = try PaceReferenceLoader.loadBundledPaceData()
+
+        XCTAssertEqual(snapshot.origin, .bundled)
+        XCTAssertTrue(snapshot.isComplete)
+        XCTAssertEqual(snapshot.availableDivisions.count, HyroxDivision.allCases.count)
+
+        for division in HyroxDivision.allCases {
+            let dataset = try snapshot.dataset(for: division)
+            XCTAssertEqual(dataset.division, division)
+            XCTAssertEqual(dataset.datasetVersion, snapshot.datasetVersion)
+            XCTAssertEqual(dataset.schemaVersion, 4)
+        }
+    }
+
+    func testBundledManifestMatchesTheBundledSnapshotVersion() throws {
+        let manifest = try PaceReferenceLoader.loadBundledManifest()
+        let snapshot = try PaceReferenceLoader.loadBundledPaceData()
+
+        XCTAssertEqual(manifest.schemaVersion, 4)
+        XCTAssertEqual(manifest.datasetVersion, snapshot.datasetVersion)
+        XCTAssertEqual(try manifest.validatedFiles().count, HyroxDivision.allCases.count)
+    }
+
+    /// Guards the one mistake a snapshot refresh can silently make: copying the nine
+    /// tables into the bundle but leaving the old `manifest.json` next to them. The
+    /// app would then report a version that does not describe its own data.
+    func testBundledFilesMatchTheChecksumsTheirManifestPublishes() throws {
+        let manifest = try PaceReferenceLoader.loadBundledManifest()
+        let entries = try manifest.validatedFiles()
+
+        for (division, file) in entries {
+            let data = try PaceReferenceLoader.bundledDatasetData(for: division)
+            XCTAssertEqual(data.count, file.bytes, "\(division.rawValue) byte count")
+
+            let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            XCTAssertEqual(
+                digest,
+                file.sha256,
+                "\(division.rawValue) sha256 — the bundled snapshot and its manifest disagree"
+            )
+        }
+    }
+
+    func testEveryBundledDatasetPassesValidation() throws {
+        let snapshot = try PaceReferenceLoader.loadBundledPaceData()
+
+        for division in HyroxDivision.allCases {
+            let dataset = try snapshot.dataset(for: division)
+            XCTAssertNoThrow(
+                try PaceDatasetValidator.validate(
+                    dataset,
+                    expecting: division,
+                    datasetVersion: snapshot.datasetVersion
+                ),
+                division.rawValue
+            )
+        }
+    }
+
+    func testBundledDatasetsCarryTheirProvenance() throws {
+        let dataset = try PaceReferenceLoader.loadBundledPaceData().dataset(for: .menOpenSingle)
+
+        XCTAssertFalse(dataset.sources.isEmpty)
+        XCTAssertFalse(dataset.cleaning.rules.isEmpty)
+        XCTAssertNotNil(dataset.method.overallS)
+        XCTAssertGreaterThan(dataset.minCellN, 0)
+        XCTAssertEqual(dataset.coverage.division, dataset.divisionKey)
+    }
+}
+
+// MARK: - Validator Invariants
+
+final class PaceDatasetValidatorTests: XCTestCase {
+
+    private func assertRejects(
+        _ dataset: PaceDataset,
+        expecting division: HyroxDivision? = nil,
+        datasetVersion: String? = nil,
+        _ expected: PaceDatasetValidationError,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertThrowsError(
+            try PaceDatasetValidator.validate(
+                dataset,
+                expecting: division,
+                datasetVersion: datasetVersion
+            ),
+            file: file,
+            line: line
+        ) { error in
+            XCTAssertEqual(error as? PaceDatasetValidationError, expected, file: file, line: line)
+        }
+    }
+
+    func testAcceptsAWellFormedDataset() {
+        XCTAssertNoThrow(
+            try PaceDatasetValidator.validate(
+                PaceDatasetFixture.make(),
+                expecting: .menOpenSingle,
+                datasetVersion: "2026.09.15"
+            )
+        )
+    }
+
+    func testRejectsAnUnsupportedSchemaVersion() {
+        assertRejects(
+            PaceDatasetFixture.make(schemaVersion: 5),
+            .unsupportedSchemaVersion(found: 5, supported: PaceDatasetValidator.supportedSchemaVersions)
+        )
+    }
+
+    func testRejectsAnUnknownDivision() {
+        assertRejects(
+            PaceDatasetFixture.make(divisionKey: "kidsRelay"),
+            .unknownDivision("kidsRelay")
+        )
+    }
+
+    func testRejectsAPayloadForTheWrongDivision() {
+        assertRejects(
+            PaceDatasetFixture.make(divisionKey: HyroxDivision.womenProDouble.rawValue),
+            expecting: .menOpenSingle,
+            .divisionMismatch(
+                expected: HyroxDivision.menOpenSingle.rawValue,
+                found: HyroxDivision.womenProDouble.rawValue
+            )
+        )
+    }
+
+    func testRejectsAVersionTheManifestDidNotPromise() {
+        assertRejects(
+            PaceDatasetFixture.make(datasetVersion: "2026.09.15"),
+            datasetVersion: "2026.10.01",
+            .datasetVersionMismatch(expected: "2026.10.01", found: "2026.09.15")
+        )
+    }
+
+    func testRejectsAnEmptyGrid() {
+        assertRejects(
+            PaceDatasetFixture.make(gridP: [], overallS: [], runRoxS: [], stationsS: [:]),
+            .emptyGrid(field: "grid_p")
+        )
+    }
+
+    func testRejectsAnOverallCurveOfTheWrongLength() {
+        assertRejects(
+            PaceDatasetFixture.make(overallS: [3_600, 4_500]),
+            .lengthMismatch(field: "overall_s", expected: 3, found: 2)
+        )
+    }
+
+    func testRejectsANonMonotonicOverallCurve() {
+        assertRejects(
+            PaceDatasetFixture.make(
+                overallS: [3_600, 3_500, 5_400],
+                runRoxS: [2_800, 2_500, 4_200]
+            ),
+            .notStrictlyIncreasing(field: "overall_s", index: 1)
+        )
+    }
+
+    func testRejectsANonMonotonicPercentileGrid() {
+        assertRejects(
+            PaceDatasetFixture.make(gridP: [10, 10, 90]),
+            .notStrictlyIncreasing(field: "grid_p", index: 1)
+        )
+    }
+
+    func testRejectsAPercentileOutsideZeroToOneHundred() {
+        assertRejects(
+            PaceDatasetFixture.make(gridP: [10, 50, 140]),
+            .percentileOutOfRange(field: "grid_p", index: 2, value: 140)
+        )
+    }
+
+    func testRejectsAMissingStation() {
+        assertRejects(
+            PaceDatasetFixture.make(stationsS: PaceDatasetFixture.stations(overriding: "wallBalls")),
+            .missingStation("wallBalls")
+        )
+    }
+
+    func testRejectsAnUnknownStation() {
+        var stations = PaceDatasetFixture.stations()
+        stations["assaultBike"] = PaceDatasetFixture.stationCurve
+        assertRejects(
+            PaceDatasetFixture.make(stationsS: stations),
+            .unexpectedStation("assaultBike")
+        )
+    }
+
+    func testRejectsAStationCurveOfTheWrongLength() {
+        assertRejects(
+            PaceDatasetFixture.make(
+                stationsS: PaceDatasetFixture.stations(overriding: "rowing", with: [100, 125])
+            ),
+            .lengthMismatch(field: "components.stations_s.rowing", expected: 3, found: 2)
+        )
+    }
+
+    func testRejectsComponentsThatDoNotAddUpToTheFinishTime() {
+        assertRejects(
+            PaceDatasetFixture.make(
+                stationsS: PaceDatasetFixture.stations(overriding: "sledPush", with: [100, 130, 150])
+            ),
+            .componentSumMismatch(index: 1, expected: 4_500, found: 4_505)
+        )
+    }
+
+    func testRejectsANegativeComponent() {
+        assertRejects(
+            PaceDatasetFixture.make(
+                overallS: [3_600, 4_400, 5_400],
+                stationsS: PaceDatasetFixture.stations(overriding: "sledPull", with: [100, -100, 150])
+            ),
+            .negativeValue(field: "components.stations_s.sledPull", index: 1, value: -100)
+        )
+    }
+
+    func testRejectsABrokenAgeGroupCurve() {
+        assertRejects(
+            PaceDatasetFixture.make(
+                ageGroups: [
+                    PaceDatasetAgeGroup(ageGroup: "40-44", n: 500, gridP: [25, 75], overallS: [5_000, 4_000])
+                ]
+            ),
+            .notStrictlyIncreasing(field: "age_groups[40-44].overall_s", index: 1)
+        )
+    }
+
+    func testSnapshotRefusesToPublishAPartiallyBrokenSet() {
+        let good = PaceDatasetFixture.make(divisionKey: HyroxDivision.menOpenSingle.rawValue)
+        let bad = PaceDatasetFixture.make(
+            divisionKey: HyroxDivision.womenOpenSingle.rawValue,
+            overallS: [3_600, 3_500, 5_400],
+            runRoxS: [2_800, 2_500, 4_200]
+        )
+
+        XCTAssertThrowsError(
+            try PaceDataSnapshot(
+                datasetVersion: "2026.09.15",
+                origin: .cached,
+                datasets: [.menOpenSingle: good, .womenOpenSingle: bad]
+            )
+        )
+    }
+}
+
+// MARK: - Lookups
+
+final class PaceDatasetLookupTests: XCTestCase {
+
+    func testReadsGridPointsBackExactly() {
+        let dataset = PaceDatasetFixture.make()
+
+        for (index, percentile) in PaceDatasetFixture.gridP.enumerated() {
+            XCTAssertEqual(dataset.goalSeconds(atPercentile: percentile), PaceDatasetFixture.overallS[index])
+            XCTAssertEqual(
+                dataset.percentile(forGoalSeconds: PaceDatasetFixture.overallS[index]),
+                percentile,
+                accuracy: 0.0001
+            )
+        }
+    }
+
+    func testInterpolatesBetweenGridPoints() {
+        let dataset = PaceDatasetFixture.make()
+
+        // Halfway from p10 (3600 s) to p50 (4500 s).
+        XCTAssertEqual(dataset.goalSeconds(atPercentile: 30), 4_050)
+        XCTAssertEqual(dataset.percentile(forGoalSeconds: 4_050), 30, accuracy: 0.0001)
+
+        // A quarter of the way from p50 (4500 s) to p90 (5400 s).
+        XCTAssertEqual(dataset.goalSeconds(atPercentile: 60), 4_725)
+        XCTAssertEqual(dataset.percentile(forGoalSeconds: 4_725), 60, accuracy: 0.0001)
+    }
+
+    func testPinsQueriesPastEitherEndOfTheCurve() {
+        let dataset = PaceDatasetFixture.make()
+
+        XCTAssertEqual(dataset.goalSeconds(atPercentile: 0.001), 3_600)
+        XCTAssertEqual(dataset.goalSeconds(atPercentile: 100), 5_400)
+        XCTAssertEqual(dataset.percentile(forGoalSeconds: 1_800), 10)
+        XCTAssertEqual(dataset.percentile(forGoalSeconds: 9_999), 90)
+
+        XCTAssertFalse(dataset.coversGoalSeconds(1_800))
+        XCTAssertTrue(dataset.coversGoalSeconds(4_050))
+        XCTAssertEqual(dataset.goalSecondsRange, 3_600...5_400)
+        XCTAssertEqual(dataset.percentileRange, 10...90)
+    }
+
+    func testComponentsAddUpToTheFinishTimeOnAndBetweenGridPoints() {
+        let dataset = PaceDatasetFixture.make()
+
+        for percentile in stride(from: 10.0, through: 90.0, by: 2.5) {
+            let split = dataset.components(atPercentile: percentile)
+            XCTAssertEqual(
+                split.runRoxSeconds + split.stationTotalSeconds,
+                split.overallSeconds,
+                "components drifted at p\(percentile)"
+            )
+            XCTAssertEqual(split.overallSeconds, dataset.goalSeconds(atPercentile: percentile))
+            XCTAssertEqual(split.stationSeconds.count, StationKind.standardDataKeys.count)
+        }
+    }
+
+    func testComponentsBetweenGridPointsStayWithinASecondOfTheLinearValue() {
+        let dataset = PaceDatasetFixture.make()
+        let split = dataset.components(atPercentile: 30)
+
+        XCTAssertEqual(split.overallSeconds, 4_050)
+        // run+rox interpolates to 3150 exactly; each station to 112.5.
+        XCTAssertEqual(split.runRoxSeconds, 3_150)
+        for key in StationKind.standardDataKeys {
+            let value = split.stationSeconds[key]
+            XCTAssertNotNil(value, key)
+            XCTAssertTrue([112, 113].contains(value ?? 0), "\(key) was \(value ?? -1)")
+        }
+        XCTAssertEqual(split.stationTotalSeconds, 900)
+    }
+
+    func testLooksUpComponentsByGoalTime() {
+        let dataset = PaceDatasetFixture.make()
+        let byGoal = dataset.components(forGoalSeconds: 4_050)
+        let byPercentile = dataset.components(atPercentile: 30)
+
+        XCTAssertEqual(byGoal, byPercentile)
+        XCTAssertEqual(byGoal.seconds(for: .wallBalls), byPercentile.stationSeconds["wallBalls"])
+        XCTAssertNil(byGoal.seconds(for: .custom(name: "Assault Bike")))
+    }
+
+    func testAgeGroupLookups() {
+        let dataset = PaceDatasetFixture.make()
+
+        XCTAssertEqual(dataset.ageGroupIdentifiers, ["30-34"])
+        XCTAssertEqual(dataset.ageGroupPercentile(forGoalSeconds: 4_500, ageGroup: "30-34"), 50)
+        XCTAssertEqual(dataset.ageGroupGoalSeconds(atPercentile: 50, ageGroup: "30-34"), 4_500)
+        XCTAssertNil(dataset.ageGroupPercentile(forGoalSeconds: 4_500, ageGroup: "70-74"))
+        XCTAssertNil(dataset.ageGroupGoalSeconds(atPercentile: 50, ageGroup: "70-74"))
+    }
+
+    func testBundledCurvesRoundTripAtEveryGridPoint() throws {
+        let snapshot = try PaceReferenceLoader.loadBundledPaceData()
+
+        for division in HyroxDivision.allCases {
+            let dataset = try snapshot.dataset(for: division)
+            for (index, percentile) in dataset.gridP.enumerated() {
+                XCTAssertEqual(
+                    dataset.goalSeconds(atPercentile: percentile),
+                    dataset.overallS[index],
+                    "\(division.rawValue) p\(percentile)"
+                )
+            }
+        }
+    }
+
+    func testBundledPercentilesNeverRunBackwards() throws {
+        let dataset = try PaceReferenceLoader.loadBundledPaceData().dataset(for: .menOpenSingle)
+        let range = dataset.goalSecondsRange
+
+        var previous = -Double.infinity
+        for seconds in stride(from: range.lowerBound, through: range.upperBound, by: 37) {
+            let percentile = dataset.percentile(forGoalSeconds: seconds)
+            XCTAssertGreaterThanOrEqual(percentile, previous, "percentile fell back at \(seconds) s")
+            previous = percentile
+        }
+    }
+
+    func testBundledComponentsAddUpBetweenGridPoints() throws {
+        let dataset = try PaceReferenceLoader.loadBundledPaceData().dataset(for: .womenOpenSingle)
+
+        for percentile in stride(from: 1.0, through: 99.0, by: 0.5) {
+            let split = dataset.components(atPercentile: percentile)
+            XCTAssertEqual(
+                split.runRoxSeconds + split.stationTotalSeconds,
+                split.overallSeconds,
+                "components drifted at p\(percentile)"
+            )
+        }
+    }
+}
+
+// MARK: - Manifest
+
+final class PaceDataManifestTests: XCTestCase {
+
+    private func makeFile(
+        _ division: HyroxDivision,
+        version: String = "2026.09.15",
+        sha256: String = String(repeating: "a", count: 64),
+        bytes: Int = 12_000
+    ) -> PaceDataManifestFile {
+        PaceDataManifestFile(
+            name: "v4/\(version)/\(division.rawValue).json",
+            sha256: sha256,
+            bytes: bytes
+        )
+    }
+
+    private func makeManifest(
+        manifestVersion: Int = 1,
+        schemaVersion: Int = 4,
+        datasetVersion: String = "2026.09.15",
+        files: [PaceDataManifestFile]? = nil,
+        revoked: [String] = []
+    ) -> PaceDataManifest {
+        PaceDataManifest(
+            manifestVersion: manifestVersion,
+            datasetVersion: datasetVersion,
+            schemaVersion: schemaVersion,
+            files: files ?? HyroxDivision.allCases.map { makeFile($0, version: datasetVersion) },
+            revoked: revoked
+        )
+    }
+
+    func testAcceptsAWellFormedManifest() throws {
+        let entries = try makeManifest().validatedFiles()
+        XCTAssertEqual(entries.count, HyroxDivision.allCases.count)
+        XCTAssertEqual(entries[.mixedDouble]?.division, .mixedDouble)
+    }
+
+    func testRejectsAnUnsupportedManifestVersion() {
+        XCTAssertThrowsError(try makeManifest(manifestVersion: 2).validatedFiles()) { error in
+            XCTAssertEqual(
+                error as? PaceDataManifestError,
+                .unsupportedManifestVersion(
+                    found: 2,
+                    supported: PaceDataManifest.supportedManifestVersions
+                )
+            )
+        }
+    }
+
+    func testRejectsAnUnsupportedSchemaVersion() {
+        XCTAssertThrowsError(try makeManifest(schemaVersion: 5).validatedFiles()) { error in
+            XCTAssertEqual(
+                error as? PaceDataManifestError,
+                .unsupportedSchemaVersion(
+                    found: 5,
+                    supported: PaceDatasetValidator.supportedSchemaVersions
+                )
+            )
+        }
+    }
+
+    func testRejectsARevokedDatasetVersion() {
+        XCTAssertThrowsError(
+            try makeManifest(datasetVersion: "2026.10.01", revoked: ["2026.10.01"]).validatedFiles()
+        ) { error in
+            XCTAssertEqual(error as? PaceDataManifestError, .revokedDatasetVersion("2026.10.01"))
+        }
+    }
+
+    func testRejectsAnIncompleteCatalogue() {
+        let files = HyroxDivision.allCases
+            .filter { $0 != .mixedDouble }
+            .map { makeFile($0) }
+
+        XCTAssertThrowsError(try makeManifest(files: files).validatedFiles()) { error in
+            XCTAssertEqual(
+                error as? PaceDataManifestError,
+                .missingDivisionFile(HyroxDivision.mixedDouble.rawValue)
+            )
+        }
+    }
+
+    func testRejectsADuplicatedDivision() {
+        var files = HyroxDivision.allCases.map { makeFile($0) }
+        files.append(makeFile(.menProSingle))
+
+        XCTAssertThrowsError(try makeManifest(files: files).validatedFiles()) { error in
+            XCTAssertEqual(
+                error as? PaceDataManifestError,
+                .duplicateDivisionFile(HyroxDivision.menProSingle.rawValue)
+            )
+        }
+    }
+
+    func testRejectsAMalformedChecksum() {
+        var files = HyroxDivision.allCases.map { makeFile($0) }
+        files[0] = PaceDataManifestFile(name: files[0].name, sha256: "not-a-digest", bytes: 12_000)
+
+        XCTAssertThrowsError(try makeManifest(files: files).validatedFiles()) { error in
+            XCTAssertEqual(error as? PaceDataManifestError, .invalidChecksum(name: files[0].name))
+        }
+    }
+
+    func testRejectsAnOversizedFile() {
+        var files = HyroxDivision.allCases.map { makeFile($0) }
+        files[0] = makeFile(HyroxDivision.allCases[0], bytes: 50_000_000)
+
+        XCTAssertThrowsError(
+            try makeManifest(files: files).validatedFiles(maximumFileBytes: 2 * 1024 * 1024)
+        ) { error in
+            guard case .fileTooLarge = error as? PaceDataManifestError else {
+                return XCTFail("expected fileTooLarge, got \(error)")
+            }
+        }
+    }
+
+    /// The names in a catalogue are joined onto a base URL, so traversal and absolute
+    /// paths have to die here rather than in whatever consumes them.
+    func testRejectsUnsafeFileNames() {
+        let unsafe = [
+            "../../../etc/passwd.json",
+            "/absolute/menOpenSingle.json",
+            "v4//menOpenSingle.json",
+            "v4/2026.09.15/menOpenSingle.txt",
+            "https://evil.example.com/menOpenSingle.json",
+            ""
+        ]
+
+        for name in unsafe {
+            XCTAssertFalse(PaceDataManifest.isSafeRelativePath(name), name)
+        }
+
+        XCTAssertTrue(PaceDataManifest.isSafeRelativePath("v4/2026.09.15/menOpenSingle.json"))
+
+        var files = HyroxDivision.allCases.map { makeFile($0) }
+        files[0] = PaceDataManifestFile(
+            name: "../menOpenSingle.json",
+            sha256: String(repeating: "b", count: 64),
+            bytes: 12_000
+        )
+        XCTAssertThrowsError(try makeManifest(files: files).validatedFiles()) { error in
+            XCTAssertEqual(error as? PaceDataManifestError, .unsafeFileName("../menOpenSingle.json"))
+        }
+    }
+
+    func testIgnoresAFileForADivisionThisBuildDoesNotKnow() throws {
+        var files = HyroxDivision.allCases.map { makeFile($0) }
+        files.append(
+            PaceDataManifestFile(
+                name: "v4/2026.09.15/kidsRelay.json",
+                sha256: String(repeating: "c", count: 64),
+                bytes: 1_000
+            )
+        )
+
+        let entries = try makeManifest(files: files).validatedFiles()
+        XCTAssertEqual(entries.count, HyroxDivision.allCases.count)
+    }
+
+    func testDecodesThePublishedManifestShape() throws {
+        let manifest = try PaceReferenceLoader.loadBundledManifest()
+
+        XCTAssertEqual(manifest.manifestVersion, 1)
+        XCTAssertTrue(manifest.revoked.isEmpty)
+        XCTAssertEqual(manifest.seasonLabel, "S6-S9")
+        XCTAssertNotNil(manifest.events)
+        XCTAssertNotNil(manifest.athletesPublished)
+        XCTAssertEqual(manifest.generator.script, "tools/pace-data/build_pace_data.py")
+    }
+}
+
+// MARK: - Version Ordering
+
+final class PaceDataVersionTests: XCTestCase {
+
+    func testOrdersDateStampsNumericallyRatherThanAlphabetically() {
+        XCTAssertTrue(PaceDataVersion.isNewer("2026.09.15", than: "2026.9.7"))
+        XCTAssertTrue(PaceDataVersion.isNewer("2026.10.01", than: "2026.09.15"))
+        XCTAssertTrue(PaceDataVersion.isNewer("2027.01.01", than: "2026.12.31"))
+        XCTAssertFalse(PaceDataVersion.isNewer("2026.09.15", than: "2026.09.15"))
+        XCTAssertFalse(PaceDataVersion.isNewer("2026.09.14", than: "2026.09.15"))
+    }
+
+    func testTreatsAMissingComponentAsOlder() {
+        XCTAssertTrue(PaceDataVersion.isNewer("2026.09.15", than: "2026.09"))
+        XCTAssertEqual(PaceDataVersion.compare("2026.09.15", "2026.09.15"), .orderedSame)
+    }
+
+    func testFallsBackToStringOrderForNonNumericStamps() {
+        XCTAssertEqual(PaceDataVersion.compare("2026.09.15-beta", "2026.09.15-alpha"), .orderedDescending)
     }
 }

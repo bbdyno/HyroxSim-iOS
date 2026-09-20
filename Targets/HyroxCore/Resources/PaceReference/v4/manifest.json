@@ -1,0 +1,91 @@
+{
+  "manifest_version": 1,
+  "published_at": "2026-09-15",
+  "dataset_version": "2026.09.15",
+  "schema_version": 4,
+  "generator": {
+    "script": "tools/pace-data/build_pace_data.py",
+    "version": "1.0.0"
+  },
+  "files": [
+    {
+      "name": "v4/2026.09.15/menOpenDouble.json",
+      "sha256": "bfe81b22d82474d567d4e3e35497ae0ca81b829f17ff60e821639bb85274ecd2",
+      "bytes": 11824
+    },
+    {
+      "name": "v4/2026.09.15/menOpenSingle.json",
+      "sha256": "cb39030d64876d8ec4d5db49c896275d2381f009a3b4783a0b7c3f7cb0592fba",
+      "bytes": 12519
+    },
+    {
+      "name": "v4/2026.09.15/menProDouble.json",
+      "sha256": "c94501b283f1ab93f26d1f3da57dfd95d3c2e7cff7eb21d77a7e557bad27470a",
+      "bytes": 11104
+    },
+    {
+      "name": "v4/2026.09.15/menProSingle.json",
+      "sha256": "355cadad3da745307f4ab4f993ec55891cd3641b22a59151135ea3c6f7e13b82",
+      "bytes": 12221
+    },
+    {
+      "name": "v4/2026.09.15/mixedDouble.json",
+      "sha256": "ed5cb9ffac80a90072b7e80f67abbff8b4f57dd56a95a37d8dd409efde8fc15b",
+      "bytes": 11631
+    },
+    {
+      "name": "v4/2026.09.15/womenOpenDouble.json",
+      "sha256": "923373e84bca13126c376e353293920ddbfdbfa3ed234ec0f1c7124b059e2073",
+      "bytes": 12029
+    },
+    {
+      "name": "v4/2026.09.15/womenOpenSingle.json",
+      "sha256": "35f873b866b867c23342a428122f0cd0c32ebba8e55c92d8c9ea1cea007c1244",
+      "bytes": 11824
+    },
+    {
+      "name": "v4/2026.09.15/womenProDouble.json",
+      "sha256": "af169c9bf15c5befc42a36d82e7e784390d77557c42f6d93ccfcfc0e48d9b5db",
+      "bytes": 11293
+    },
+    {
+      "name": "v4/2026.09.15/womenProSingle.json",
+      "sha256": "118107003203b0a4ee90a632fafd7a7c804277388f0e4b61b1b1b6497d628a87",
+      "bytes": 11921
+    }
+  ],
+  "coverage": {
+    "seasons": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "season_label": "S6-S9",
+    "years": [
+      "2023",
+      "2026"
+    ],
+    "events": 240,
+    "divisions": 9,
+    "excluded_divisions": [
+      "ADAPTIVE_MEN",
+      "ADAPTIVE_WOMEN"
+    ],
+    "athletes_upstream": 1151948,
+    "athletes_published": 1151891,
+    "upstream_version": "20260915b",
+    "upstream_generated": "2026-09-15",
+    "events_by_division": {
+      "PRO MEN": 221,
+      "PRO WOMEN": 221,
+      "MEN": 231,
+      "WOMEN": 231,
+      "PRO MEN DOUBLES": 196,
+      "PRO WOMEN DOUBLES": 194,
+      "MEN DOUBLES": 230,
+      "WOMEN DOUBLES": 229,
+      "MIXED": 229
+    }
+  }
+}
