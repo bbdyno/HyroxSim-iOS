@@ -61,7 +61,11 @@ final class HomeViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
+        // Only restore the bar when another screen is pushed; a full-screen modal
+        // (active workout) would otherwise flash the large title over the home screen.
+        if let nav = navigationController, nav.topViewController !== self {
+            nav.setNavigationBarHidden(false, animated: animated)
+        }
     }
 
     @objc private func handleSyncUpdate() {

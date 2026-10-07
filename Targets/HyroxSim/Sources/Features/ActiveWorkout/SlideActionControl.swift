@@ -101,6 +101,10 @@ final class SlideActionControl: UIControl {
         thumbWidthConstraint = thumbView.widthAnchor.constraint(equalToConstant: 52)
 
         // The title yields to the thumb on narrow tracks instead of breaking the thumb's size.
+        // Non-required: at the end of the slide there is no room left for the title.
+        let titleLeading = titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: thumbView.trailingAnchor, constant: 12)
+        titleLeading.priority = UILayoutPriority(900)
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         let titleCenterX = titleLabel.centerXAnchor.constraint(equalTo: trackView.centerXAnchor)
         titleCenterX.priority = .defaultHigh
         titleLabel.adjustsFontSizeToFitWidth = true
@@ -119,7 +123,7 @@ final class SlideActionControl: UIControl {
 
             titleCenterX,
             titleLabel.centerYAnchor.constraint(equalTo: trackView.centerYAnchor),
-            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: thumbView.trailingAnchor, constant: 12),
+            titleLeading,
             titleLabel.trailingAnchor.constraint(equalTo: trackView.trailingAnchor, constant: -20),
 
             thumbLeadingConstraint,

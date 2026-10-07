@@ -211,7 +211,14 @@ final class CourseMapView: UIView {
         ctx.strokePath()
 
         let filledCount = progress?.stationsReached ?? stations.count
+        // Standing on a station: highlight its marker instead of covering it with the dot.
+        let currentStationIndex: Int? = {
+            guard let progress, progress.fractionToNext <= 0, progress.stationsReached > 0 else { return nil }
+            return progress.stationsReached - 1
+        }()
         for (index, station) in stations.enumerated() {
+            var station = station
+            if index == currentStationIndex { station.color = .white }
             drawMarker(index: index, station: station, isFilled: index < filledCount, geo: geo, in: ctx)
         }
 
@@ -219,7 +226,7 @@ final class CourseMapView: UIView {
             drawEndpointLabels(geo: geo)
         }
 
-        if let progressDistance {
+        if let progressDistance, currentStationIndex == nil {
             var point = geo.point(atDistance: progressDistance)
             let radius = max(style.trackWidth * 0.62, 7)
             // Keep the dot fully visible at the start and finish edges.
