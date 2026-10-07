@@ -24,6 +24,7 @@ xcodebuild build -workspace HyroxSim.xcworkspace -scheme HyroxSimWatch \
 ```
 
 - 파일 추가/삭제 후 반드시 `tuist generate` 실행
+- iOS 앱 빌드 시 `-sdk iphonesimulator`를 강제하면 워치 타겟까지 iOS SDK로 빌드되어 실패 — `-destination`만 지정
 - 테스트: `xcodebuild test -workspace HyroxSim.xcworkspace -scheme HyroxSim ...`
 
 ## 아키텍처
@@ -90,6 +91,14 @@ xcodebuild build -workspace HyroxSim.xcworkspace -scheme HyroxSimWatch \
 - Run: 블루 (`.systemBlue`)
 - RoxZone: 오렌지 (`.systemOrange`)
 - Station: 옐로우/골드 (액센트 컬러)
+
+### 레이아웃 (코스 맵 방향)
+- 홈·운동 중·결과 화면의 주인공은 `CourseMapView` (구불구불한 레이스 코스 + 번호 붙은 스테이션 마커)
+- 둥근 카드·배지·그림자 대신 각진 면과 1pt 헤어라인(`DesignTokens.Color.hairline`)으로 구분
+- 제목·캡션은 넓은 폭 서체 `DesignTokens.Font.wide`, 숫자는 `DesignTokens.Font.number`
+- 캡션은 대문자 + 자간(`UILabel.setTracked`)
+- 목표 대비: 앞서면 골드(`accent`), 뒤지면 오렌지(`overGoal`)
+- 운동 중 화면 배경은 항상 블랙 — 세그먼트 타입은 상단 라벨 색으로만 구분
 
 ### 컴포넌트
 - 시스템 UIAlertController 사용 금지 → `DarkAlertController` 사용
