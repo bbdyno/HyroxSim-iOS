@@ -330,6 +330,72 @@ final class PersistenceControllerTests: XCTestCase {
         XCTAssertEqual(try ctrl.fetchRaceTargets().map(\.id), [target.id])
     }
 
+    /// App Store 1.3.0 이 만든 스토어(버전 표시 없음, 엔티티 3개)가 현재 스키마에서 열려야 한다.
+    /// 이게 실패하면 업데이트한 기존 사용자의 앱이 실행 즉시 종료된다.
+    func testStoreWrittenByShipped130OpensUnderCurrentSchema() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("HyroxShipped130-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storeURL = directory.appendingPathComponent("hyrox.store")
+
+        let workoutId = UUID()
+        let templateId = UUID()
+        try seedShipped130Store(at: storeURL, workoutId: workoutId, templateId: templateId)
+
+        let ctrl = try PersistenceController(storeURL: storeURL)
+
+        let workouts = try ctrl.fetchAllCompletedWorkouts()
+        XCTAssertEqual(workouts.map(\.id), [workoutId])
+        XCTAssertEqual(workouts.first?.segments.count, 1)
+        XCTAssertEqual(try ctrl.fetchAllTemplates().map(\.id), [templateId])
+
+        // 이후 버전에서 추가된 엔티티도 바로 쓸 수 있어야 한다.
+        let target = makeRaceTarget(dayOffset: 30)
+        try ctrl.upsertRaceTarget(target)
+        XCTAssertEqual(try ctrl.fetchRaceTargets().map(\.id), [target.id])
+    }
+
+    /// 1.3.0 은 `VersionedSchema` 없이 엔티티 3개로 컨테이너를 만들었다. 그 방식 그대로 스토어를 만든다.
+    private func seedShipped130Store(at storeURL: URL, workoutId: UUID, templateId: UUID) throws {
+        let schema = Schema([
+            HyroxSchemaV0.StoredWorkout.self,
+            HyroxSchemaV0.StoredSegment.self,
+            HyroxSchemaV0.StoredTemplate.self
+        ])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, url: storeURL)]
+        )
+        let context = container.mainContext
+        let segment = HyroxSchemaV0.StoredSegment(
+            id: UUID(),
+            segmentId: UUID(),
+            index: 0,
+            typeRaw: SegmentType.run.rawValue,
+            startedAt: t0,
+            endedAt: t0.addingTimeInterval(300),
+            pausedDuration: 0,
+            measurementsData: try JSONEncoder().encode(SegmentMeasurements())
+        )
+        context.insert(HyroxSchemaV0.StoredWorkout(
+            id: workoutId,
+            templateName: "Shipped 1.3.0",
+            divisionRaw: nil,
+            startedAt: t0,
+            finishedAt: t0.addingTimeInterval(300),
+            segments: [segment]
+        ))
+        context.insert(HyroxSchemaV0.StoredTemplate(
+            id: templateId,
+            name: "Legacy Custom",
+            divisionRaw: nil,
+            createdAt: t0,
+            segmentsData: try JSONEncoder().encode([WorkoutSegment.run(distanceMeters: 1000)])
+        ))
+        try context.save()
+    }
+
     /// 두 번째 실행: 이미 현재 버전인 스토어를 다시 열어도 데이터가 그대로여야 한다.
     func testCurrentSchemaStoreReopensWithoutLoss() throws {
         let directory = FileManager.default.temporaryDirectory

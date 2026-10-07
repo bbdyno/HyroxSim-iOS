@@ -18,6 +18,7 @@ public enum HyroxMigrationPlan: SchemaMigrationPlan {
 
     public static var schemas: [any VersionedSchema.Type] {
         [
+            HyroxSchemaV0.self,
             HyroxSchemaV1.self,
             HyroxSchemaV2.self
         ]
@@ -25,6 +26,8 @@ public enum HyroxMigrationPlan: SchemaMigrationPlan {
 
     public static var stages: [MigrationStage] {
         [
+            // v0(출시된 1.3.0) → v1: 옵셔널 속성 `usesRoxZone` 과 툼스톤 엔티티 추가뿐이라 경량.
+            .lightweight(fromVersion: HyroxSchemaV0.self, toVersion: HyroxSchemaV1.self),
             // v1 → v2: `StoredRaceTarget` 엔티티 추가뿐이라 추론 가능(경량).
             // 기존 엔티티의 속성은 하나도 건드리지 않으므로 데이터 변환이 없다.
             .lightweight(fromVersion: HyroxSchemaV1.self, toVersion: HyroxSchemaV2.self)

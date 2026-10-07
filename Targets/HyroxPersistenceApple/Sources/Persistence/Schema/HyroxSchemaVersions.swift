@@ -30,7 +30,127 @@
 import Foundation
 import SwiftData
 
-/// v1 — 출시된 상태의 스키마.
+/// v0 — **App Store 1.3.0 까지 실제로 출시된** 스키마의 스냅샷.
+///
+/// 1.3.0 스토어에는 엔티티가 3개뿐이고 `StoredTemplate.usesRoxZone` 도 없다.
+/// 마이그레이션 계획에 이 모양이 없으면 SwiftData 는 1.3.0 스토어를 계획의 어느
+/// 버전과도 맞추지 못해 `loadIssueModelContainer` 로 컨테이너 생성에 실패한다
+/// (= 업데이트한 기존 사용자의 앱이 실행 즉시 종료).
+///
+/// 현재 클래스는 이미 모양이 바뀌었으므로, 당시 정의를 이 네임스페이스 안에
+/// 그대로 복사해 둔다. **이 클래스들은 절대 수정하지 말 것.**
+public enum HyroxSchemaV0: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { Schema.Version(0, 1, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        [
+            StoredWorkout.self,
+            StoredSegment.self,
+            StoredTemplate.self
+        ]
+    }
+
+    @Model
+    public final class StoredWorkout {
+        @Attribute(.unique) public var id: UUID
+        public var templateName: String
+        public var divisionRaw: String?
+        public var startedAt: Date
+        public var finishedAt: Date
+
+        @Relationship(deleteRule: .cascade, inverse: \StoredSegment.workout)
+        public var segments: [StoredSegment]
+
+        public init(
+            id: UUID,
+            templateName: String,
+            divisionRaw: String?,
+            startedAt: Date,
+            finishedAt: Date,
+            segments: [StoredSegment] = []
+        ) {
+            self.id = id
+            self.templateName = templateName
+            self.divisionRaw = divisionRaw
+            self.startedAt = startedAt
+            self.finishedAt = finishedAt
+            self.segments = segments
+        }
+    }
+
+    @Model
+    public final class StoredSegment {
+        @Attribute(.unique) public var id: UUID
+        public var segmentId: UUID
+        public var index: Int
+        public var typeRaw: String
+        public var startedAt: Date
+        public var endedAt: Date
+        public var pausedDuration: TimeInterval
+        public var stationDisplayName: String?
+        public var plannedDistanceMeters: Double?
+        public var goalDurationSeconds: TimeInterval?
+        public var measurementsData: Data
+        public var workout: StoredWorkout?
+
+        public init(
+            id: UUID,
+            segmentId: UUID,
+            index: Int,
+            typeRaw: String,
+            startedAt: Date,
+            endedAt: Date,
+            pausedDuration: TimeInterval,
+            stationDisplayName: String? = nil,
+            plannedDistanceMeters: Double? = nil,
+            goalDurationSeconds: TimeInterval? = nil,
+            measurementsData: Data,
+            workout: StoredWorkout? = nil
+        ) {
+            self.id = id
+            self.segmentId = segmentId
+            self.index = index
+            self.typeRaw = typeRaw
+            self.startedAt = startedAt
+            self.endedAt = endedAt
+            self.pausedDuration = pausedDuration
+            self.stationDisplayName = stationDisplayName
+            self.plannedDistanceMeters = plannedDistanceMeters
+            self.goalDurationSeconds = goalDurationSeconds
+            self.measurementsData = measurementsData
+            self.workout = workout
+        }
+    }
+
+    @Model
+    public final class StoredTemplate {
+        @Attribute(.unique) public var id: UUID
+        public var name: String
+        public var divisionRaw: String?
+        public var createdAt: Date
+        public var segmentsData: Data
+
+        public init(
+            id: UUID,
+            name: String,
+            divisionRaw: String?,
+            createdAt: Date,
+            segmentsData: Data
+        ) {
+            self.id = id
+            self.name = name
+            self.divisionRaw = divisionRaw
+            self.createdAt = createdAt
+            self.segmentsData = segmentsData
+        }
+    }
+}
+
+/// v1 — 1.3.0 이후 개발 빌드의 스키마(`usesRoxZone`, 툼스톤 추가). 스토어에는 출시되지 않았다.
+///
+/// 원래 주석(아래)은 "1.3.0 스토어가 자동으로 이 버전에 흡수된다"고 가정했지만,
+/// 마이그레이션 계획을 쓰면 그렇게 되지 않는다. 1.3.0 스토어는 `HyroxSchemaV0` 가 받는다.
+///
 ///
 /// `StoredTemplate.usesRoxZone`(옵셔널) 과 `StoredWorkoutTombstone` 이 추가되기
 /// 전의 스토어도 SwiftData 자동 경량 마이그레이션으로 이 버전에 흡수된다.
