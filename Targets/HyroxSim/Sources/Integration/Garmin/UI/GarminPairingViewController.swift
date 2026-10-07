@@ -48,9 +48,15 @@ public final class GarminPairingViewController: UIViewController {
         bodyLabel.numberOfLines = 0
 
         var buttonConfig = UIButton.Configuration.filled()
-        buttonConfig.title = HyroxSimStrings.Localizable.Garmin.Pairing.button
-        buttonConfig.baseBackgroundColor = UIColor(red: 1.0, green: 0.843, blue: 0.0, alpha: 1.0)
+        buttonConfig.attributedTitle = AttributedString(
+            HyroxSimStrings.Localizable.Garmin.Pairing.button,
+            attributes: AttributeContainer([.font: DesignTokens.Font.wide(15, weight: .heavy)])
+        )
+        buttonConfig.baseBackgroundColor = DesignTokens.Color.accent
         buttonConfig.baseForegroundColor = .black
+        buttonConfig.cornerStyle = .fixed
+        buttonConfig.background.cornerRadius = 0
+        buttonConfig.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16)
         pairButton.configuration = buttonConfig
         pairButton.addTarget(self, action: #selector(pairTapped), for: .touchUpInside)
 
