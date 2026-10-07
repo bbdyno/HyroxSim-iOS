@@ -148,7 +148,7 @@ private final class HistoryCardCell: UITableViewCell {
         selectionStyle = .none
 
         cardView.backgroundColor = DesignTokens.Color.surface
-        cardView.layer.cornerRadius = 14
+        cardView.layer.cornerRadius = 0
         cardView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(cardView)
         NSLayoutConstraint.activate([

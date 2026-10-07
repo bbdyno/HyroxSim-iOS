@@ -78,7 +78,7 @@ final class EditRunSheetViewController: UIViewController {
             btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
             btn.setTitleColor(.white, for: .normal)
             btn.backgroundColor = DesignTokens.Color.surface
-            btn.layer.cornerRadius = 10
+            btn.layer.cornerRadius = 0
             btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
             btn.tag = m
             btn.addTarget(self, action: #selector(presetTapped(_:)), for: .touchUpInside)
@@ -88,10 +88,10 @@ final class EditRunSheetViewController: UIViewController {
 
         let saveBtn = UIButton(type: .system)
         saveBtn.setTitle(mode.isEdit ? "Save" : "Add Run", for: .normal)
-        saveBtn.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+        saveBtn.titleLabel?.font = DesignTokens.Font.wide(15, weight: .heavy)
         saveBtn.setTitleColor(.black, for: .normal)
         saveBtn.backgroundColor = DesignTokens.Color.accent
-        saveBtn.layer.cornerRadius = 22
+        saveBtn.layer.cornerRadius = 0
         saveBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
         saveBtn.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         stack.addArrangedSubview(saveBtn)

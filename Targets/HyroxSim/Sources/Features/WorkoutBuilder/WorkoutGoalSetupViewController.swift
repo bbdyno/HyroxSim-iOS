@@ -100,10 +100,10 @@ final class WorkoutGoalSetupViewController: UIViewController {
         footerContainer.addSubview(separator)
 
         startButton.setTitle(confirmButtonTitle, for: .normal)
-        startButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
+        startButton.titleLabel?.font = DesignTokens.Font.wide(15, weight: .heavy)
         startButton.setTitleColor(.black, for: .normal)
         startButton.backgroundColor = DesignTokens.Color.accent
-        startButton.layer.cornerRadius = 24
+        startButton.layer.cornerRadius = 0
         startButton.translatesAutoresizingMaskIntoConstraints = false
         startButton.addTarget(self, action: #selector(startTapped), for: .touchUpInside)
         footerContainer.addSubview(startButton)
@@ -129,7 +129,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
     private func buildContent() {
         let titleLabel = UILabel()
         titleLabel.text = template.isBuiltIn ? (template.division?.displayName ?? template.name) : template.name
-        titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
+        titleLabel.font = DesignTokens.Font.wide(22, weight: .heavy)
         titleLabel.textColor = .white
         titleLabel.numberOfLines = 0
         contentStack.addArrangedSubview(titleLabel)
@@ -179,7 +179,7 @@ final class WorkoutGoalSetupViewController: UIViewController {
         field.textAlignment = .center
         field.textColor = .white
         field.backgroundColor = DesignTokens.Color.surface
-        field.layer.cornerRadius = 10
+        field.layer.cornerRadius = 0
         field.heightAnchor.constraint(equalToConstant: 42).isActive = true
         field.widthAnchor.constraint(equalToConstant: 88).isActive = true
         field.addTarget(self, action: #selector(goalFieldChanged(_:)), for: .editingChanged)

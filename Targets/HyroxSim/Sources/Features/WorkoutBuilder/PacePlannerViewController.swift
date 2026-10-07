@@ -109,10 +109,10 @@ final class PacePlannerViewController: UIViewController {
         footerContainer.addSubview(separator)
 
         finetuneButton.setTitle(HyroxSimStrings.Localizable.Button.finetune, for: .normal)
-        finetuneButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        finetuneButton.titleLabel?.font = DesignTokens.Font.wide(15, weight: .heavy)
         finetuneButton.setTitleColor(DesignTokens.Color.accent, for: .normal)
         finetuneButton.backgroundColor = DesignTokens.Color.surface
-        finetuneButton.layer.cornerRadius = 24
+        finetuneButton.layer.cornerRadius = 0
         finetuneButton.layer.borderWidth = 1
         finetuneButton.layer.borderColor = DesignTokens.Color.accent.cgColor
         finetuneButton.translatesAutoresizingMaskIntoConstraints = false
@@ -120,10 +120,10 @@ final class PacePlannerViewController: UIViewController {
         footerContainer.addSubview(finetuneButton)
 
         applyButton.setTitle(HyroxSimStrings.Localizable.Button.applyGoals, for: .normal)
-        applyButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
+        applyButton.titleLabel?.font = DesignTokens.Font.wide(15, weight: .heavy)
         applyButton.setTitleColor(.black, for: .normal)
         applyButton.backgroundColor = DesignTokens.Color.accent
-        applyButton.layer.cornerRadius = 24
+        applyButton.layer.cornerRadius = 0
         applyButton.translatesAutoresizingMaskIntoConstraints = false
         applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
         footerContainer.addSubview(applyButton)
@@ -157,7 +157,7 @@ final class PacePlannerViewController: UIViewController {
         // Division + athlete count
         let divLabel = UILabel()
         divLabel.text = template.division?.displayName ?? template.name
-        divLabel.font = .systemFont(ofSize: 22, weight: .bold)
+        divLabel.font = DesignTokens.Font.wide(22, weight: .heavy)
         divLabel.textColor = .white
         contentStack.addArrangedSubview(divLabel)
 
@@ -458,7 +458,7 @@ final class PacePlannerViewController: UIViewController {
     private func makeRow(title: String, time: String, subtitle: String?, color: UIColor, elevated: Bool = false) -> UIView {
         let container = UIView()
         container.backgroundColor = elevated ? DesignTokens.Color.surface : .clear
-        container.layer.cornerRadius = 8
+        container.layer.cornerRadius = 0
 
         let titleLabel = UILabel()
         titleLabel.text = title

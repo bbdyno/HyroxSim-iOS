@@ -29,6 +29,7 @@ final class TemplateDetailViewController: UIViewController {
     private let roxZoneSwitch = UISwitch()
     private let roxSubtitleLabel = UILabel()
     private let courseRowsStack = UIStackView()
+    private let courseMapView = CourseMapView(style: .regular)
     private let footerContainer = UIView()
     private let startButton = UIButton(type: .system)
 
@@ -108,7 +109,7 @@ final class TemplateDetailViewController: UIViewController {
         contentStack.spacing = 0
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStack)
-        let m: CGFloat = 20
+        let m: CGFloat = 24
         NSLayoutConstraint.activate([
             contentStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: m),
             contentStack.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor, constant: m),
@@ -124,14 +125,18 @@ final class TemplateDetailViewController: UIViewController {
 
         let separator = UIView()
         separator.translatesAutoresizingMaskIntoConstraints = false
-        separator.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        separator.backgroundColor = DesignTokens.Color.hairline
         footerContainer.addSubview(separator)
 
-        startButton.setTitle(HyroxSimStrings.Localizable.Button.startWorkout, for: .normal)
-        startButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
-        startButton.setTitleColor(.black, for: .normal)
+        startButton.setAttributedTitle(NSAttributedString(
+            string: HyroxSimStrings.Localizable.Button.startWorkout.uppercased(),
+            attributes: [
+                .font: DesignTokens.Font.wide(16, weight: .heavy),
+                .foregroundColor: UIColor.black,
+                .kern: 1.2
+            ]
+        ), for: .normal)
         startButton.backgroundColor = DesignTokens.Color.accent
-        startButton.layer.cornerRadius = 24
         startButton.translatesAutoresizingMaskIntoConstraints = false
         startButton.addTarget(self, action: #selector(startTapped), for: .touchUpInside)
         footerContainer.addSubview(startButton)
@@ -144,25 +149,26 @@ final class TemplateDetailViewController: UIViewController {
             separator.topAnchor.constraint(equalTo: footerContainer.topAnchor),
             separator.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor),
             separator.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor),
-            separator.heightAnchor.constraint(equalToConstant: 0.5),
+            separator.heightAnchor.constraint(equalToConstant: 1),
 
             startButton.topAnchor.constraint(equalTo: footerContainer.topAnchor, constant: 12),
-            startButton.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 20),
-            startButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -20),
-            startButton.heightAnchor.constraint(equalToConstant: 48),
+            startButton.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 24),
+            startButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -24),
+            startButton.heightAnchor.constraint(equalToConstant: 54),
             startButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12)
         ])
     }
 
     private func rebuildContent() {
         title = template.isBuiltIn ? (template.division?.shortName ?? template.name) : template.name
-        titleLabel.text = template.isBuiltIn ? (template.division?.displayName ?? template.name) : template.name
+        titleLabel.text = (template.isBuiltIn ? (template.division?.displayName ?? template.name) : template.name).uppercased()
 
         let stations = template.segments.filter { $0.type == .station }.count
         let runDist = template.segments.filter { $0.type == .run }.compactMap(\.distanceMeters).reduce(0, +)
         let mins = Int(template.estimatedDurationSeconds / 60)
-        metaLabel.text = "\(stations) stations · \(DistanceFormatter.short(runDist)) run · ~\(mins) min"
-        goalValueLabel.text = HyroxSimStrings.Localizable.Workout.goalTotalFormat(DurationFormatter.hms(template.estimatedDurationSeconds))
+        metaLabel.setTracked("\(stations) STATIONS  ·  \(DistanceFormatter.short(runDist).uppercased()) RUN  ·  ~\(mins) MIN", kern: 1.2)
+        courseMapView.stations = template.courseStations
+        goalValueLabel.text = DurationFormatter.hms(template.estimatedDurationSeconds)
         goalHintLabel.text = HyroxSimStrings.Localizable.Button.editSegmentTargets
 
         roxZoneSwitch.isOn = template.usesRoxZone
@@ -174,31 +180,34 @@ final class TemplateDetailViewController: UIViewController {
     }
 
     private func buildContent() {
-        titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
+        titleLabel.font = DesignTokens.Font.wide(24, weight: .heavy)
         titleLabel.textColor = .white
-        titleLabel.numberOfLines = 0
+        titleLabel.numberOfLines = 2
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.7
         contentStack.addArrangedSubview(titleLabel)
 
-        addSpacer(8)
+        addSpacer(6)
 
-        metaLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        metaLabel.font = .systemFont(ofSize: 11, weight: .semibold)
         metaLabel.textColor = DesignTokens.Color.textSecondary
         metaLabel.numberOfLines = 0
         contentStack.addArrangedSubview(metaLabel)
 
-        addSpacer(16)
+        addSpacer(20)
+        contentStack.addArrangedSubview(courseMapView)
+        addSpacer(14)
+        addSeparator(color: DesignTokens.Color.hairline)
         contentStack.addArrangedSubview(makeGoalCard())
-        addSpacer(12)
+        addSeparator(color: DesignTokens.Color.hairline)
 
         let card = UIView()
-        card.backgroundColor = DesignTokens.Color.surfaceElevated
-        card.layer.cornerRadius = DesignTokens.Radius.card
         card.heightAnchor.constraint(greaterThanOrEqualToConstant: 68).isActive = true
 
         let titleLabel = UILabel()
-        titleLabel.text = "ROX ZONE"
-        titleLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        titleLabel.font = .systemFont(ofSize: 10, weight: .bold)
         titleLabel.textColor = DesignTokens.Color.roxZoneAccent
+        titleLabel.setTracked("ROX ZONE", kern: 1.5)
 
         roxSubtitleLabel.font = .systemFont(ofSize: 12, weight: .medium)
         roxSubtitleLabel.textColor = DesignTokens.Color.textSecondary
@@ -221,20 +230,22 @@ final class TemplateDetailViewController: UIViewController {
         card.addSubview(row)
         NSLayoutConstraint.activate([
             row.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
-            row.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
-            row.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+            row.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: card.trailingAnchor),
             row.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -14)
         ])
 
         contentStack.addArrangedSubview(card)
-        addSpacer(20)
+        addSeparator(color: DesignTokens.Color.hairline)
+        addSpacer(24)
 
         let courseLabel = UILabel()
-        courseLabel.text = "COURSE"
-        courseLabel.font = .systemFont(ofSize: 12, weight: .bold)
-        courseLabel.textColor = DesignTokens.Color.accent
+        courseLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        courseLabel.textColor = DesignTokens.Color.textSecondary
+        courseLabel.setTracked("SEGMENTS", kern: 1.5)
         contentStack.addArrangedSubview(courseLabel)
-        addSeparator(color: DesignTokens.Color.accent.withAlphaComponent(0.3))
+        addSpacer(8)
+        addSeparator(color: DesignTokens.Color.hairline)
         addSpacer(8)
 
         courseRowsStack.axis = .vertical
@@ -335,16 +346,14 @@ final class TemplateDetailViewController: UIViewController {
 
     private func makeGoalCard() -> UIView {
         let card = UIView()
-        card.backgroundColor = DesignTokens.Color.surfaceElevated
-        card.layer.cornerRadius = DesignTokens.Radius.card
         card.isUserInteractionEnabled = true
 
         let titleLabel = UILabel()
-        titleLabel.text = "GOALS"
-        titleLabel.font = .systemFont(ofSize: 13, weight: .bold)
-        titleLabel.textColor = DesignTokens.Color.accent
+        titleLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        titleLabel.textColor = DesignTokens.Color.textSecondary
+        titleLabel.setTracked("GOAL", kern: 1.5)
 
-        goalValueLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
+        goalValueLabel.font = DesignTokens.Font.number(22)
         goalValueLabel.textColor = .white
 
         goalHintLabel.font = .systemFont(ofSize: 12, weight: .medium)
@@ -369,8 +378,8 @@ final class TemplateDetailViewController: UIViewController {
         card.addSubview(row)
         NSLayoutConstraint.activate([
             row.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
-            row.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
-            row.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+            row.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: card.trailingAnchor),
             row.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -14)
         ])
 
@@ -393,7 +402,6 @@ final class TemplateDetailViewController: UIViewController {
         if let num {
             let badge = UIView()
             badge.backgroundColor = color
-            badge.layer.cornerRadius = DesignTokens.Radius.badge
             badge.translatesAutoresizingMaskIntoConstraints = false
             badge.widthAnchor.constraint(equalToConstant: 28).isActive = true
             badge.heightAnchor.constraint(equalToConstant: 18).isActive = true
@@ -459,7 +467,7 @@ final class TemplateDetailViewController: UIViewController {
     private func addSeparator(color: UIColor) {
         let v = UIView()
         v.backgroundColor = color
-        v.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
+        v.heightAnchor.constraint(equalToConstant: 1).isActive = true
         contentStack.addArrangedSubview(v)
     }
 }

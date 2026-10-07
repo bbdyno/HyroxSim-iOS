@@ -38,7 +38,7 @@ public final class GarminPairingViewController: UIViewController {
 
     private func configureLayout() {
         titleLabel.text = HyroxSimStrings.Localizable.Garmin.Pairing.header
-        titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
+        titleLabel.font = DesignTokens.Font.wide(22, weight: .heavy)
         titleLabel.textColor = .label
         titleLabel.textAlignment = .center
 

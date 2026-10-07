@@ -124,7 +124,7 @@ final class AddStationSheetViewController: UIViewController {
             btn.setTitle("  \(kind.displayName)", for: .normal)
             btn.contentHorizontalAlignment = .leading
             btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-            btn.layer.cornerRadius = 8
+            btn.layer.cornerRadius = 0
             btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
             btn.tag = stationKinds.firstIndex(of: kind) ?? 0
             btn.addTarget(self, action: #selector(kindSelected(_:)), for: .touchUpInside)
@@ -179,10 +179,10 @@ final class AddStationSheetViewController: UIViewController {
 
         // Save
         saveButton.setTitle(mode.isEdit ? "Save Changes" : "Add to Workout", for: .normal)
-        saveButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+        saveButton.titleLabel?.font = DesignTokens.Font.wide(15, weight: .heavy)
         saveButton.setTitleColor(.black, for: .normal)
         saveButton.backgroundColor = DesignTokens.Color.accent
-        saveButton.layer.cornerRadius = 22
+        saveButton.layer.cornerRadius = 0
         saveButton.accessibilityIdentifier = "stationEditor.saveButton"
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
     }

@@ -52,7 +52,7 @@ final class DarkAlertController: UIViewController {
 
     private func setupContainer() {
         containerView.backgroundColor = UIColor(white: 0.12, alpha: 1)
-        containerView.layer.cornerRadius = 16
+        containerView.layer.cornerRadius = 0
         containerView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(containerView)
         NSLayoutConstraint.activate([
@@ -101,7 +101,7 @@ final class DarkAlertController: UIViewController {
             tf.backgroundColor = UIColor(white: 0.2, alpha: 1)
             tf.textColor = .white
             tf.borderStyle = .none
-            tf.layer.cornerRadius = 10
+            tf.layer.cornerRadius = 0
             let padding = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 0))
             tf.leftView = padding
             tf.leftViewMode = .always
@@ -121,7 +121,7 @@ final class DarkAlertController: UIViewController {
             let btn = UIButton(type: .system)
             btn.setTitle(action.title, for: .normal)
             btn.titleLabel?.font = .systemFont(ofSize: 16, weight: action.style == .cancel ? .regular : .bold)
-            btn.layer.cornerRadius = 12
+            btn.layer.cornerRadius = 0
             btn.heightAnchor.constraint(equalToConstant: 44).isActive = true
 
             switch action.style {
