@@ -145,8 +145,8 @@ public enum GarminMessageCodec {
             let payload = envelope[Key.payload] as? [String: Any],
             let idString = payload["id"] as? String,
             let templateName = payload["templateName"] as? String,
-            let startedAtMs = payload["startedAtMs"] as? Int64,
-            let finishedAtMs = payload["finishedAtMs"] as? Int64,
+            let startedAtMs = int64(payload["startedAtMs"]),
+            let finishedAtMs = int64(payload["finishedAtMs"]),
             let rawSegments = payload["segments"] as? [[String: Any]]
         else { return nil }
 
@@ -164,19 +164,24 @@ public enum GarminMessageCodec {
         )
     }
 
+    /// Millisecond fields arrive as NSNumber from Connect IQ; accept any integer width.
+    private static func int64(_ value: Any?) -> Int64? {
+        (value as? NSNumber)?.int64Value
+    }
+
     private static func decodeSegment(_ dict: [String: Any]) -> SegmentRecord? {
         guard
             let index = dict["index"] as? Int,
             let typeRaw = dict["type"] as? String,
             let type = SegmentType(rawValue: typeRaw),
-            let startedAtMs = dict["startedAtMs"] as? Int64,
-            let endedAtMs = dict["endedAtMs"] as? Int64
+            let startedAtMs = int64(dict["startedAtMs"]),
+            let endedAtMs = int64(dict["endedAtMs"])
         else { return nil }
 
-        let pausedMs = (dict["pausedDurationMs"] as? Int64) ?? 0
+        let pausedMs = int64(dict["pausedDurationMs"]) ?? 0
         let hrRaw = dict["heartRateSamples"] as? [[String: Any]] ?? []
         let hrSamples = hrRaw.compactMap { sample -> HeartRateSample? in
-            guard let tMs = sample["tMs"] as? Int64,
+            guard let tMs = int64(sample["tMs"]),
                   let bpm = sample["bpm"] as? Int else { return nil }
             return HeartRateSample(
                 timestamp: Date(timeIntervalSince1970: TimeInterval(tMs) / 1000.0),

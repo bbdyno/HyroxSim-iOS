@@ -53,7 +53,7 @@ final class WorkoutSummaryViewModelTests: XCTestCase {
     func testHeaderTexts() {
         let vm = WorkoutSummaryViewModel(workout: makeSampleWorkout())
         XCTAssertEqual(vm.totalTimeText, "0:10:30")
-        XCTAssertEqual(vm.titleText, "Men's Open — Singles")
+        XCTAssertEqual(vm.titleText, "Test Workout")
         XCTAssertEqual(vm.totalGoalText, "0:11:00")
         XCTAssertEqual(vm.totalDelta.text, "-0:30")
         XCTAssertFalse(vm.dateText.isEmpty)
@@ -187,7 +187,7 @@ final class WorkoutSummaryViewModelTests: XCTestCase {
 
     func testShareText() {
         let vm = WorkoutSummaryViewModel(workout: makeSampleWorkout())
-        XCTAssertTrue(vm.shareText.contains("Men's Open — Singles"))
+        XCTAssertTrue(vm.shareText.contains("Test Workout"))
         XCTAssertTrue(vm.shareText.contains("0:10:30"))
         XCTAssertTrue(vm.shareText.contains("Goal: 0:11:00"))
         XCTAssertTrue(vm.shareText.contains("Delta: -0:30"))
