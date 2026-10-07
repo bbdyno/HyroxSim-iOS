@@ -10,6 +10,8 @@ import HyroxCore
 
 struct SummaryView: View {
     let workout: CompletedWorkout
+    /// 로컬 저장 실패 표시. 결과는 체크포인트로 남아 다음 실행에서 저장을 재시도한다.
+    var saveFailed: Bool = false
     var onDone: (() -> Void)? = nil
 
     private let accent = Color(red: 1.0, green: 0.84, blue: 0.0)
@@ -37,6 +39,10 @@ struct SummaryView: View {
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
 
+                if saveFailed {
+                    saveFailedRow
+                }
+
                 heartSummaryRow
 
                 ForEach(Array(workout.segments.enumerated()), id: \.element.id) { index, record in
@@ -57,6 +63,18 @@ struct SummaryView: View {
         .background(Color.black)
         .navigationTitle(onDone != nil ? HyroxSimWatchStrings.Localizable.Nav.complete : HyroxSimWatchStrings.Localizable.Nav.detail)
         .navigationBarBackButtonHidden(onDone != nil)
+    }
+
+    private var saveFailedRow: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 10, weight: .bold))
+            Text(HyroxSimWatchStrings.Localizable.Summary.saveFailed)
+                .font(.system(size: 11, weight: .bold))
+                .multilineTextAlignment(.leading)
+        }
+        .foregroundStyle(.red)
+        .padding(.vertical, 2)
     }
 
     private var heartSummaryRow: some View {

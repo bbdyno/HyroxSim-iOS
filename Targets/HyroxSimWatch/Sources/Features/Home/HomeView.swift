@@ -17,6 +17,7 @@ struct HomeView: View {
     @State private var customTemplates: [WorkoutTemplate] = []
     @State private var navigationPath = NavigationPath()
     @State private var overrideRefresh = 0
+    @State private var raceTarget: RaceTarget?
     private let goalOverrideStore = TemplateGoalOverrideStore()
 
     private let accent = Color(red: 1.0, green: 0.84, blue: 0.0)
@@ -25,6 +26,10 @@ struct HomeView: View {
         NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(spacing: 8) {
+                    if let raceTarget {
+                        raceCountdownStrip(raceTarget)
+                    }
+
                     if !customTemplates.isEmpty {
                         sectionHeader("SAVED TEMPLATES")
                         ForEach(customTemplates) { t in
@@ -80,6 +85,7 @@ struct HomeView: View {
             }
             .onAppear {
                 customTemplates = (try? persistence.fetchAllTemplates()) ?? []
+                reloadRaceTarget()
             }
             .onReceive(NotificationCenter.default.publisher(for: .hyroxTemplateGoalOverrideUpdated)) { _ in
                 overrideRefresh &+= 1
@@ -87,7 +93,41 @@ struct HomeView: View {
             .onReceive(NotificationCenter.default.publisher(for: .hyroxCustomTemplatesUpdated)) { _ in
                 customTemplates = (try? persistence.fetchAllTemplates()) ?? []
             }
+            .onReceive(NotificationCenter.default.publisher(for: .hyroxRaceTargetUpdated)) { _ in
+                reloadRaceTarget()
+            }
         }
+    }
+
+    /// 다가오는 대회만 읽는다. 지난 대회는 폰 히스토리용이라 워치에는 띄우지 않는다.
+    private func reloadRaceTarget() {
+        raceTarget = try? persistence.fetchUpcomingRaceTarget()
+    }
+
+    /// 홈 최상단 D-day 줄. 워치는 편집을 못 하므로 읽기 전용이다.
+    private func raceCountdownStrip(_ target: RaceTarget) -> some View {
+        let days = target.daysRemaining()
+        let dDay = days == 0
+            ? HyroxSimWatchStrings.Localizable.RaceTarget.dday
+            : "D-\(days)"
+
+        return HStack(spacing: 6) {
+            Text(dDay)
+                .font(.system(size: 14, weight: .black))
+                .foregroundStyle(accent)
+            Text(target.eventName)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.06))
+        .cornerRadius(8)
+        .padding(.top, 4)
     }
 
     private func sectionHeader(_ text: String) -> some View {

@@ -16,16 +16,15 @@ public enum StationTarget: Codable, Hashable, Sendable {
     case none
 
     /// Human-readable formatted string
+    /// 비정상 값(NaN/무한대/`Int` 범위 초과)이 들어와도 트랩 없이 포맷한다.
     public var formatted: String {
         switch self {
         case .distance(let meters):
-            return "\(Int(meters)) m"
+            return "\(DurationFormatter.safeInt(meters)) m"
         case .reps(let count):
             return "\(count) reps"
         case .duration(let seconds):
-            let mins = Int(seconds) / 60
-            let secs = Int(seconds) % 60
-            return String(format: "%02d:%02d", mins, secs)
+            return DurationFormatter.ms(seconds)
         case .none:
             return "—"
         }

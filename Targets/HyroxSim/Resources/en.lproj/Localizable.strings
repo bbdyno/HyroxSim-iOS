@@ -3,6 +3,10 @@
 "pace_planner.mode.hint.equal" = "Evenly split across 8 runs";
 "pace_planner.mode.hint.adaptive" = "Data-based per-run split";
 "pace_planner.percentile.format" = "Top %.1f%%";
+"pace_planner.data_range.hint" = "Data covers %@ – %@";
+"pace_planner.warning.too_fast" = "Faster than the data. The fastest goal we can plan is %@.";
+"pace_planner.warning.too_slow" = "Slower than the data. The slowest goal we can plan is %@.";
+"pace_planner.warning.unbalanced" = "This goal cannot be split exactly. Pick a nearby time.";
 
 // MARK: - Alerts
 "alert.end_workout.title" = "End workout?";
@@ -89,3 +93,249 @@
 "history.empty" = "No workouts yet.\nComplete your first HYROX!";
 "builder.empty" = "Tap a button below to add your first segment";
 "workout.swipe_back_hint" = "Swipe back";
+
+// MARK: - Legal
+"settings.footer.unofficial" = "Unofficial app. Not affiliated with, endorsed by, or connected to HYROX. HYROX is a trademark of its respective owner.";
+
+// MARK: - Summary gap analysis
+"summary.gap.title" = "Time to reclaim";
+"summary.gap.subtitle_format" = "Goal %@ · %@";
+"summary.gap.subtitle_goal_format" = "Goal %@";
+"summary.gap.headline_format" = "%@ to find before you hit your goal";
+"summary.gap.goal_met_format" = "You beat the goal by %@.";
+"summary.gap.no_goal" = "Set a goal to unlock this analysis.";
+"summary.gap.no_reference" = "That goal sits outside our reference results.";
+"summary.gap.share_format" = "%d%% of the gap";
+"summary.gap.remainder_format" = "%d more splits · %@";
+"summary.gap.row.run" = "Running (8 laps)";
+"summary.gap.row.rox_zone" = "Rox Zone";
+
+// MARK: - Summary heart rate zones
+"summary.zones.title" = "HR Zones";
+
+// MARK: - Summary share card
+"summary.share.tagline" = "Simulated with HYROX SIM";
+
+// MARK: - Home / My Race
+"home.section.training_sessions" = "TRAINING SESSIONS";
+"home.race_target.badge" = "MY RACE";
+"home.race_target.dday" = "D-DAY";
+"home.race_target.goal_format" = "Goal %@";
+"home.race_target.no_goal" = "No goal time yet";
+"home.race_target.empty.title" = "Add your race";
+"home.race_target.empty.subtitle" = "Count down the days and set a goal time";
+
+// MARK: - My Race editor
+"race_target.title.new" = "New Race";
+"race_target.title.edit" = "My Race";
+"race_target.field.event_name" = "EVENT";
+"race_target.field.event_name.placeholder" = "HYROX Seoul";
+"race_target.field.city" = "CITY";
+"race_target.field.city.placeholder" = "Seoul";
+"race_target.field.date" = "RACE DAY";
+"race_target.field.division" = "DIVISION";
+"race_target.field.division.undecided" = "Undecided";
+"race_target.field.goal" = "GOAL FINISH TIME";
+"race_target.field.goal.unset" = "No goal";
+"race_target.field.note" = "NOTE";
+"race_target.field.note.placeholder" = "Travel, partner, gear…";
+"race_target.hint.past_date" = "This date has passed. The race is kept as a record but won't appear in the home countdown.";
+"race_target.error.empty_name" = "Enter the event name.";
+"race_target.alert.delete.title" = "Delete race?";
+"race_target.alert.delete.message" = "“%@” will be removed from this phone.";
+
+// MARK: - Training sessions
+"training_session.compromised_run.name" = "Compromised Run";
+"training_session.compromised_run.summary" = "1 km run straight into lunges, 4 rounds. Trains the run that decides your race.";
+"training_session.half_simulation.name" = "Half Simulation";
+"training_session.half_simulation.summary" = "Runs 1–4 with the first four stations, at full race volume.";
+"training_session.station_intervals.name" = "Station Intervals";
+"training_session.station_intervals.summary" = "3 rounds of wall balls, burpees and lunges — the stations that cost the most time.";
+"training_session.roxzone_drill.name" = "ROX Zone Drill";
+"training_session.roxzone_drill.summary" = "400 m run, ROX Zone, station entry. Repeat until transitions are automatic.";
+"training_session.wall_ball_ladder.name" = "Wall Ball Ladder";
+"training_session.wall_ball_ladder.summary" = "Race-volume wall balls broken into a descending ladder: 30·25·20·15·10.";
+
+// MARK: - Garmin connection state
+"settings.row.garmin.subtitle.not_paired" = "No device selected";
+"settings.row.garmin.subtitle.bluetooth_off" = "Bluetooth is off";
+"settings.row.garmin.subtitle.not_found" = "Device not found";
+"settings.row.garmin.subtitle.device_format" = "%@ · %@";
+"settings.row.garmin.disconnect" = "Disconnect Device";
+"settings.row.garmin.disconnect_subtitle" = "Stop syncing with this watch";
+"alert.garmin_disconnect.title" = "Disconnect device?";
+"alert.garmin_disconnect.message" = "HyroxSim will stop syncing with %@. Anything still waiting to be sent is discarded.";
+"button.disconnect" = "Disconnect";
+
+// MARK: - History delete failure
+"alert.delete_workout_failed.title" = "Couldn't delete";
+"alert.delete_workout_failed.message" = "This workout couldn't be deleted. Please try again.";
+
+// MARK: - Race Day — hub
+"race_day.hub.title" = "Race Day";
+"race_day.hub.pace_card.title" = "Race pace card";
+"race_day.hub.pace_card.subtitle" = "Splits and cumulative target times";
+"race_day.hub.checklist.title" = "Race day checklist";
+"race_day.hub.checklist.subtitle" = "Rules, gear, fuel and warm-up";
+"race_day.hub.no_race" = "No race registered — using this workout's targets";
+"race_day.hub.goal_format" = "Goal %@";
+"race_day.hub.dday_format" = "D-%d";
+"race_day.hub.dday_today" = "D-DAY";
+"race_day.hub.past_race" = "This race is over";
+
+// MARK: - Race Day — pace card
+"race_day.pace_card.title" = "Pace Card";
+"race_day.pace_card.column.segment" = "SEGMENT";
+"race_day.pace_card.column.split" = "SPLIT";
+"race_day.pace_card.column.cumulative" = "ELAPSED";
+"race_day.pace_card.scaled_notice" = "Splits scaled to your race goal.";
+"race_day.pace_card.fast_lane_hint" = "Rulebook: runs at 4:00/km or faster belong in the Fast Lane.";
+"race_day.pace_card.no_goal.title" = "This workout has no target times";
+"race_day.pace_card.no_goal.message" = "Set segment targets or a goal time and the pace card fills in.";
+"race_day.pace_card.share" = "Save or share image";
+"race_day.pace_card.share_failed" = "Couldn't build the image";
+
+// MARK: - Race Day — checklist screen
+"race_day.checklist.title" = "Race Day Checklist";
+"race_day.checklist.section.rule" = "RULES";
+"race_day.checklist.section.gear" = "GEAR";
+"race_day.checklist.section.nutrition" = "FUEL & WARM-UP";
+"race_day.checklist.section.rule.footer" = "Straight from the HYROX 26/27 rulebook.";
+"race_day.checklist.reset" = "Reset checklist";
+"race_day.checklist.reset.title" = "Reset checklist?";
+"race_day.checklist.reset.message" = "Every item goes back to unchecked.";
+"race_day.checklist.past_race_notice" = "That race is done. Reset the list for the next one.";
+"race_day.checklist.progress_format" = "%1$d / %2$d";
+
+// MARK: - Race Day — workout screen
+"race_day.workout.add_lap" = "Add lap";
+"race_day.workout.remove_lap" = "Remove lap";
+"race_day.workout.race_mode" = "Race mode";
+"race_day.workout.open" = "Race day";
+"race_day.workout.lap_hint" = "Count your own laps";
+
+// MARK: - Race Day — checklist items (rules, from the 26/27 rulebook)
+"race_day.checklist.chip_ankle.title" = "Timing chip strapped to your ankle";
+"race_day.checklist.chip_ankle.evidence" = "Rulebook: the chip is worn on the ankle. No chip at the start means DNS.";
+"race_day.checklist.assigned_wave.title" = "Start only in your assigned wave";
+"race_day.checklist.assigned_wave.evidence" = "Rulebook: starting in a wave you were not assigned to is a disqualification.";
+"race_day.checklist.count_laps.title" = "Count your own run laps";
+"race_day.checklist.count_laps.evidence" = "Rulebook: lap counting is the athlete's job. A missed run lap costs 3, 5 or 7 minutes, or the race.";
+"race_day.checklist.finish_every_station.title" = "Finish every station in full";
+"race_day.checklist.finish_every_station.evidence" = "Rulebook: an unfinished station is a disqualification, not a time penalty.";
+"race_day.checklist.sandbag_shoulder.title" = "Keep the sandbag on your shoulders";
+"race_day.checklist.sandbag_shoulder.evidence" = "Rulebook: every time the sandbag drops off the shoulders costs 15 seconds.";
+"race_day.checklist.event_chalk_only.title" = "Use the chalk provided at the venue";
+"race_day.checklist.event_chalk_only.evidence" = "Rulebook: only event-supplied chalk is allowed. Your own chalk costs 2 minutes.";
+"race_day.checklist.no_pouring_drinks.title" = "Never pour a drink over your body";
+"race_day.checklist.no_pouring_drinks.evidence" = "Rulebook: pouring any drink over yourself costs 2 minutes.";
+"race_day.checklist.fast_lane.title" = "Move to the Fast Lane under 4:00/km";
+"race_day.checklist.fast_lane.evidence" = "Rulebook: runs at 4:00/km or faster belong in the Fast Lane.";
+
+// MARK: - Race Day — checklist items (gear)
+"race_day.checklist.bib_front.title" = "Bib pinned on the front, fully visible";
+"race_day.checklist.shoes_laced.title" = "Race shoes on, laces double-knotted";
+"race_day.checklist.grips_ready.title" = "Gloves or grips packed for sled and carry";
+"race_day.checklist.bag_drop.title" = "Change of clothes and towel in bag drop";
+"race_day.checklist.devices_charged.title" = "Watch and phone charged, race template loaded";
+
+// MARK: - Race Day — checklist items (fuel & warm-up)
+"race_day.checklist.main_meal.title" = "Main meal 3 hours before your wave";
+"race_day.checklist.light_carbs.title" = "Light carbs 60 minutes before";
+"race_day.checklist.hydration.title" = "500 ml of water across the last 2 hours";
+"race_day.checklist.caffeine.title" = "Caffeine timed 45 minutes before the start";
+"race_day.checklist.warm_up.title" = "Warm-up starts 30 minutes before your wave";
+
+// MARK: - Progress tracking
+"home.action.progress" = "Progress";
+"progress.title" = "Progress";
+"progress.load_failed" = "Couldn't read your records";
+"progress.empty.title" = "Not enough races yet";
+"progress.empty.message" = "Record two official HYROX courses and this screen starts tracking what changed: finish time, percentile, how much your running fades, and the stations costing you the most.";
+"progress.empty.count_format" = "%d race recorded so far";
+"progress.section.finish" = "FINISH TIME";
+"progress.section.percentile" = "PERCENTILE";
+"progress.section.running" = "RUNNING";
+"progress.section.segments" = "WHERE THE TIME GOES";
+"progress.finish.best_format" = "Best %@";
+"progress.finish.delta_faster_format" = "%@ faster than your first race";
+"progress.finish.delta_slower_format" = "%@ slower than your first race";
+"progress.finish.delta_same" = "Same as your first race";
+"progress.percentile.value_format" = "Top %.1f%%";
+"progress.percentile.unavailable" = "Not enough reference data for this division yet.";
+"progress.running.first_pace" = "FIRST RUN";
+"progress.running.fade" = "RUN 8 / RUN 1";
+"progress.running.fade_hint" = "1.00 means you held the opening pace to the end. Starting too fast is what pushes this number up.";
+"progress.segments.first_marker" = "The diamond marks your first race.";
+"progress.footer.division_format" = "Comparing %@ races only";
+"progress.footer.dataset_format" = "Percentiles from the %@ dataset";
+"progress.footer.skipped_format" = "%d record(s) skipped: unreadable, or a different course";
+
+// MARK: - Race planning tools (entry rows on My Race)
+"race_target.section.planning" = "PLANNING";
+"race_target.action.team_split" = "Split plan";
+"race_target.action.team_split.subtitle" = "Divide the stations with your partner";
+"race_target.action.benchmark" = "PFT benchmark";
+"race_target.action.benchmark.subtitle" = "Find your division from one fitness test";
+
+// MARK: - Team split planner
+"team_split.title" = "Split Plan";
+"team_split.format.doubles" = "Doubles · 2";
+"team_split.format.relay" = "Relay · 4";
+"team_split.section.goal" = "TEAM GOAL";
+"team_split.section.workload" = "WORKLOAD";
+"team_split.section.stations" = "STATION SPLIT";
+"team_split.rule.doubles" = "Stations are split freely, but both partners run every lap together. Running ahead costs a 1-minute penalty, and more than three breaks means disqualification — so running time is shared, not divided.";
+"team_split.rule.relay" = "Each athlete covers 2 × (1 km + one station), so the running is divided with the stations. Weights follow each athlete's own Open division.";
+"team_split.summary.projected" = "Projected finish";
+"team_split.summary.shared_run" = "Run together";
+"team_split.summary.run_per_athlete" = "Running each";
+"team_split.summary.load_gap" = "Load gap";
+"team_split.summary.even" = "Even split";
+"team_split.member.stations" = "Stations";
+"team_split.member.running" = "Running";
+"team_split.member.rest" = "Rest";
+"team_split.button.reset" = "Reset to even split";
+"team_split.warning.imbalance" = "One athlete is carrying %d%% of the station work. You still have to run together, so the heavier side sets the pace.";
+"team_split.note.reference" = "Station times come from %@ race results at this finish time.";
+"team_split.note.estimated" = "No published relay table exists, so these splits are scaled from %@ results. Reference only.";
+"team_split.share.format" = "%d%%";
+
+// MARK: - PFT benchmark
+"pft.template.name" = "HYROX PFT";
+"pft.template.summary" = "The official fitness test: 1 km run, 50 burpee broad jumps, 100 m lunges, 1 km row, 30 push-ups, 100 wall balls.";
+"pft.step.run.name" = "Run";
+"pft.step.burpee_broad_jumps.name" = "Burpee Broad Jumps";
+"pft.step.lunges.name" = "Lunges";
+"pft.step.row.name" = "Row";
+"pft.step.push_ups.name" = "Hand-Release Push-ups";
+"pft.step.wall_balls.name" = "Wall Balls";
+"benchmark.title" = "PFT Benchmark";
+"benchmark.section.protocol" = "TEST PROTOCOL";
+"benchmark.section.time" = "YOUR TIME";
+"benchmark.section.division" = "PROJECT AGAINST";
+"benchmark.section.result" = "RESULT";
+"benchmark.section.splits" = "SPLIT PERCENTILES";
+"benchmark.section.next" = "NEXT STEP";
+"benchmark.recommend.pro" = "PRO";
+"benchmark.recommend.open" = "OPEN";
+"benchmark.recommend.headline" = "This time points at the %@ division.";
+"benchmark.projection.title" = "Projected HYROX finish";
+"benchmark.projection.range" = "%@ – %@";
+"benchmark.projection.basis" = "Against %@ results";
+"benchmark.projection.percentile" = "Top %d%% – %d%%";
+"benchmark.note.source" = "Pro 15–25 min and Open 25–35 min are reported reference figures, not an official formula — treat the range as a guide.";
+"benchmark.note.outside_band" = "This time sits outside the reported 15–35 minute band, so the range is widened.";
+"benchmark.record.source" = "From your PFT on %@";
+"benchmark.record.none" = "No PFT record yet. Enter the time by hand, or run the PFT template to unlock split percentiles.";
+"benchmark.record.edited" = "Split percentiles apply to the recorded time only.";
+"benchmark.splits.empty" = "Run the PFT in the app to compare your splits with race results.";
+"benchmark.splits.approximate" = "approx.";
+"benchmark.splits.percentile" = "Top %.1f%%";
+"benchmark.next.body" = "Run a full race simulation next. Its summary opens the gap analysis, which shows where the time actually goes.";
+"benchmark.unavailable" = "No reference results for this division yet.";
+
+// MARK: - Race day entry
+"home.action.race_day" = "Race day toolkit";
+"training_session.pft_benchmark.name" = "Physical Fitness Test";
+"training_session.pft_benchmark.summary" = "The official six-part test — repeat it every few weeks to see where you stand.";

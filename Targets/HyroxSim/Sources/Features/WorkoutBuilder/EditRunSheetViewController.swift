@@ -24,9 +24,15 @@ final class EditRunSheetViewController: UIViewController {
 
     init(mode: AddStationMode) {
         self.mode = mode
-        if case .edit(let seg, _) = mode { self.distance = seg.distanceMeters ?? 1000 }
+        if case .edit(let seg, _) = mode { self.distance = Self.sanitizedDistance(seg.distanceMeters) }
         else { self.distance = 1000 }
         super.init(nibName: nil, bundle: nil)
+    }
+
+    /// 저장된 값이 비정상이거나 범위를 벗어나도 안전하게 표시할 수 있도록 다듬는다.
+    private static func sanitizedDistance(_ meters: Double?) -> Double {
+        guard let meters, meters.isFinite else { return 1000 }
+        return LocalizedDecimalFormatter.clamped(meters, to: NumericInputLimits.distanceMeters)
     }
 
     @available(*, unavailable)
@@ -61,12 +67,13 @@ final class EditRunSheetViewController: UIViewController {
         label.textColor = DesignTokens.Color.accent
         stack.addArrangedSubview(label)
 
-        distanceField.text = "\(Int(distance))"
+        distanceField.text = "\(LocalizedDecimalFormatter.safeInt(distance))"
         distanceField.keyboardType = .numberPad
         distanceField.font = DesignTokens.Font.largeNumber
         distanceField.textAlignment = .center
         distanceField.applyDarkStyle()
         distanceField.heightAnchor.constraint(equalToConstant: 64).isActive = true
+        distanceField.inputAccessoryView = makeDoneToolbar()
         stack.addArrangedSubview(distanceField)
 
         let presetStack = UIStackView()
@@ -97,10 +104,36 @@ final class EditRunSheetViewController: UIViewController {
         stack.addArrangedSubview(saveBtn)
     }
 
+    /// `.numberPad` 에는 return 키가 없어 키보드를 내릴 수단이 필요하다.
+    private func makeDoneToolbar() -> UIToolbar {
+        let toolbar = UIToolbar()
+        toolbar.barStyle = .black
+        toolbar.tintColor = DesignTokens.Color.accent
+        toolbar.items = [
+            UIBarButtonItem(systemItem: .flexibleSpace),
+            UIBarButtonItem(systemItem: .done, primaryAction: UIAction { [weak self] _ in
+                self?.view.endEditing(true)
+            })
+        ]
+        toolbar.sizeToFit()
+        return toolbar
+    }
+
     @objc private func presetTapped(_ sender: UIButton) { distanceField.text = "\(sender.tag)" }
 
     @objc private func saveTapped() {
-        let meters = Double(distanceField.text ?? "") ?? 1000
-        delegate?.editRunDidSave(distanceMeters: max(1, meters), mode: mode)
+        view.endEditing(true)
+        let text = distanceField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let parsed = text.isEmpty ? distance : LocalizedDecimalFormatter.finiteValue(from: text)
+        guard let parsed, NumericInputLimits.distanceMeters.contains(parsed) else {
+            let alert = DarkAlertController(
+                title: HyroxSimStrings.Localizable.Alert.Error.title,
+                message: "Enter a distance between 1 and 100,000 m."
+            )
+            alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+            present(alert, animated: true)
+            return
+        }
+        delegate?.editRunDidSave(distanceMeters: parsed, mode: mode)
     }
 }

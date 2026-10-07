@@ -24,6 +24,10 @@ public final class GarminBridge: NSObject {
 
     public static let shared = GarminBridge()
 
+    /// hello 를 다시 보내기까지의 최소 간격. 연결 상태가 바뀌면 이 간격을
+    /// 무시하고 즉시 보낸다(상태 변화가 더 강한 신호이므로).
+    public static let helloMinimumInterval: TimeInterval = 60
+
     private let logger = Logger(subsystem: "com.bbdyno.app.HyroxSim", category: "Garmin")
 
     public private(set) var connectedDevice: IQDevice?
@@ -31,11 +35,21 @@ public final class GarminBridge: NSObject {
     /// True once a device has been connected. Used as a precondition by
     /// sync services that refuse to transmit until the user has completed
     /// pairing in Garmin Connect Mobile.
+    ///
+    /// ⚠️ "기기를 고른 적이 있다" 는 뜻이지 "지금 통신할 수 있다" 가 아니다.
+    /// 실제 통신 가능 여부는 `connectionState.isConnected` 를 봐야 한다.
     public var isPaired: Bool { connectedDevice != nil }
     public var connectedDeviceName: String? { connectedDevice?.friendlyName }
+    /// 기기를 해제한 뒤에도 마지막 이름을 기억한다(설정 화면 표시용).
+    public var lastKnownDeviceName: String? { connectedDevice?.friendlyName ?? deviceStore.lastKnownName }
+
+    /// 지금의 실제 연결 상태. `IQDeviceStatus` 를 프레임워크 의존 없는 값으로 옮긴 것.
+    public private(set) var connectionState: GarminConnectionState = .notPaired
 
     public var onMessageReceived: (([String: Any]) -> Void)?
     public var onDeviceStatusChanged: ((IQDeviceStatus) -> Void)?
+    /// 연결 상태가 바뀔 때마다. 설정 화면이 실시간으로 갱신되도록.
+    public var onConnectionStateChanged: ((GarminConnectionState) -> Void)?
     /// Fired whenever the connected device changes (pairing success, user
     /// unpairs, etc.). `nil` device = disconnected.
     public var onConnectedDeviceChanged: ((IQDevice?) -> Void)?
@@ -48,6 +62,9 @@ public final class GarminBridge: NSObject {
     private let sdk = ConnectIQ.sharedInstance()
     private let deviceStore = GarminDeviceStore()
     private var trackedApp: IQApp?
+
+    private var lastHelloSentAt: Date?
+    private var lastHelloState: GarminConnectionState?
 
     private override init() {
         super.init()
@@ -101,20 +118,73 @@ public final class GarminBridge: NSObject {
             sdk?.register(forAppMessages: app, delegate: self)
         }
         onConnectedDeviceChanged?(device)
-        logger.info("registered device=\(device.friendlyName ?? "?", privacy: .public) — waiting for characteristics discovery")
+        // 등록 직후의 실제 상태를 즉시 반영한다. 첫 status 콜백을 기다리는
+        // 동안 화면이 "연결됨" 으로 거짓말하지 않도록.
+        let status = sdk?.getDeviceStatus(device) ?? .notConnected
+        updateConnectionState(GarminConnectionState(status))
+        logger.info("registered device=\(device.friendlyName ?? "?", privacy: .public) status=\(status.rawValue) — waiting for characteristics discovery")
     }
 
-    public func sendHello() {
+    /// 사용자가 설정에서 기기를 해제했다. 등록을 풀고 저장소를 비운다.
+    /// 밀려 있던 전송 큐도 버린다 — 다음 기기가 남의 큐를 물려받으면 안 된다.
+    public func disconnectDevice() {
+        let name = connectedDevice?.friendlyName ?? "?"
+        if let device = connectedDevice {
+            sdk?.unregister(forDeviceEvents: device, delegate: self)
+        }
+        if let app = trackedApp {
+            sdk?.unregister(forAppMessages: app, delegate: self)
+        }
+        connectedDevice = nil
+        trackedApp = nil
+        deviceStore.clear()
+        lastHelloSentAt = nil
+        lastHelloState = nil
+        onConnectedDeviceChanged?(nil)
+        updateConnectionState(.notPaired)
+        logger.info("disconnected device=\(name, privacy: .public)")
+        Task { @MainActor in
+            GarminSyncDispatcher.shared.reset(reason: "device-disconnected")
+            GarminSyncStateStore().reset()
+        }
+    }
+
+    /// hello 를 보낸다.
+    ///
+    /// 디바운스: 마지막 hello 이후 `helloMinimumInterval` 이 지나지 않았고
+    /// 연결 상태도 그대로면 건너뛴다. 예전에는 앱이 포그라운드로 올라올
+    /// 때마다 무조건 보냈고, 매 ack 마다 전체 재동기화가 뒤따랐다.
+    /// - Parameter force: 간격을 무시하고 보낸다(사용자가 직접 요청한 경우).
+    public func sendHello(force: Bool = false, reason: String = "manual") {
+        let state = connectionState
+        if !force,
+           let last = lastHelloSentAt,
+           lastHelloState == state,
+           Date().timeIntervalSince(last) < Self.helloMinimumInterval {
+            logger.debug("hello skipped reason=\(reason, privacy: .public) state=\(state.rawValue, privacy: .public)")
+            return
+        }
+        lastHelloSentAt = Date()
+        lastHelloState = state
+
         let appVersion = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "0.0.0"
+        logger.info("hello reason=\(reason, privacy: .public) state=\(state.rawValue, privacy: .public)")
         sendEnvelope(GarminMessageCodec.makeEnvelope(
             type: GarminMessageCodec.MessageType.hello,
             payload: ["phone_os": "ios", "app_version": appVersion]
         ))
     }
 
+    /// 결과를 보지 않는 즉시 전송. `ack`/`nack`/`hello` 처럼 재전송할 가치가
+    /// 없는 메시지 전용이다. 상태 메시지는 `GarminSyncDispatcher` 를 써야 한다.
     public func sendEnvelope(_ envelope: [String: Any]) {
+        transmit(envelope) { _ in }
+    }
+
+    public func transmit(_ envelope: [String: Any], completion: @escaping (GarminSendOutcome) -> Void) {
         guard let app = trackedApp else {
-            logger.warning("sendEnvelope dropped — no paired device")
+            logger.warning("transmit dropped — no paired device")
+            completion(.failed(reason: "no-device"))
             return
         }
         let type = (envelope[GarminMessageCodec.Key.type] as? String) ?? "?"
@@ -123,8 +193,13 @@ public final class GarminBridge: NSObject {
             envelope,
             to: app,
             progress: nil,
-            completion: { [weak self] result in
-                self?.logger.info("TX result t=\(type, privacy: .public) r=\(result.rawValue)")
+            completion: { result in
+                // ConnectIQ 는 워치 앱이 닫혀 있으면 AppNotFound /
+                // DeviceNotAvailable 로 실패를 준다. 즉 success 는 "워치 앱이
+                // 실제로 받았다" 에 가깝고, outbox 의 제거 신호로 쓸 수 있다.
+                completion(result == .success
+                    ? .delivered
+                    : .failed(reason: "\(NSStringFromSendMessageResult(result) ?? "unknown")(\(result.rawValue))"))
             }
         )
     }
@@ -143,24 +218,40 @@ public final class GarminBridge: NSObject {
         ) else { return nil }
         return IQApp(uuid: uuid, store: UUID(), device: device)
     }
+
+    fileprivate func updateConnectionState(_ state: GarminConnectionState) {
+        guard state != connectionState else { return }
+        connectionState = state
+        onConnectionStateChanged?(state)
+        Task { @MainActor in
+            GarminSyncDispatcher.shared.connectionDidChange(to: state)
+        }
+    }
+}
+
+// MARK: - Transport
+
+extension GarminBridge: GarminEnvelopeTransport, GarminReplySender {
+    public var garminConnectionState: GarminConnectionState { connectionState }
 }
 
 extension GarminBridge: IQDeviceEventDelegate {
     public func deviceStatusChanged(_ device: IQDevice, status: IQDeviceStatus) {
         logger.info("device status \(device.friendlyName ?? "?", privacy: .public)=\(status.rawValue)")
         onDeviceStatusChanged?(status)
+        updateConnectionState(GarminConnectionState(status))
         // `deviceCharacteristicsDiscovered` only fires once per BLE session,
         // and CIQ does not queue app messages while the watch app is closed.
         // Resending hello on every reconnect gives the watch a fresh chance
         // to record pairing once the user opens the app on their watch.
         if status == .connected {
-            sendHello()
+            sendHello(reason: "status-connected")
         }
     }
 
     public func deviceCharacteristicsDiscovered(_ device: IQDevice) {
         logger.info("characteristics discovered \(device.friendlyName ?? "?", privacy: .public) — sending hello")
-        sendHello()
+        sendHello(reason: "characteristics")
     }
 }
 
@@ -177,6 +268,7 @@ extension GarminBridge: IQAppMessageDelegate {
             return
         }
         let type = (dict[GarminMessageCodec.Key.type] as? String) ?? "?"
+        let messageId = dict[GarminMessageCodec.Key.id] as? String
         logger.info("RX t=\(type, privacy: .public)")
         // Both signals mean "watch app is alive and ready to receive
         // state". hello.ack is the response to our outbound hello;
@@ -185,9 +277,29 @@ extension GarminBridge: IQAppMessageDelegate {
         // emitted a hello in the first place.
         if type == GarminMessageCodec.MessageType.helloAck
                 || type == GarminMessageCodec.MessageType.syncRequest {
+            // 큐에 밀려 있던 것부터 먼저 내보낸다. `onHelloAck` 의 변경분
+            // 재동기화는 그 뒤에 붙는다.
+            Task { @MainActor in GarminSyncDispatcher.shared.watchDidBecomeReachable() }
             onHelloAck?()
         }
+        // 워치가 우리 상태 메시지를 받았다는 확인. 큐에서 지운다.
+        if type == GarminMessageCodec.MessageType.ack, let messageId {
+            Task { @MainActor in GarminSyncDispatcher.shared.acknowledge(messageId: messageId) }
+        }
         onMessageReceived?(dict)
+    }
+}
+
+extension GarminConnectionState {
+    init(_ status: IQDeviceStatus) {
+        switch status {
+        case .invalidDevice: self = .notPaired
+        case .bluetoothNotReady: self = .bluetoothOff
+        case .notFound: self = .notFound
+        case .notConnected: self = .disconnected
+        case .connected: self = .connected
+        @unknown default: self = .disconnected
+        }
     }
 }
 
@@ -197,11 +309,16 @@ extension GarminBridge: IQAppMessageDelegate {
 /// compilation errors; runtime calls are no-ops that log a warning once.
 public final class GarminBridge {
     public static let shared = GarminBridge()
+    public static let helloMinimumInterval: TimeInterval = 60
+
     public var onMessageReceived: (([String: Any]) -> Void)?
     public var onConnectedDeviceChanged: ((Any?) -> Void)?
+    public var onConnectionStateChanged: ((GarminConnectionState) -> Void)?
     public var onHelloAck: (() -> Void)?
     public var isPaired: Bool { false }
     public var connectedDeviceName: String? { nil }
+    public var lastKnownDeviceName: String? { nil }
+    public var connectionState: GarminConnectionState { .notPaired }
 
     private init() {}
     public func bootstrap(urlScheme: String) {
@@ -209,8 +326,16 @@ public final class GarminBridge {
     }
     public func handle(url: URL) -> Bool { false }
     public func requestDeviceSelection() {}
-    public func sendHello() {}
+    public func disconnectDevice() {}
+    public func sendHello(force: Bool = false, reason: String = "manual") {}
     public func sendEnvelope(_ envelope: [String: Any]) {}
+    public func transmit(_ envelope: [String: Any], completion: @escaping (GarminSendOutcome) -> Void) {
+        completion(.failed(reason: "connectiq-not-linked"))
+    }
+}
+
+extension GarminBridge: GarminEnvelopeTransport, GarminReplySender {
+    public var garminConnectionState: GarminConnectionState { .notPaired }
 }
 
 #endif

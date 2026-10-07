@@ -30,7 +30,8 @@ struct WatchHistoryView: View {
                 List {
                     ForEach(workouts) { workout in
                         NavigationLink {
-                            SummaryView(workout: workout, onDone: {})
+                            // onDone 없이 열어야 "상세" 제목 + 뒤로가기가 유지된다.
+                            SummaryView(workout: workout)
                         } label: {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(workout.templateName)

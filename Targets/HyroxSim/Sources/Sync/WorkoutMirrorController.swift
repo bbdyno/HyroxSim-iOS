@@ -32,12 +32,27 @@ final class WorkoutMirrorController: NSObject {
     var onWorkoutFinished: ((WorkoutOrigin) -> Void)?
     var onConnectionChanged: ((Bool) -> Void)?
 
+    /// Live Activity 가 멈춘 채로 잠금화면에 남지 않도록 하는 stale 여유 시간.
+    private static let activityStaleInterval: TimeInterval = 4 * 60
+
     func activate() {
         healthStore.workoutSessionMirroringStartHandler = { [weak self] mirroredSession in
             Task { @MainActor in
                 self?.attachMirroredSession(mirroredSession)
             }
         }
+    }
+
+    /// 미러 운동을 외부(코디네이터의 무수신 워치독 등)에서 강제로 정리한다.
+    /// `onWorkoutFinished` 는 호출하지 않는다 — 화면 정리는 호출 측이 이어서 한다.
+    func abandonActiveWorkout() {
+        guard hasActiveWorkout || isConnected else { return }
+        mirroredSession?.delegate = nil
+        mirroredSession = nil
+        currentTemplate = nil
+        currentState = nil
+        isConnected = false
+        endLiveActivity()
     }
 
     func sendCommand(_ command: WorkoutCommand) {
@@ -157,6 +172,12 @@ private extension WorkoutMirrorController {
         mirroredSession?.delegate = nil
         mirroredSession = nil
         isConnected = false
+        // 미러 세션이 끊겼는데 template/state 를 붙들고 있으면 `hasActiveWorkout` 이
+        // 영원히 true 로 고정되어, WatchConnectivity 로 상태가 계속 들어와도
+        // 재연결 처리(`onReachabilityChanged`)가 전부 무시된다. 세션이 죽으면
+        // 미러 소유권도 같이 내려놓고 WC 경로가 이어받게 한다.
+        currentTemplate = nil
+        currentState = nil
         endLiveActivity()
         if let error {
             print("[Mirror] Mirrored session disconnected: \(error)")
@@ -169,9 +190,12 @@ private extension WorkoutMirrorController {
     func startOrUpdateLiveActivity(with state: LiveWorkoutState) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
+        // staleDate 를 매 업데이트마다 "현재 + 수 분"으로 갱신한다.
+        // 워치/앱이 죽어 업데이트가 끊기면 시스템이 stale 로 표시해 주므로
+        // 멈춘 시계가 잠금화면에 계속 살아 있는 것처럼 보이지 않는다.
         let content = ActivityContent(
             state: makeActivityState(from: state),
-            staleDate: nil
+            staleDate: Date().addingTimeInterval(Self.activityStaleInterval)
         )
 
         if let liveActivity {

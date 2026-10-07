@@ -43,6 +43,10 @@ public final class CoreLocationAdapter: NSObject, LocationStreaming, CLLocationM
         guard !isStarted else { return }
 
         if authorizationStatus == .notDetermined {
+            // 권한 요청은 한 번에 하나만. 이미 대기 중이면 중복 요청 대신 실패로 끝낸다.
+            guard authorizationContinuation == nil else {
+                throw SensorError.startFailed(reason: "Location authorization request already in progress")
+            }
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
                 self.authorizationContinuation = cont
                 self.manager.requestWhenInUseAuthorization()
@@ -84,13 +88,16 @@ public final class CoreLocationAdapter: NSObject, LocationStreaming, CLLocationM
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         updateAuthorizationStatus(manager.authorizationStatus)
 
-        if let authCont = authorizationContinuation {
-            authorizationContinuation = nil
-            if authorizationStatus == .authorized {
-                authCont.resume()
-            } else if authorizationStatus != .notDetermined {
-                authCont.resume(throwing: SensorError.authorizationDenied)
-            }
+        // CL 은 delegate 를 붙이는 순간 현재 상태(.notDetermined)로도 이 콜백을 한 번 호출한다.
+        // 그때 continuation 을 버려버리면 `start()` 가 영원히 깨어나지 못하므로,
+        // 권한이 실제로 결정된 뒤에만 continuation 을 소비한다.
+        guard authorizationStatus != .notDetermined else { return }
+        guard let authCont = authorizationContinuation else { return }
+        authorizationContinuation = nil
+        if authorizationStatus == .authorized {
+            authCont.resume()
+        } else {
+            authCont.resume(throwing: SensorError.authorizationDenied)
         }
     }
 

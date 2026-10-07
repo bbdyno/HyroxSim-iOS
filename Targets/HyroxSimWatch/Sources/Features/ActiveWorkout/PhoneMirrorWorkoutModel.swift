@@ -42,6 +42,8 @@ final class PhoneMirrorWorkoutModel {
     private(set) var gpsActive: Bool = true
     private(set) var isConnected: Bool = true
     private(set) var lastStateReceivedAt: Date?
+    /// 폰 상태가 오래 끊긴 상태. 미러에서 빠져나갈 수 있는 버튼 노출 조건.
+    private(set) var isStale: Bool = false
 
     // 보간용: 마지막 수신 스냅샷의 기준 시각 / elapsed / goal raw.
     private var lastBroadcastedAt: Date?
@@ -52,13 +54,19 @@ final class PhoneMirrorWorkoutModel {
     private var lastTotalGoalSeconds: TimeInterval?
     private var lastTotalGoalSoFarSeconds: TimeInterval?
 
+    /// 폰 상태 무수신을 "끊김"으로 판단하는 기준. 폰이 종료 신호를 못 보낸 경우의 탈출 경로.
+    private static let staleThreshold: TimeInterval = 45
+
     let templateName: String
     private let syncCoordinator: any SyncCoordinator
     private let maxHeartRate: Int
+    private let createdAt = Date()
     private var workoutSession: WatchWorkoutSession?
     private var hrRelayTask: Task<Void, Never>?
     private var alertedGoalSegmentIndex: Int?
     var goalAlertHandler: (() -> Void)?
+    /// 미러 종료 요청 — 폰 완료 상태 수신 또는 사용자가 직접 닫았을 때.
+    var onFinished: (() -> Void)?
 
     init(templateName: String, syncCoordinator: any SyncCoordinator, maxHeartRate: Int = 190) {
         self.templateName = templateName
@@ -69,6 +77,7 @@ final class PhoneMirrorWorkoutModel {
     /// 폰에서 수신한 LiveWorkoutState 반영
     func updateState(_ state: LiveWorkoutState) {
         lastStateReceivedAt = Date()
+        isStale = false
         segmentLabel = state.segmentLabel
         segmentSubLabel = state.segmentSubLabel
         currentDisplayTitle = state.currentDisplayTitle
@@ -117,11 +126,23 @@ final class PhoneMirrorWorkoutModel {
             alertedGoalSegmentIndex = state.currentSegmentIndex
             goalAlertHandler?()
         }
+
+        // 폰이 보내는 종료 메시지를 놓쳐도 마지막 상태의 isFinished 로 미러를 닫는다.
+        if state.isFinished {
+            closeMirror()
+        }
+    }
+
+    /// HR 릴레이 세션을 정리하고 미러 화면을 닫는다.
+    func closeMirror() {
+        stopHRSession()
+        onFinished?()
     }
 
     /// TimelineView 매 틱에서 호출. 마지막 스냅샷 기준 시각으로부터의 경과를 더해
     /// 타이머·세그먼트 델타·전체 델타 모두 로컬 클록으로 재계산 — 메시지 지연·드랍에 무관하게 정확.
     func interpolate(at now: Date) {
+        updateStaleness(at: now)
         guard
             let broadcastedAt = lastBroadcastedAt,
             let segSec = lastSegmentElapsedSeconds,
@@ -155,6 +176,13 @@ final class PhoneMirrorWorkoutModel {
             totalDeltaText = "—"
             isOverTotalGoal = false
         }
+    }
+
+    /// 폰 상태가 일정 시간 이상 끊기면 사용자가 직접 미러를 닫을 수 있게 한다.
+    /// 폰 앱 종료·블루투스 끊김이면 종료 메시지도 원격 명령도 도달하지 않기 때문.
+    private func updateStaleness(at now: Date) {
+        let last = lastStateReceivedAt ?? createdAt
+        isStale = now.timeIntervalSince(last) > Self.staleThreshold
     }
 
     // MARK: - HR Session (워치 HR → 폰 릴레이)

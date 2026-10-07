@@ -23,6 +23,11 @@ struct PhoneMirrorWorkoutView: View {
                     model.interpolate(at: context.date)
                 }
         }
+        .overlay {
+            if model.isStale {
+                staleOverlay
+            }
+        }
         .onAppear {
             model.goalAlertHandler = {
                 WKInterfaceDevice.current().play(.notification)
@@ -32,5 +37,33 @@ struct PhoneMirrorWorkoutView: View {
         .onDisappear { model.stopHRSession() }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    /// 폰 상태가 끊겼을 때의 탈출 경로. 미러 화면엔 뒤로가기가 없어 이 버튼이 유일한 출구다.
+    private var staleOverlay: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.red)
+
+            Text(HyroxSimWatchStrings.Localizable.Mirror.stale)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+
+            Button {
+                WKInterfaceDevice.current().play(.stop)
+                model.closeMirror()
+            } label: {
+                Text(HyroxSimWatchStrings.Localizable.Mirror.close)
+                    .font(.system(size: 14, weight: .bold))
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+            .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.94).ignoresSafeArea())
     }
 }

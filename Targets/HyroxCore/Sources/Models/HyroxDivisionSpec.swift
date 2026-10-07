@@ -88,7 +88,8 @@ public enum HyroxDivisionSpec {
         HyroxStationSpec(kind: .rowing, target: .distance(meters: 1000)),
         HyroxStationSpec(kind: .farmersCarry, target: .distance(meters: 200), weightKg: 16, weightNote: "per hand"),
         HyroxStationSpec(kind: .sandbagLunges, target: .distance(meters: 100), weightKg: 10),
-        HyroxStationSpec(kind: .wallBalls, target: .reps(count: 75), weightKg: 4),
+        // 24/25 · 25/26 · 26/27 룰북 모두 Women Open 월볼은 4kg · 100회 (75회 아님)
+        HyroxStationSpec(kind: .wallBalls, target: .reps(count: 100), weightKg: 4),
     ]
 
     // MARK: - Women's Pro (Single & Double identical)

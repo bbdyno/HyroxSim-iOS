@@ -42,15 +42,21 @@ struct WorkoutLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack {
-                        Label(context.state.heartRate, systemImage: "heart.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.red)
-                        Spacer()
-                        if context.state.isPaused {
-                            Text("PAUSED")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Label(context.state.heartRate, systemImage: "heart.fill")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.red)
+                            Spacer()
+                            if context.state.isPaused {
+                                Text("PAUSED")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+                        // 다음에 뭐가 오는지 — 대회장에서는 현재 구간보다 이쪽이 더 쓸모 있다.
+                        if let next = context.state.nextTargetText {
+                            nextTargetLine(next)
                         }
                     }
                     .padding(.horizontal, 4)
@@ -92,6 +98,9 @@ struct WorkoutLiveActivity: Widget {
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
+                if let next = context.state.nextTargetText {
+                    nextTargetLine(next)
+                }
             }
 
             Spacer()
@@ -115,6 +124,22 @@ struct WorkoutLiveActivity: Widget {
         }
         .padding(16)
         .background(Color.black)
+    }
+
+    // MARK: - 다음 목표
+
+    /// "NEXT Wall Balls · 04:10" 한 줄. 잠금화면과 확장 아일랜드가 같은 모양을 쓴다.
+    private func nextTargetLine(_ text: String) -> some View {
+        HStack(spacing: 4) {
+            Text("NEXT")
+                .font(.system(size: 9, weight: .black))
+                .foregroundStyle(Color(red: 1.0, green: 0.84, blue: 0.0))
+            Text(text)
+                .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
     }
 
     // MARK: - Helpers

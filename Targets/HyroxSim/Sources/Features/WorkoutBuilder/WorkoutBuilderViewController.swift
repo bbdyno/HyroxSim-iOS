@@ -216,7 +216,7 @@ final class WorkoutBuilderViewController: UIViewController {
     private func metaSummary() -> String {
         let s = viewModel.stationCount
         let km = viewModel.totalRunDistanceMeters / 1000
-        let m = Int(viewModel.estimatedDurationSeconds / 60)
+        let m = LocalizedDecimalFormatter.safeInt(viewModel.estimatedDurationSeconds / 60)
         return "\(s) stations · \(String(format: "%.1f", km)) km · ~\(m) min"
     }
 
@@ -248,9 +248,15 @@ final class WorkoutBuilderViewController: UIViewController {
         guard let template = try? viewModel.makeTemplateForStart() else { return }
 
         let rootVC: UIViewController
+        // 프리셋을 복제해 구조를 바꾼 템플릿은 디비전이 남아 있어도 8×8 기준 플랜을 쓸 수 없다.
         if template.division != nil,
+           template.isStandardHyroxCourse,
            let pacePlanner = try? PaceReferenceLoader.loadPacePlanner() {
-            let planner = PacePlannerViewController(template: template, planner: pacePlanner)
+            let planner = PacePlannerViewController(
+                template: template,
+                planner: pacePlanner,
+                goalOverrideStore: TemplateGoalOverrideStore()
+            )
             planner.delegate = self
             rootVC = planner
         } else {
@@ -277,9 +283,15 @@ final class WorkoutBuilderViewController: UIViewController {
         var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
         listConfig.backgroundColor = DesignTokens.Color.background
         listConfig.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
-            guard let self, let item = self.dataSource.itemIdentifier(for: indexPath), case .segment = item else { return nil }
+            guard let self,
+                  let item = self.dataSource.itemIdentifier(for: indexPath),
+                  case .segment(let uuid) = item else { return nil }
             let delete = UIContextualAction(style: .destructive, title: "Delete") { _, _, done in
-                self.viewModel.removeSegment(at: indexPath.row)
+                guard let index = self.viewModel.segments.firstIndex(where: { $0.id == uuid }) else {
+                    done(false)
+                    return
+                }
+                self.viewModel.removeSegment(at: index)
                 self.applySnapshot()
                 done(true)
             }
@@ -302,10 +314,8 @@ final class WorkoutBuilderViewController: UIViewController {
     }
 
     private func setupDataSource() {
-        let segReg = UICollectionView.CellRegistration<UICollectionViewListCell, UUID> { [weak self] cell, indexPath, _ in
-            guard let self else { return }
-            let idx = indexPath.row
-            guard idx < self.viewModel.segments.count else { return }
+        let segReg = UICollectionView.CellRegistration<UICollectionViewListCell, UUID> { [weak self] cell, _, id in
+            guard let self, let idx = self.viewModel.segments.firstIndex(where: { $0.id == id }) else { return }
             let seg = self.viewModel.segments[idx]
 
             var config = UIListContentConfiguration.subtitleCell()
@@ -360,13 +370,25 @@ final class WorkoutBuilderViewController: UIViewController {
         dataSource.reorderingHandlers.canReorderItem = { if case .segment = $0 { return true }; return false }
         dataSource.reorderingHandlers.didReorder = { [weak self] tx in
             guard let self else { return }
-            let ids = tx.finalSnapshot.itemIdentifiers(inSection: .segments)
-            var newSegs: [WorkoutSegment] = []
-            for id in ids { if case .segment(let uuid) = id, let s = self.viewModel.segments.first(where: { $0.id == uuid }) { newSegs.append(s) } }
-            while !self.viewModel.segments.isEmpty { self.viewModel.removeSegment(at: 0) }
-            for s in newSegs { self.viewModel.addSegment(s) }
+            let orderedIDs = tx.finalSnapshot.itemIdentifiers(inSection: .segments).compactMap { item -> UUID? in
+                if case .segment(let uuid) = item { return uuid }
+                return nil
+            }
+            self.viewModel.reorderSegments(to: orderedIDs)
+            // 번호와 접근성 ID가 새 순서를 따르도록 셀을 다시 구성한다.
+            self.reconfigureSegmentItems()
             self.updateMeta()
         }
+    }
+
+    /// 세그먼트 셀의 번호/접근성 ID를 현재 순서에 맞춰 갱신한다.
+    private func reconfigureSegmentItems() {
+        var snapshot = dataSource.snapshot()
+        guard snapshot.sectionIdentifiers.contains(.segments) else { return }
+        let ids = snapshot.itemIdentifiers(inSection: .segments)
+        guard !ids.isEmpty else { return }
+        snapshot.reconfigureItems(ids)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func setupEmptyLabel() {
@@ -389,6 +411,8 @@ final class WorkoutBuilderViewController: UIViewController {
         snapshot.appendItems(viewModel.segments.map { .segment($0.id) }, toSection: .segments)
         snapshot.appendItems([.addRun, .addStation], toSection: .addButtons)
         dataSource.apply(snapshot, animatingDifferences: true)
+        // 추가/삭제/수정 후에도 남은 셀의 번호와 접근성 ID가 실제 인덱스와 일치하도록 한다.
+        reconfigureSegmentItems()
         emptyLabel.isHidden = !viewModel.isEmpty
         updateStartButton()
         updateMeta()
@@ -427,6 +451,23 @@ extension WorkoutBuilderViewController: UICollectionViewDelegate {
         case .addRun: presentEditRun(mode: .create)
         case .addStation: presentAddStation(mode: .create)
         }
+    }
+
+    /// 재정렬을 세그먼트 섹션 안으로 제한한다.
+    /// '+ Add' 행 아래로 끌어 놓으면 세그먼트가 스냅샷에서 빠져 운동에서 사라진다.
+    func collectionView(
+        _ collectionView: UICollectionView,
+        targetIndexPathForMoveOfItemFromOriginalIndexPath originalIndexPath: IndexPath,
+        atCurrentIndexPath currentIndexPath: IndexPath,
+        toProposedIndexPath proposedIndexPath: IndexPath
+    ) -> IndexPath {
+        let segmentsSection = Section.segments.rawValue
+        guard proposedIndexPath.section != segmentsSection else { return proposedIndexPath }
+        let count = collectionView.numberOfItems(inSection: segmentsSection)
+        guard count > 0 else { return originalIndexPath }
+        return proposedIndexPath.section < segmentsSection
+            ? IndexPath(item: 0, section: segmentsSection)
+            : IndexPath(item: count - 1, section: segmentsSection)
     }
 
     private func presentAddStation(mode: AddStationMode) {

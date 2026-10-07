@@ -13,3 +13,16 @@
 
 // MARK: - Alerts
 "alert.end_workout_confirmation.message" = "Use the red control only if you want to stop this session now.";
+
+// MARK: - Phone mirror / recovery
+"mirror.stale" = "No updates from phone";
+"mirror.close" = "Close Mirror";
+"summary.save_failed" = "Save failed — retrying next launch";
+
+// MARK: - My Race
+"race_target.dday" = "D-DAY";
+
+// MARK: - Race Day
+"race_day.lap_hint" = "Count your own laps";
+"race_day.add_lap" = "Add lap";
+"race_day.remove_lap" = "Remove lap";

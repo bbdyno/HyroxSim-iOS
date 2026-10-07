@@ -7,8 +7,8 @@
 
 import ProjectDescription
 
-let appVersion = "1.3.0"
-let appBuildNumber = "2026.07.20.1"
+let appVersion = "1.4.0"
+let appBuildNumber = "2026.09.20.1"
 
 let signingSettings: SettingsDictionary = [
     "SWIFT_VERSION": "5.9",
@@ -20,19 +20,28 @@ let versionSettings: SettingsDictionary = [
     "CURRENT_PROJECT_VERSION": .string(appBuildNumber)
 ]
 
+/// 릴리스는 기본적으로 이름이 정해진 배포 프로필을 쓰는 수동 서명이다.
+/// 새 머신처럼 그 인증서·프로필이 없는 곳에서는 `TUIST_AUTOMATIC_SIGNING=1 tuist generate` 로
+/// 자동 서명 프로젝트를 만들어 아카이브한다(Xcode 가 인증서·프로필을 직접 만들어 준다).
+let usesAutomaticSigning = Environment.automaticSigning.getBoolean(default: false)
+
 let automaticSigningBase: SettingsDictionary = [
     "CODE_SIGN_STYLE": "Automatic"
 ]
 
-let manualDevelopmentSigningBase: SettingsDictionary = [
-    "CODE_SIGN_STYLE": "Manual",
-    "CODE_SIGN_IDENTITY": "Apple Development"
-]
+let manualDevelopmentSigningBase: SettingsDictionary = usesAutomaticSigning
+    ? ["CODE_SIGN_STYLE": "Automatic"]
+    : [
+        "CODE_SIGN_STYLE": "Manual",
+        "CODE_SIGN_IDENTITY": "Apple Development"
+    ]
 
-let manualDistributionSigningBase: SettingsDictionary = [
-    "CODE_SIGN_STYLE": "Manual",
-    "CODE_SIGN_IDENTITY": "Apple Distribution"
-]
+let manualDistributionSigningBase: SettingsDictionary = usesAutomaticSigning
+    ? ["CODE_SIGN_STYLE": "Automatic"]
+    : [
+        "CODE_SIGN_STYLE": "Manual",
+        "CODE_SIGN_IDENTITY": "Apple Distribution"
+    ]
 
 let iosAppBaseSettings: SettingsDictionary = automaticSigningBase
     .merging(versionSettings) { _, new in new }
@@ -42,28 +51,28 @@ let iosAppBaseSettings: SettingsDictionary = automaticSigningBase
 
 let watchAppBaseSettings: SettingsDictionary = manualDevelopmentSigningBase
     .merging(versionSettings) { _, new in new }
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim WatchOS Provisioning"
     ]) { _, new in new }
 
 let widgetBaseSettings: SettingsDictionary = manualDevelopmentSigningBase
     .merging(versionSettings) { _, new in new }
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Extension Provisioning"
     ]) { _, new in new }
 
 let iosAppDistributionSettings: SettingsDictionary = manualDistributionSigningBase
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim App Distribution Provisioning"
     ]) { _, new in new }
 
 let watchAppDistributionSettings: SettingsDictionary = manualDistributionSigningBase
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim WatchOS Distribution Provisioning"
     ]) { _, new in new }
 
 let widgetDistributionSettings: SettingsDictionary = manualDistributionSigningBase
-    .merging([
+    .merging(usesAutomaticSigning ? [:] : [
         "PROVISIONING_PROFILE_SPECIFIER": "HyroxSim Widget Distribution Provisioning"
     ]) { _, new in new }
 
@@ -102,15 +111,21 @@ let project = Project(
                 "UILaunchScreen": [
                     "UIColorName": "systemBackground"
                 ],
+                // 앱은 window override 로 다크를 강제한다. 이 키가 없으면 라이트 모드
+                // 기기에서 런치 스크린이 흰색으로 번쩍인다.
+                "UIUserInterfaceStyle": "Dark",
                 "NSLocationWhenInUseUsageDescription": "HYROX SIM uses your location during workouts to measure your running pace and distance.",
                 "NSLocationAlwaysAndWhenInUseUsageDescription": "HYROX SIM uses your location during workouts to keep measuring your running pace and distance while the workout remains active.",
-                "NSMotionUsageDescription": "HYROX SIM uses motion data to support movement analysis during workout sessions.",
                 "NSHealthShareUsageDescription": "HYROX SIM reads your heart rate from HealthKit during workouts.",
                 "NSHealthUpdateUsageDescription": "HYROX SIM saves completed workout results to the Health app.",
                 "NSBluetoothAlwaysUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
                 "NSBluetoothPeripheralUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
-                "UIBackgroundModes": ["location", "audio", "bluetooth-central"],
+                "UIBackgroundModes": ["location", "bluetooth-central"],
                 "NSSupportsLiveActivities": true,
+                // 앱이 쓰는 암호화는 OS 가 제공하는 HTTPS 와 CryptoKit 해시뿐이라 수출
+                // 규정 면제 대상이다. 이 키가 있으면 업로드마다 App Store Connect 에서
+                // 수출 규정 질문에 답하지 않아도 된다.
+                "ITSAppUsesNonExemptEncryption": false,
                 "LSApplicationQueriesSchemes": ["gcm-ciq"],
                 "CFBundleURLTypes": [
                     [

@@ -47,6 +47,8 @@ public final class HealthKitHeartRateAdapter: HeartRateStreaming, @unchecked Sen
         let heartRateType = HKQuantityType(.heartRate)
 
         do {
+            // 이 어댑터는 읽기만 한다. 운동 쓰기 권한은 `HealthKitWorkoutSaver` 가 요청하며,
+            // 운동 시작 시 그쪽이 먼저 호출되어 심박 읽기까지 같은 시트에서 처리한다.
             try await healthStore.requestAuthorization(toShare: [], read: [heartRateType])
         } catch {
             throw SensorError.startFailed(reason: error.localizedDescription)

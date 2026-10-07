@@ -21,4 +21,13 @@ final class DistanceFormatterTests: XCTestCase {
         XCTAssertEqual(DistanceFormatter.short(0), "0 m")
         XCTAssertEqual(DistanceFormatter.short(999), "999 m")
     }
+
+    /// 비정상 값이 들어와도 트랩하지 않는다 (P0 크래시 회귀 방지)
+    func testExtremeValuesDoNotTrap() {
+        XCTAssertEqual(DistanceFormatter.short(.nan), "0 m")
+        XCTAssertEqual(DistanceFormatter.short(.infinity), "0 m")
+        XCTAssertEqual(DistanceFormatter.short(-.infinity), "0 m")
+        XCTAssertEqual(DistanceFormatter.short(-50), "-50 m")
+        XCTAssertFalse(DistanceFormatter.short(1e19).isEmpty)
+    }
 }

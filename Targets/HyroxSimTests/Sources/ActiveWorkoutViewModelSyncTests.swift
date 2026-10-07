@@ -30,7 +30,8 @@ final class ActiveWorkoutViewModelSyncTests: XCTestCase {
             heartRateStream: MockHeartRateStream(),
             persistence: persistence,
             maxHeartRate: 200,
-            syncCoordinator: sync
+            syncCoordinator: sync,
+            healthWorkoutSaver: MockHealthWorkoutSaver()
         )
         return (vm, sync)
     }
@@ -150,6 +151,40 @@ final class ActiveWorkoutViewModelSyncTests: XCTestCase {
         XCTAssertEqual(sync.sentWorkoutFinished, [.phone])
     }
 
+    // MARK: - Sensor failure (P1)
+
+    /// 위치 권한이 거부돼도 워치 전송(운동 시작 알림 + 실시간 상태)은 계속돼야 한다.
+    func testBroadcastsContinueWhenLocationStartFails() async throws {
+        let sync = MockSyncCoordinator()
+        let persistence = try PersistenceController(inMemory: true)
+        let checkpointDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("checkpoint-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: checkpointDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: checkpointDirectory) }
+
+        let vm = ActiveWorkoutViewModel(
+            template: WorkoutTemplate(name: "Denied", segments: [.run(distanceMeters: 1000), .roxZone()]),
+            locationStream: DeniedLocationStream(),
+            heartRateStream: MockHeartRateStream(),
+            persistence: persistence,
+            maxHeartRate: 200,
+            syncCoordinator: sync,
+            checkpointStore: WorkoutCheckpointStore(directory: checkpointDirectory),
+            healthWorkoutSaver: MockHealthWorkoutSaver()
+        )
+        vm.errorHandler = { _ in }
+
+        await vm.start()
+
+        XCTAssertEqual(sync.sentWorkoutStarted.count, 1)
+        let state = try XCTUnwrap(sync.sentLiveStates.last)
+        XCTAssertEqual(state.segmentLabel, "RUN 1 / 1")
+        XCTAssertFalse(state.gpsActive)
+        XCTAssertFalse(state.gpsStrong)
+
+        vm.cancelWorkout()
+    }
+
     // MARK: - No Sync Coordinator
 
     func testWorkoutWithoutSyncCoordinator() async throws {
@@ -162,7 +197,8 @@ final class ActiveWorkoutViewModelSyncTests: XCTestCase {
             template: template,
             locationStream: MockLocationStream(),
             heartRateStream: MockHeartRateStream(),
-            persistence: persistence
+            persistence: persistence,
+            healthWorkoutSaver: MockHealthWorkoutSaver()
         )
         // Should work without sync coordinator (no crash)
         await vm.start()
@@ -183,5 +219,137 @@ final class ActiveWorkoutViewModelSyncTests: XCTestCase {
 
         XCTAssertNil(sync.onReceiveCommand)
         XCTAssertNil(sync.onHeartRateRelayReceived)
+    }
+}
+
+// MARK: - 레이스 데이 (랩 카운터 · 다음 목표)
+
+/// 운동 화면의 레이스 모드 표시가 기존 운동 흐름을 건드리지 않는지 확인한다.
+/// 랩 수는 기록에 남지 않는 화면 보조 정보라, 검증 대상은 "화면 상태"뿐이다.
+@MainActor
+final class ActiveWorkoutViewModelRaceDayTests: XCTestCase {
+
+    /// Run(360) → Rox(30) → SkiErg(240) — 기본 프리셋과 같은 한 블록.
+    private func makeVM() throws -> ActiveWorkoutViewModel {
+        let template = WorkoutTemplate(
+            name: "Race",
+            segments: [
+                .run(distanceMeters: 1000),
+                .roxZone(),
+                .station(.skiErg, target: .distance(meters: 1000))
+            ]
+        )
+        return ActiveWorkoutViewModel(
+            template: template,
+            locationStream: MockLocationStream(),
+            heartRateStream: MockHeartRateStream(),
+            persistence: try PersistenceController(inMemory: true),
+            maxHeartRate: 200,
+            healthWorkoutSaver: MockHealthWorkoutSaver()
+        )
+    }
+
+    // MARK: 랩 카운터
+
+    func testLapCounterIncrements() async throws {
+        let vm = try makeVM()
+        await vm.start()
+
+        vm.incrementLap()
+        vm.incrementLap()
+
+        XCTAssertEqual(vm.lapCount, 2)
+        vm.cancelWorkout()
+    }
+
+    /// 잘못 눌러도 음수가 되면 안 된다.
+    func testLapCounterStopsAtZero() async throws {
+        let vm = try makeVM()
+        await vm.start()
+
+        vm.incrementLap()
+        vm.decrementLap()
+        vm.decrementLap()
+
+        XCTAssertEqual(vm.lapCount, 0)
+        vm.cancelWorkout()
+    }
+
+    func testLapCounterResetsOnSegmentChange() async throws {
+        let vm = try makeVM()
+        await vm.start()
+
+        vm.incrementLap()
+        vm.incrementLap()
+        XCTAssertEqual(vm.lapCount, 2)
+
+        vm.advance() // Run → ROX Zone
+
+        XCTAssertEqual(vm.lapCount, 0)
+        vm.cancelWorkout()
+    }
+
+    /// 랩은 런에서만 의미가 있다.
+    func testLapCounterAvailabilityFollowsSegmentType() async throws {
+        let vm = try makeVM()
+        await vm.start()
+
+        XCTAssertTrue(vm.isLapCounterAvailable)
+
+        vm.advance() // ROX Zone
+        XCTAssertFalse(vm.isLapCounterAvailable)
+
+        vm.advance() // SkiErg
+        XCTAssertFalse(vm.isLapCounterAvailable)
+
+        vm.cancelWorkout()
+    }
+
+    // MARK: 레이스 모드
+
+    func testRaceModeTogglesWithoutTouchingWorkoutState() async throws {
+        let vm = try makeVM()
+        let original = vm.isRaceMode
+        defer { vm.setRaceMode(original) }
+
+        await vm.start()
+        let labelBefore = vm.segmentLabel
+
+        vm.setRaceMode(!original)
+
+        XCTAssertEqual(vm.isRaceMode, !original)
+        XCTAssertEqual(vm.segmentLabel, labelBefore)
+        XCTAssertFalse(vm.isFinished)
+        vm.cancelWorkout()
+    }
+
+    // MARK: 다음 구간 목표 (Live Activity)
+
+    /// 전환 구간은 건너뛰고 다음 "실제" 구간을 가리킨다.
+    func testNextTargetSkipsRoxZone() async throws {
+        let vm = try makeVM()
+        await vm.start()
+
+        XCTAssertEqual(vm.nextTargetLabel, "SkiErg")
+        XCTAssertEqual(vm.nextTargetGoalText, "04:00")
+
+        vm.advance() // ROX Zone 진행 중에도 다음은 여전히 스테이션
+        XCTAssertEqual(vm.nextTargetLabel, "SkiErg")
+
+        vm.cancelWorkout()
+    }
+
+    func testNextTargetIsEmptyOnLastSegment() async throws {
+        let vm = try makeVM()
+        await vm.start()
+
+        vm.advance() // ROX Zone
+        vm.advance() // SkiErg (마지막)
+
+        XCTAssertTrue(vm.isLastSegment)
+        XCTAssertNil(vm.nextTargetLabel)
+        XCTAssertNil(vm.nextTargetGoalText)
+
+        vm.cancelWorkout()
     }
 }

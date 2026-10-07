@@ -1,0 +1,58 @@
+name: 대회 기록 데이터 갱신
+
+# 공개 집계 데이터로 페이스 기준표를 다시 만들고, 값이 바뀌면 PR 을 연다.
+# 사람이 diff 와 검증 리포트를 보고 머지한다 — 자동 푸시는 하지 않는다.
+on:
+  schedule:
+    - cron: "0 3 * * 1" # 매주 월요일 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    name: 재생성 · 검증 · PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 데이터 재생성
+        run: python3 tools/pace-data/build_pace_data.py
+
+      - name: 검증 게이트
+        run: python3 tools/pace-data/build_pace_data.py --verify --offline
+
+      - name: 변경 여부 확인
+        id: diff
+        run: |
+          if git diff --quiet -- Targets/HyroxCore/Resources/PaceReference docs/pace; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "데이터 변경 없음"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- Targets/HyroxCore/Resources/PaceReference docs/pace
+          fi
+
+      - name: PR 생성
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          DATE=$(date -u +%Y-%m-%d)
+          BRANCH="data/pace-refresh-${DATE}"
+          git config user.name "bbdyno"
+          git config user.email "della.kimko@gmail.com"
+          git checkout -b "$BRANCH"
+          git add Targets/HyroxCore/Resources/PaceReference docs/pace
+          git commit -m "대회 기록 데이터 주간 갱신 (${DATE})"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "대회 기록 데이터 주간 갱신 (${DATE})" \
+            --body "공개 집계 데이터로 \`tools/pace-data/build_pace_data.py\` 를 돌린 결과입니다. 검증 게이트를 통과했고, 디비전별 p50 변화는 실행 로그에서 확인할 수 있습니다. 번들 v4 스냅샷도 함께 갱신해야 하면 \`Targets/HyroxCore/Resources/PaceReference/v4\` 를 확인하세요." \
+            --base main \
+            --head "$BRANCH"

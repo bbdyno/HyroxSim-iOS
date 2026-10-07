@@ -13,3 +13,16 @@
 
 // MARK: - Alerts
 "alert.end_workout_confirmation.message" = "今すぐセッションを停止したい場合のみ、赤いコントロールを使用してください。";
+
+// MARK: - Phone mirror / recovery
+"mirror.stale" = "iPhoneからの更新がありません";
+"mirror.close" = "ミラーを閉じる";
+"summary.save_failed" = "保存に失敗 — 次回起動時に再試行";
+
+// MARK: - My Race
+"race_target.dday" = "D-DAY";
+
+// MARK: - Race Day
+"race_day.lap_hint" = "ラップは自分で数える";
+"race_day.add_lap" = "ラップを追加";
+"race_day.remove_lap" = "ラップを取り消す";

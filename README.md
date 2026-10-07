@@ -31,7 +31,7 @@ HYROX SIM is an iPhone and Apple Watch app for simulating HYROX-style workouts, 
 - 공식 디비전 프리셋과 커스텀 워크아웃 빌더를 함께 지원합니다.
 - iPhone에서 세션을 준비하고 Apple Watch에서 현재 구간을 바로 따라갈 수 있습니다.
 - 최근 운동 기록과 세션 요약 화면을 제공합니다.
-- App Store 출시는 현재 준비 중입니다.
+- [App Store](https://apps.apple.com/app/id6761739707)에서 내려받을 수 있습니다.
 
 ## Screens
 
@@ -148,4 +148,10 @@ If HYROX SIM is useful to you, you can support ongoing development here.
 
 ## Status
 
-The app is not on the App Store yet. Release preparation is in progress.
+Available on the [App Store](https://apps.apple.com/app/id6761739707) (iOS 17+, watchOS 10+).
+
+## Disclaimer
+
+HYROX SIM is an unofficial, independently developed app. It is not affiliated with, endorsed by, or connected to HYROX. HYROX is a trademark of its respective owner.
+
+HYROX SIM은 비공식 앱입니다. HYROX와 제휴·후원·연관 관계가 없으며, HYROX는 해당 권리자의 상표입니다.

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HYROX Pace Planner — HYROX SIM</title>
+  <meta
+    name="description"
+    content="목표 완주 시간을 넣으면 실제 HYROX 대회 기록 분포로 구간별 목표를 나눠 주는 무료 페이스 플래너."
+  >
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-page="planner">
+  <div class="site-shell site-shell-legal">
+    <header class="topbar">
+      <a class="brand" href="./index.html">HYROX SIM</a>
+      <div class="topbar-actions">
+        <nav class="topnav">
+          <a href="./index.html" data-i18n="legal.nav.home">홈</a>
+          <a href="./planner.html" data-i18n="planner.nav">페이스 플래너</a>
+          <a href="./privacy.html" data-i18n="nav.privacy">개인정보 처리방침</a>
+        </nav>
+        <div class="language-toggle" aria-label="Language selector">
+          <button type="button" class="lang-button is-active" data-lang-button="ko">KR</button>
+          <button type="button" class="lang-button" data-lang-button="en">EN</button>
+          <button type="button" class="lang-button" data-lang-button="ja">JP</button>
+          <button type="button" class="lang-button" data-lang-button="zh-Hans">简</button>
+          <button type="button" class="lang-button" data-lang-button="zh-Hant">繁</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="legal-main">
+      <h1 data-i18n="planner.title">HYROX 페이스 플래너</h1>
+      <p class="section-copy" data-i18n="planner.lede">
+        목표 완주 시간을 넣으면 실제 대회 기록 분포로 구간별 목표를 나눠 줍니다. 계산은 브라우저 안에서만 이뤄집니다.
+      </p>
+
+      <section class="section planner-form">
+        <div class="planner-field">
+          <label for="planner-division" data-i18n="planner.field.division">디비전</label>
+          <select id="planner-division"></select>
+        </div>
+        <div class="planner-field">
+          <label for="planner-goal" data-i18n="planner.field.goal">목표 완주 시간</label>
+          <input id="planner-goal" type="text" inputmode="numeric" placeholder="1:30:00" value="1:30:00" autocomplete="off">
+        </div>
+        <button type="button" id="planner-submit" class="planner-submit" data-i18n="planner.action.calculate">구간별 목표 보기</button>
+      </section>
+
+      <p id="planner-status" class="planner-status" data-i18n="planner.loading">데이터를 불러오는 중…</p>
+
+      <section class="section planner-result" id="planner-result" hidden>
+        <div class="planner-headline">
+          <div>
+            <span class="planner-label" data-i18n="planner.result.percentile">이 목표의 위치</span>
+            <strong id="planner-percentile">—</strong>
+          </div>
+          <div>
+            <span class="planner-label" data-i18n="planner.result.perblock">블록당 (8회)</span>
+            <strong id="planner-perblock">—</strong>
+          </div>
+        </div>
+        <p id="planner-range-warning" class="planner-warning" data-i18n="planner.result.outofrange" hidden>
+          데이터 범위를 벗어난 목표입니다. 참고용으로만 보세요.
+        </p>
+        <div class="planner-table-wrap">
+          <table class="planner-table">
+            <thead>
+              <tr>
+                <th data-i18n="planner.table.segment">구간</th>
+                <th data-i18n="planner.table.target">목표</th>
+                <th data-i18n="planner.table.share">비중</th>
+              </tr>
+            </thead>
+            <tbody id="planner-rows"></tbody>
+          </table>
+        </div>
+        <p class="planner-coverage"><span data-i18n="planner.coverage">기준 데이터</span>: <span id="planner-coverage-value">—</span></p>
+        <p class="planner-cta" data-i18n="planner.cta">
+          앱에서는 이 계획을 애플워치·가민으로 보내 그대로 따라갈 수 있습니다.
+        </p>
+        <p class="planner-cta">
+          <a class="cta-button" data-appstore-link href="https://apps.apple.com/app/id6761739707">App Store</a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p class="footer-disclaimer" data-i18n="planner.disclaimer">비공식 앱입니다. HYROX와 제휴·후원·연관 관계가 없습니다.</p>
+      <p>© <span id="year"></span> HYROX SIM</p>
+      <div class="footer-links">
+        <a href="./privacy.html" data-i18n="footer.privacy">개인정보 처리방침</a>
+        <a href="./terms.html" data-i18n="footer.terms">이용 약관</a>
+        <a href="https://github.com/bbdyno/HyroxSim-iOS" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./app.js?v=2026091802"></script>
+  <script src="./planner.js?v=2026092001"></script>
+</body>
+</html>

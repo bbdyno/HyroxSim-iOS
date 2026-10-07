@@ -20,7 +20,8 @@ final class LiveWorkoutMirrorUITests: XCTestCase {
         app.launch()
 
         let header = app.staticTexts["liveMirror.headerLabel"]
-        XCTAssertTrue(header.waitForExistence(timeout: 5))
+        // 첫 실행은 앱 설치·기동 때문에 5초로는 부족할 때가 있다
+        XCTAssertTrue(header.waitForExistence(timeout: 20))
         XCTAssertEqual(header.label, "RUN 1 / 1")
 
         let badge = app.staticTexts["liveMirror.watchBadge"]
@@ -36,7 +37,7 @@ final class LiveWorkoutMirrorUITests: XCTestCase {
         app.launch()
 
         let badge = app.staticTexts["liveMirror.watchBadge"]
-        XCTAssertTrue(badge.waitForExistence(timeout: 5))
+        XCTAssertTrue(badge.waitForExistence(timeout: 20))
         XCTAssertEqual(badge.label, "⌚ WATCH DISCONNECTED")
         XCTAssertFalse(app.buttons["liveMirror.nextButton"].isEnabled)
         XCTAssertFalse(app.buttons["liveMirror.pauseButton"].isEnabled)
