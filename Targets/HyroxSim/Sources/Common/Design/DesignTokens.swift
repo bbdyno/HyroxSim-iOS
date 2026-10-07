@@ -41,8 +41,14 @@ public enum DesignTokens {
         public static let destructive = UIColor.systemRed
         public static let success = UIColor(red: 0.2, green: 0.8, blue: 0.4, alpha: 1)
 
+        public static let overGoal = UIColor(red: 1.0, green: 0.48, blue: 0.2, alpha: 1)
+
         // MARK: - Card
         public static let cardBackground = surface
+
+        // MARK: - Course map
+        public static let track = UIColor(white: 0.14, alpha: 1)
+        public static let hairline = UIColor(white: 0.16, alpha: 1)
     }
 
     public enum Spacing {
@@ -54,8 +60,8 @@ public enum DesignTokens {
     }
 
     public enum Radius {
-        public static let card: CGFloat = 16
-        public static let badge: CGFloat = 4
+        public static let card: CGFloat = 0
+        public static let badge: CGFloat = 0
     }
 
     public enum Font {
@@ -65,5 +71,14 @@ public enum DesignTokens {
         public static let label = UIFont.systemFont(ofSize: 11, weight: .bold)
         public static let headline = UIFont.systemFont(ofSize: 18, weight: .bold)
         public static let title = UIFont.systemFont(ofSize: 34, weight: .black)
+
+        /// Expanded-width system font for headings and tracked captions.
+        public static func wide(_ size: CGFloat, weight: UIFont.Weight = .bold) -> UIFont {
+            .systemFont(ofSize: size, weight: weight, width: .expanded)
+        }
+
+        public static func number(_ size: CGFloat, weight: UIFont.Weight = .heavy) -> UIFont {
+            .monospacedDigitSystemFont(ofSize: size, weight: weight)
+        }
     }
 }
