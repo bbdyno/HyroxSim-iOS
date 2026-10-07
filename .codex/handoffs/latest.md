@@ -1,91 +1,47 @@
 # HyroxSim Handoff
 
-업데이트: 2026-09-21
+업데이트: 2026-10-07
 
 ## 개요
 
-현재 상태: **브리핑 로드맵 0~3단계 완료, main 병합·푸시. 1.4.0 App Store 심사 제출(Waiting for Review).**
-이전 기록: `.codex/handoffs/2026-09-18.md`(0단계), `2026-04-17.md`(페이스 플래너).
+현재 상태: **1.5.0 (빌드 2026.10.07.1) — 코스 맵 리디자인 + 1.3.0 스토어 업데이트 충돌 수정. main 병합 완료.**
+이전 기록: `2026-09-21.md`(1.4.0, 로드맵 0~3단계), `2026-10-07.md`(리디자인 상세, 옛 main 기준으로 작성됨).
 
-세션 흐름: 전체 코드 감사 → 종합 브리핑(문제 78건) → 0단계(기록 보호) → 1단계(데이터 파이프라인)
-→ 2단계(준비 허브 1차) → 3단계(레이스 실행·분석).
+## ⚠️ 1.4.0 업데이트 충돌 (P0)
 
-## 단계별 결과
+- 증상: 1.3.0 스토어가 있는 기기에서 1.4.0 을 실행하면 `SwiftDataError.loadIssueModelContainer` 로 즉시 종료.
+  새로 설치한 경우는 문제없음.
+- 원인: `HyroxMigrationPlan` 에 실제 출시된 1.3.0 스키마(엔티티 3개, `usesRoxZone` 없음)가 없었음.
+  `HyroxSchemaV1` 은 1.3.0 이후 개발 빌드의 모양이라 1.3.0 스토어와 맞지 않음.
+- 수정: `HyroxSchemaV0`(1.3.0 스냅샷, 수정 금지) 추가 + v0→v1 경량 단계.
+  `PersistenceControllerTests.testStoreWrittenByShipped130OpensUnderCurrentSchema`.
+- 검증: 새 시뮬레이터에서 "1.3.0 스키마 빌드 실행 → 덮어 설치" 로 재현·해소 확인. 순수 1.4.0 은 매번 충돌.
+- 미확인: 실제 1.3.0 App Store 빌드가 깔린 실기기, 기록이 많은 스토어.
+- 수정만 담은 브랜치: `hotfix/shipped-store-migration` (main 1.4.0 + 수정 커밋 하나).
 
-### 0단계 — 기록 보호 (2026-09-18)
-P0 2건 · P1 15건 수정. 상세는 `2026-09-18.md` 참조. 요약:
-워치 운동이 폰 시작 신호에 덮이던 문제, 폰·워치 중간 저장과 크래시 복구, 미러 고착,
-ROX OFF 저장, 여자 오픈 월볼 75→100회, 삭제 기록 부활, 극단값 입력 크래시.
+## 리디자인 (코스 맵 방향)
 
-### 1단계 — 데이터 파이프라인
-- `tools/pace-data/` ETL 신설: 공개 집계 데이터 → 정제(R0~R6) → 검증 게이트 → v3/v4 산출.
-  `--dry-run` / `--verify` / `--offline` 지원. `results.hyrox.com` 은 접근 경로 자체가 없음.
-- 번들 데이터 갱신: 201개 대회·690,297명 → **240개 대회·S6~S9·1,151,891명**.
-  이전에 손으로 보정하던 오염 버킷은 정제 규칙이 자동 처리.
-- v4 퍼센타일 데이터(연령대 분포 포함) + manifest 생성, Firebase Hosting 캐시 헤더 설정.
-- 플래너 가드레일: 범위 밖 목표 경고·적용 차단, 중앙값 기본값, 표준 코스일 때만 진입,
-  스테이션 키 일원화. 죽은 코드(RaceModel·PaceDistributor·v1.json 등) 삭제.
-- SwiftData `HyroxSchemaV1/V2` + 마이그레이션 계획, `RaceTarget` 모델 추가.
-- `.github/workflows/pace-data.yml`: 주간 재생성 → 검증 통과 시 PR 생성.
+- 규칙은 `CLAUDE.md` "레이아웃 (코스 맵 방향)". 핵심 뷰는 `Targets/HyroxSim/Sources/Common/Views/CourseMapView.swift`.
+- 홈: 디비전 페이저 + 코스 → 지난 기록/목표 → 시작 → 내 대회 카드 → 행(커스텀·기록·진척·레이스 데이) → 훈련 세션 → 저장 템플릿.
+  시작 버튼은 상세를 거치지 않고 바로 시작(`homeDidTapStart`). 내 대회 카드는 작은 화면에서 시작 버튼이 가려지지 않게 그 아래에 둠.
+- 운동 중: 컴팩트 코스 + 위치, 레이스 모드/랩 카운터 통합. 높이 700pt 미만 + 랩 카운터일 때 타이머를 줄이는 컴팩트 배치.
+- 결과: 코스 위 스테이션별 ±, 그 아래 격차 분석 카드.
+- 1.4.0 에서 추가된 화면(진척·대회 등록·팀 분담·PFT·레이스 데이)은 모서리만 각지게 맞춤.
+- 워치 앱은 의도적으로 변경하지 않음(작은 화면 정보량·스와이프 사용성, 사용자 결정).
 
-### 2단계 — 준비 허브 1차
-- 원격 데이터 배포: manifest(ETag) → 스키마·버전·sha256 검증 → 원자적 교체, 실패 시 기존 데이터 유지.
-  24시간 주기, 1시간 백오프, `revoked` 킬스위치. 번들 v4 스냅샷으로 오프라인 동작.
-- 요약 화면: 격차 분석(회수 가능한 시간 상위 3구간), 공유 카드 이미지, 리뷰 요청, 심박 존 표시.
-- 홈: 훈련 세션 5종(컴프로마이즈드 런·하프 시뮬·스테이션 인터벌·록스존 드릴·월볼 사다리),
-  내 대회 카드와 D-day, 대회 등록·편집 화면, 워치 D-day 표시.
-- Health 저장: 아이폰 단독 운동을 HKWorkout 으로 저장, 구간 이벤트·메타데이터, 실내/실외 판정,
-  워치 거리 수집 활성화(실내 페이스 "—" 원인), 미러 중 중복 저장 방지.
-- 가민: 영속 outbox(ack 기반 제거·중복 합치기), hello 디바운스, upsert 로 중복 방지, 기기 해제.
-- 히스토리: 동기화·삭제 알림 구독, 삭제 실패 롤백, 손상 기록 건너뛰기.
+## 빌드·검증
 
-### 3단계 — 레이스 실행·분석
-- 페이스 분배 개선: 첫 런 과속 제한(느린 목표 −52초 → −14초), 블록별 록스존 배분(1/2개),
-  더블스·혼성 계수 분리. 합계 불변식 유지.
-- 진척 추적 화면(Swift Charts): 완주 시간·퍼센타일 추세, 첫 런 페이스와 Run8÷Run1, 구간별 추세.
-- 더블스·릴레이 분담 플래너, 공식 PFT 벤치마크와 디비전 추천·예상 완주 범위.
-- 레이스 데이 모드: 페이스 카드(이미지 공유), 룰북 체크리스트, 랩 카운터(폰·워치),
-  Live Activity 다음 구간 목표.
-- 웹 페이스 플래너(`docs/planner.html`): 앱과 같은 v4 데이터를 브라우저에서 계산, 5개 언어.
-
-### 4단계 — 릴리스 (2026-09-21)
-- 버전 1.4.0 / 빌드 `2026.09.20.1`, 태그 `v1.4.0`. CI 첫 실행 통과.
-- 기준 데이터 기본 주소를 실제 서빙 중인 GitHub Pages 로 변경, sha256 대조 확인.
-- `scripts/release.sh` + `scripts/ExportOptions.plist` 로 아카이브 → `-exportArchive` 업로드.
-  아카이브가 서명 없이 만들어지는 경우를 codesign 으로 먼저 잡는다.
-- 새 머신처럼 배포 인증서·프로필이 없는 곳에서는 `TUIST_AUTOMATIC_SIGNING=1 tuist generate` 로
-  자동 서명 프로젝트를 만들어 아카이브한다.
-- `ITSAppUsesNonExemptEncryption = false` 선언 추가 — 앱이 쓰는 암호화는 OS HTTPS 와
-  CryptoKit SHA-256 해시뿐이라 수출 규정 면제. 이제 업로드마다 웹에서 답하지 않아도 된다.
-- App Store Connect: 1.4.0 생성, 5개 언어 릴리스 노트(`docs/release-notes/1.4.0.md`) 입력,
-  빌드 연결, 승인 후 자동 출시·전체 사용자 즉시·기존 평점 유지로 심사 제출.
-
-## 검증
-
-- iOS 스킴 빌드(워치 앱·위젯 포함) 성공, 프로젝트 경고 0
-- HyroxKitTests 432 · HyroxSimTests 144 · UI 테스트 통과 (시작 전 252/257 → 지금 580+)
-- 데이터 검증 게이트 16/17 통과, 경고 1건(상위 꼬리에서 Open 에 Pro 급 선수가 섞이는 현상, 데이터 성질)
+- 이 맥에서는 `.mise.toml` 이 trust 되지 않아 `mise exec` 가 실패한다. `mise trust` 하거나
+  `~/.local/share/mise/installs/tuist/<버전>/tuist` 를 직접 실행.
+- iOS 빌드는 `-sdk iphonesimulator` 없이 `-destination` 만 지정.
+- 전체 테스트(HyroxKitTests·HyroxSimTests·HyroxSimUITests) 통과. real watch E2E 는 flag 없으면 skip —
+  절차는 `2026-04-08.md`, `-testLanguage ko -testRegion KR` 필요.
+- 화면 확인: iPhone 17, iPhone SE(3세대) 시뮬레이터. 한국어는 홈·결과.
 
 ## 남은 작업
 
-1. **심사 결과 대기** — 1.4.0 Waiting for Review. 최대 48시간, 결과는 메일로 온다.
-   리젝되면 App Store Connect → App Review 에서 사유 확인 후 대응.
-2. **실기기 확인** — SwiftData 마이그레이션(기존 사용자), HealthKit 저장·구간 이벤트, 가민 페어링,
-   워치 랩 페이지와 크라운, 미러 임계값(45s/12s/180s), Swift Charts 레이아웃, 공유 카드 이미지.
-3. **주간 데이터 갱신** — `pace-data.yml` 이 만드는 PR 을 실제로 한 번 받아 보고 머지 흐름 확인.
-   Firebase 를 정식 호스트로 쓰려면 `firebase deploy` 를 한 번 돌려야 한다(현재는 GitHub Pages).
-4. **P2 이하 잔여** — 브리핑의 나머지 항목(미러 보간, Live Activity 갱신 방식, 접근성, iPad 레이아웃 등).
-5. **릴레이 데이터** — 릴레이 구성은 더블스 표를 늘린 추정값. 실제 릴레이 기록이 생기면 교체.
-6. **대회 목표 삭제 동기화** — `raceTargetDeleted` 메시지 종류가 아직 없음.
-
-## 결정 대기
-
-- 가격 모델(무료 + 일회성 Pro 전환 여부), 앱 이름의 HYROX 상표 처리
-- 종료 확인 얼럿·미러 DISTANCE 표시: 문서와 코드 중 어느 쪽에 맞출지
-- 데이터 출처 표기 방식(현재 산출물에 출처·기간·정제 규칙을 기록 중)
-
-## 참고
-
-- 종합 브리핑: https://claude.ai/artifact/PDUqvQir864bWbWWLo96oV
-- 데이터 파이프라인: `tools/pace-data/README.md`
-- 개발 환경: mise + Tuist 4.208.0(`.mise.toml`), Xcode 27, iPhone 18 Pro / Apple Watch Series 12 시뮬레이터
+1. App Store Connect: 1.4.0 상태 확인, 1.5.0 버전 생성·릴리스 노트(`docs/release-notes/1.5.0.md`) 입력·심사 제출.
+2. 스토어 스크린샷 교체(화면이 전부 바뀜). `tools/generate_app_store_screenshots.swift`.
+3. 실기기 확인: 1.3.0 → 1.5.0 업데이트, 가민 기록 수신, 워치 심박·GPS.
+4. 팀 분담·PFT·대회 등록 화면 육안 확인(모서리만 일괄 변경함).
+5. `2026-09-21.md` 의 남은 작업·결정 대기 항목.
