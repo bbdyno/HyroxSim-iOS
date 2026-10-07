@@ -40,6 +40,9 @@ public final class ActiveWorkoutViewModel {
     public private(set) var isFinished: Bool = false
     public private(set) var isLastSegment: Bool = false
     public private(set) var gpsStatus: GPSStatus = .searching
+    /// Course map position: markers already reached + progress toward the next one.
+    public private(set) var courseStationsReached: Int = 0
+    public private(set) var courseFractionToNext: Double = 0
 
     public enum AccentKind { case run, roxZone, station }
 
@@ -319,6 +322,8 @@ public final class ActiveWorkoutViewModel {
             gpsStatus = .searching
         }
 
+        updateCoursePosition(current: current, index: index, segElapsed: segElapsed)
+
         isFinished = engine.isFinished
         isLastSegment = engine.isLastSegment
 
@@ -477,6 +482,29 @@ public final class ActiveWorkoutViewModel {
             return next
         }
         return runIndex
+    }
+
+    public var template: WorkoutTemplate { engine.template }
+
+    private func updateCoursePosition(current: WorkoutSegment, index: Int, segElapsed: TimeInterval) {
+        let segments = engine.template.segments
+        let stationsBefore = countOfType(.station, upTo: index)
+        guard current.type != .station else {
+            courseStationsReached = stationsBefore + 1
+            courseFractionToNext = 0
+            return
+        }
+
+        // Run/RoxZone: spread the segments between two stations along that stretch of track.
+        let gapStart = (segments[..<index].lastIndex { $0.type == .station } ?? -1) + 1
+        let gapEnd = segments[index...].firstIndex { $0.type == .station } ?? segments.count
+        let goal = current.goalDurationSeconds ?? WorkoutSegment.defaultGoalDurationSeconds(
+            for: current.type,
+            distanceMeters: current.distanceMeters
+        )
+        let within = goal > 0 ? min(segElapsed / goal, 1) : 0
+        courseStationsReached = stationsBefore
+        courseFractionToNext = 0.92 * (Double(index - gapStart) + within) / Double(max(gapEnd - gapStart, 1))
     }
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {

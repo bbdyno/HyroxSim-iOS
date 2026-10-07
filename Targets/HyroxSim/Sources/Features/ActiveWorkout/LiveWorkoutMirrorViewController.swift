@@ -92,13 +92,8 @@ final class LiveWorkoutMirrorViewController: UIViewController {
 
         goalValueLabel.text = state.goalText
         goalDeltaLabel.text = state.goalDeltaText
-        goalDeltaLabel.textColor = state.isOverGoal ? .systemRed : DesignTokens.Color.success
-        goalCard.backgroundColor = state.isOverGoal
-            ? UIColor.systemRed.withAlphaComponent(0.2)
-            : UIColor.white.withAlphaComponent(0.08)
-        goalCard.layer.borderColor = state.isOverGoal
-            ? UIColor.systemRed.withAlphaComponent(0.35).cgColor
-            : UIColor.white.withAlphaComponent(0.08).cgColor
+        goalDeltaLabel.textColor = state.isOverGoal ? DesignTokens.Color.overGoal : DesignTokens.Color.accent
+        segmentMetric.setValueColor(state.isOverGoal ? DesignTokens.Color.overGoal : DesignTokens.Color.textPrimary)
 
         if state.accentKindRaw == "station" {
             infoPrimaryMetric.setValue(state.stationNameText ?? "—", caption: "STATION")
@@ -159,7 +154,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         view.backgroundColor = .black
 
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
-        backgroundView.backgroundColor = DesignTokens.Color.runBackground
+        backgroundView.backgroundColor = DesignTokens.Color.background
         view.addSubview(backgroundView)
         NSLayoutConstraint.activate([
             backgroundView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -178,7 +173,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         gpsLabel.textAlignment = .center
         gpsLabel.textColor = UIColor.white.withAlphaComponent(0.7)
 
-        headerLabel.font = .systemFont(ofSize: 24, weight: .black)
+        headerLabel.font = DesignTokens.Font.wide(20, weight: .heavy)
         headerLabel.textAlignment = .center
         headerLabel.textColor = .white
         headerLabel.numberOfLines = 2
@@ -190,7 +185,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         subHeaderLabel.numberOfLines = 2
         subHeaderLabel.isHidden = true
 
-        segmentMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 92, weight: .black)
+        segmentMetric.valueLabel.font = DesignTokens.Font.number(96)
         totalMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
         totalMetric.widthAnchor.constraint(equalToConstant: 132).isActive = true
         infoPrimaryMetric.valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
@@ -206,14 +201,14 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         topRow.alignment = .center
         topRow.spacing = 16
 
-        goalTitleLabel.text = "GOAL"
-        goalTitleLabel.font = .systemFont(ofSize: 11, weight: .black)
-        goalTitleLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+        goalTitleLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        goalTitleLabel.textColor = DesignTokens.Color.textSecondary
+        goalTitleLabel.setTracked("SEGMENT GOAL", kern: 1.5)
 
         goalValueLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .bold)
         goalValueLabel.textColor = .white
 
-        goalDeltaLabel.font = .monospacedDigitSystemFont(ofSize: 30, weight: .black)
+        goalDeltaLabel.font = DesignTokens.Font.number(28)
         goalDeltaLabel.textAlignment = .right
 
         let goalTextStack = UIStackView(arrangedSubviews: [goalTitleLabel, goalValueLabel])
@@ -226,18 +221,26 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         goalStack.spacing = 12
         goalStack.translatesAutoresizingMaskIntoConstraints = false
 
-        goalCard.backgroundColor = UIColor.white.withAlphaComponent(0.08)
-        goalCard.layer.cornerRadius = 18
-        goalCard.layer.borderWidth = 1
-        goalCard.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
         goalCard.translatesAutoresizingMaskIntoConstraints = false
         goalCard.addSubview(goalStack)
         NSLayoutConstraint.activate([
             goalStack.topAnchor.constraint(equalTo: goalCard.topAnchor, constant: 14),
-            goalStack.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor, constant: 16),
-            goalStack.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor, constant: -16),
+            goalStack.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor),
+            goalStack.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor),
             goalStack.bottomAnchor.constraint(equalTo: goalCard.bottomAnchor, constant: -14)
         ])
+        for anchor in [goalCard.topAnchor, goalCard.bottomAnchor] {
+            let line = UIView()
+            line.backgroundColor = DesignTokens.Color.hairline
+            line.translatesAutoresizingMaskIntoConstraints = false
+            goalCard.addSubview(line)
+            NSLayoutConstraint.activate([
+                line.leadingAnchor.constraint(equalTo: goalCard.leadingAnchor),
+                line.trailingAnchor.constraint(equalTo: goalCard.trailingAnchor),
+                line.heightAnchor.constraint(equalToConstant: 1),
+                line.centerYAnchor.constraint(equalTo: anchor)
+            ])
+        }
 
         let infoRow = UIStackView(arrangedSubviews: [infoPrimaryMetric, infoSecondaryMetric])
         infoRow.axis = .horizontal
@@ -260,8 +263,8 @@ final class LiveWorkoutMirrorViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             contentStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24)
         ])
     }
 
@@ -270,14 +273,15 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         let margin: CGFloat = 24
 
         advanceControl.translatesAutoresizingMaskIntoConstraints = false
-        advanceControl.heightAnchor.constraint(equalToConstant: 68).isActive = true
+        advanceControl.heightAnchor.constraint(equalToConstant: buttonSize).isActive = true
         advanceControl.addTarget(self, action: #selector(advanceTriggered), for: .primaryActionTriggered)
 
         for button in [pauseButton, endButton] {
             button.translatesAutoresizingMaskIntoConstraints = false
             button.tintColor = .white
-            button.backgroundColor = UIColor.black.withAlphaComponent(0.25)
-            button.layer.cornerRadius = buttonSize / 2
+            button.backgroundColor = .clear
+            button.layer.borderWidth = 1.5
+            button.layer.borderColor = UIColor.white.cgColor
             button.widthAnchor.constraint(equalToConstant: buttonSize).isActive = true
             button.heightAnchor.constraint(equalToConstant: buttonSize).isActive = true
         }
@@ -287,7 +291,8 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         pauseButton.addTarget(self, action: #selector(pauseTapped), for: .touchUpInside)
 
         endButton.setImage(UIImage(systemName: "xmark"), for: .normal)
-        endButton.backgroundColor = UIColor.red.withAlphaComponent(0.2)
+        endButton.tintColor = DesignTokens.Color.destructive
+        endButton.layer.borderColor = DesignTokens.Color.destructive.cgColor
         endButton.accessibilityIdentifier = "liveMirror.endButton"
         endButton.addTarget(self, action: #selector(endTapped), for: .touchUpInside)
 
@@ -296,7 +301,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
         let controlRow = UIStackView(arrangedSubviews: [pauseButton, advanceControl, endButton])
         controlRow.axis = .horizontal
         controlRow.alignment = .center
-        controlRow.spacing = 14
+        controlRow.spacing = 8
         controlRow.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(controlRow)
 
@@ -349,15 +354,7 @@ final class LiveWorkoutMirrorViewController: UIViewController {
     }
 
     private func backgroundColor(for state: LiveWorkoutState) -> UIColor {
-        if state.isOverGoal {
-            return UIColor(red: 0.36, green: 0.06, blue: 0.06, alpha: 1)
-        }
-
-        switch state.accentKindRaw {
-        case "run": return DesignTokens.Color.runBackground
-        case "roxZone": return DesignTokens.Color.roxZoneBackground
-        default: return DesignTokens.Color.stationBackground
-        }
+        DesignTokens.Color.background
     }
 
     private func gpsText(for state: LiveWorkoutState) -> String {

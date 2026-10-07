@@ -50,9 +50,6 @@ final class SlideActionControl: UIControl {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        trackView.layer.cornerRadius = bounds.height / 2
-        fillView.layer.cornerRadius = bounds.height / 2
-        thumbView.layer.cornerRadius = thumbDiameter / 2
         thumbWidthConstraint.constant = thumbDiameter
         applyOffset(currentOffset, animated: false)
     }
@@ -68,7 +65,7 @@ final class SlideActionControl: UIControl {
         accessibilityTraits.insert(.button)
         accessibilityLabel = title
 
-        trackView.backgroundColor = UIColor.white.withAlphaComponent(0.14)
+        trackView.backgroundColor = UIColor.white.withAlphaComponent(0.08)
         trackView.layer.borderColor = UIColor.white.withAlphaComponent(0.16).cgColor
         trackView.layer.borderWidth = 1
         trackView.clipsToBounds = false
@@ -81,19 +78,17 @@ final class SlideActionControl: UIControl {
         trackView.addSubview(fillView)
 
         titleLabel.text = title
-        titleLabel.font = .systemFont(ofSize: 15, weight: .black)
+        titleLabel.font = DesignTokens.Font.wide(13, weight: .heavy)
         titleLabel.textColor = UIColor.white.withAlphaComponent(0.92)
         titleLabel.textAlignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         trackView.addSubview(titleLabel)
 
         thumbView.backgroundColor = accentColor
-        thumbView.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
-        thumbView.layer.borderWidth = 1.5
         thumbView.translatesAutoresizingMaskIntoConstraints = false
         trackView.addSubview(thumbView)
 
-        thumbImageView.tintColor = .white
+        thumbImageView.tintColor = .black
         thumbImageView.contentMode = .scaleAspectFit
         thumbImageView.translatesAutoresizingMaskIntoConstraints = false
         thumbView.addSubview(thumbImageView)
@@ -104,6 +99,12 @@ final class SlideActionControl: UIControl {
         )
         fillWidthConstraint = fillView.widthAnchor.constraint(equalToConstant: 0)
         thumbWidthConstraint = thumbView.widthAnchor.constraint(equalToConstant: 52)
+
+        // The title yields to the thumb on narrow tracks instead of breaking the thumb's size.
+        let titleCenterX = titleLabel.centerXAnchor.constraint(equalTo: trackView.centerXAnchor)
+        titleCenterX.priority = .defaultHigh
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.7
 
         NSLayoutConstraint.activate([
             trackView.topAnchor.constraint(equalTo: topAnchor),
@@ -116,7 +117,7 @@ final class SlideActionControl: UIControl {
             fillView.bottomAnchor.constraint(equalTo: trackView.bottomAnchor),
             fillWidthConstraint,
 
-            titleLabel.centerXAnchor.constraint(equalTo: trackView.centerXAnchor),
+            titleCenterX,
             titleLabel.centerYAnchor.constraint(equalTo: trackView.centerYAnchor),
             titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: thumbView.trailingAnchor, constant: 12),
             titleLabel.trailingAnchor.constraint(equalTo: trackView.trailingAnchor, constant: -20),
@@ -126,7 +127,7 @@ final class SlideActionControl: UIControl {
             thumbView.heightAnchor.constraint(equalTo: thumbView.widthAnchor),
             thumbWidthConstraint,
 
-            thumbImageView.centerXAnchor.constraint(equalTo: thumbView.centerXAnchor, constant: 20),
+            thumbImageView.centerXAnchor.constraint(equalTo: thumbView.centerXAnchor),
             thumbImageView.centerYAnchor.constraint(equalTo: thumbView.centerYAnchor),
             thumbImageView.widthAnchor.constraint(equalToConstant: 22),
             thumbImageView.heightAnchor.constraint(equalToConstant: 22)
