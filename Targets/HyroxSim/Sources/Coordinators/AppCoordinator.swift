@@ -359,6 +359,10 @@ extension AppCoordinator: HomeViewControllerDelegate {
         showTemplateDetail(template)
     }
 
+    func homeDidTapStart(_ template: WorkoutTemplate) {
+        startWorkout(template: template)
+    }
+
     func homeDidRequestDeleteTemplate(_ template: WorkoutTemplate) {
         deleteCustomTemplate(template)
     }

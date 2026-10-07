@@ -11,6 +11,7 @@ import HyroxCore
 @MainActor
 protocol HomeViewControllerDelegate: AnyObject {
     func homeDidSelectTemplate(_ template: WorkoutTemplate)
+    func homeDidTapStart(_ template: WorkoutTemplate)
     func homeDidRequestDeleteTemplate(_ template: WorkoutTemplate)
     func homeDidTapNewWorkout()
     func homeDidTapHistory()
@@ -23,20 +24,17 @@ final class HomeViewController: UIViewController {
     private let viewModel: HomeViewModel
 
     /// Unified horizontal margin for all sections
-    private let hMargin: CGFloat = 20
+    private let hMargin: CGFloat = CoursePageCell.horizontalInset
 
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
-    private var carouselCollectionView: UICollectionView!
-    private let pageControl = UIPageControl()
-    private enum Tags {
-        static let recentContainer = 100
-        static let customTemplatesHeader = 101
-        static let customTemplatesContainer = 102
-    }
-
-    private var cardWidth: CGFloat { view.bounds.width - hMargin * 2 }
-    private let cardSpacing: CGFloat = 10
+    private var pagerCollectionView: UICollectionView!
+    private let pageLabel = UILabel()
+    private let lastRaceValueLabel = UILabel()
+    private let goalValueLabel = UILabel()
+    private let historyCountLabel = UILabel()
+    private let savedTemplatesStack = UIStackView()
+    private var currentPage = 0
 
     init(viewModel: HomeViewModel) {
         self.viewModel = viewModel
@@ -49,7 +47,7 @@ final class HomeViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = DesignTokens.Color.background
-        title = "HYROX"
+        navigationItem.title = "HYROX"
         setupScrollView()
         buildContent()
         NotificationCenter.default.addObserver(self, selector: #selector(handleSyncUpdate), name: .syncDataUpdated, object: nil)
@@ -57,17 +55,29 @@ final class HomeViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        viewModel.load()
-        carouselCollectionView?.reloadData()
-        rebuildRecentCard()
-        rebuildCustomTemplates()
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+        reload()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 
     @objc private func handleSyncUpdate() {
+        reload()
+    }
+
+    private func reload() {
         viewModel.load()
-        carouselCollectionView?.reloadData()
-        rebuildRecentCard()
-        rebuildCustomTemplates()
+        pagerCollectionView.reloadData()
+        currentPage = min(currentPage, max(viewModel.presets.count - 1, 0))
+        updateSelection()
+        rebuildSavedTemplates()
+    }
+
+    private var selectedPreset: WorkoutTemplate? {
+        viewModel.presets.indices.contains(currentPage) ? viewModel.presets[currentPage] : nil
     }
 
     // MARK: - Scroll View
@@ -84,249 +94,279 @@ final class HomeViewController: UIViewController {
         ])
 
         contentStack.axis = .vertical
-        contentStack.spacing = 16
+        contentStack.spacing = 0
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStack)
         NSLayoutConstraint.activate([
-            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 12),
             contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -40)
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -32)
         ])
     }
 
     // MARK: - Build Content
 
     private func buildContent() {
-        // Recent workout placeholder
-        let recentContainer = UIView()
-        recentContainer.tag = Tags.recentContainer
-        contentStack.addArrangedSubview(recentContainer)
+        let header = makeHeaderRow()
+        contentStack.addArrangedSubview(inset(header))
+        contentStack.setCustomSpacing(18, after: contentStack.arrangedSubviews.last!)
 
-        // Carousel
-        contentStack.addArrangedSubview(makeSectionHeader("SELECT DIVISION"))
-        contentStack.addArrangedSubview(makeCarousel())
+        contentStack.addArrangedSubview(makePager())
+        contentStack.setCustomSpacing(18, after: pagerCollectionView)
 
-        pageControl.numberOfPages = HyroxPresets.all.count
-        pageControl.currentPageIndicatorTintColor = .white
-        pageControl.pageIndicatorTintColor = UIColor.white.withAlphaComponent(0.2)
-        pageControl.isUserInteractionEnabled = false
-        contentStack.addArrangedSubview(pageControl)
+        contentStack.addArrangedSubview(inset(makeHairline()))
+        contentStack.setCustomSpacing(14, after: contentStack.arrangedSubviews.last!)
 
-        let customHeader = makeSectionHeader("SAVED TEMPLATES")
-        customHeader.tag = Tags.customTemplatesHeader
-        customHeader.isHidden = true
-        contentStack.addArrangedSubview(customHeader)
+        contentStack.addArrangedSubview(inset(makeStatsRow()))
+        contentStack.setCustomSpacing(18, after: contentStack.arrangedSubviews.last!)
 
-        let customContainer = UIView()
-        customContainer.tag = Tags.customTemplatesContainer
-        customContainer.isHidden = true
-        contentStack.addArrangedSubview(customContainer)
+        contentStack.addArrangedSubview(inset(makeStartButton()))
+        contentStack.setCustomSpacing(20, after: contentStack.arrangedSubviews.last!)
 
-        // Actions
-        contentStack.addArrangedSubview(makeSectionHeader("MY WORKOUTS"))
-        contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.createCustom, icon: "plus.circle.fill", action: #selector(newWorkoutTapped)))
-        contentStack.addArrangedSubview(makeActionRow(title: HyroxSimStrings.Localizable.Home.Action.history, icon: "clock.arrow.circlepath", action: #selector(historyTapped)))
+        historyCountLabel.font = DesignTokens.Font.number(13, weight: .bold)
+        historyCountLabel.textColor = DesignTokens.Color.textSecondary
+
+        let plusLabel = UILabel()
+        plusLabel.text = "+"
+        plusLabel.font = .systemFont(ofSize: 17, weight: .bold)
+        plusLabel.textColor = DesignTokens.Color.textPrimary
+
+        contentStack.addArrangedSubview(inset(makeHairline()))
+        contentStack.addArrangedSubview(inset(makeLinkRow(
+            title: HyroxSimStrings.Localizable.Home.Action.createCustom,
+            accessory: plusLabel,
+            action: #selector(newWorkoutTapped)
+        )))
+        contentStack.addArrangedSubview(inset(makeLinkRow(
+            title: HyroxSimStrings.Localizable.Home.Action.history,
+            accessory: historyCountLabel,
+            action: #selector(historyTapped)
+        )))
+
+        savedTemplatesStack.axis = .vertical
+        savedTemplatesStack.isHidden = true
+        contentStack.addArrangedSubview(inset(savedTemplatesStack))
     }
 
-    // MARK: - Carousel (paging snap)
+    private func makeHeaderRow() -> UIView {
+        let brandLabel = UILabel()
+        brandLabel.font = DesignTokens.Font.wide(11, weight: .bold)
+        brandLabel.textColor = DesignTokens.Color.textSecondary
+        brandLabel.setTracked("HYROX SIM", kern: 4)
 
-    private func makeCarousel() -> UIView {
+        pageLabel.font = DesignTokens.Font.number(11, weight: .semibold)
+        pageLabel.textColor = DesignTokens.Color.textSecondary
+        pageLabel.textAlignment = .right
+
+        let row = UIStackView(arrangedSubviews: [brandLabel, pageLabel])
+        row.axis = .horizontal
+        row.alignment = .center
+        return row
+    }
+
+    // MARK: - Pager
+
+    private func makePager() -> UIView {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
-        layout.minimumLineSpacing = cardSpacing
-        layout.sectionInset = UIEdgeInsets(top: 0, left: hMargin, bottom: 0, right: hMargin)
+        layout.minimumLineSpacing = 0
+        layout.minimumInteritemSpacing = 0
 
-        carouselCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        carouselCollectionView.translatesAutoresizingMaskIntoConstraints = false
-        carouselCollectionView.backgroundColor = .clear
-        carouselCollectionView.showsHorizontalScrollIndicator = false
-        carouselCollectionView.decelerationRate = .fast
-        carouselCollectionView.dataSource = self
-        carouselCollectionView.delegate = self
-        carouselCollectionView.register(PresetCardCell.self, forCellWithReuseIdentifier: PresetCardCell.reuseId)
-        carouselCollectionView.heightAnchor.constraint(equalToConstant: 168).isActive = true
-        return carouselCollectionView
+        pagerCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        pagerCollectionView.translatesAutoresizingMaskIntoConstraints = false
+        pagerCollectionView.backgroundColor = .clear
+        pagerCollectionView.showsHorizontalScrollIndicator = false
+        pagerCollectionView.isPagingEnabled = true
+        pagerCollectionView.dataSource = self
+        pagerCollectionView.delegate = self
+        pagerCollectionView.register(CoursePageCell.self, forCellWithReuseIdentifier: CoursePageCell.reuseId)
+        pagerCollectionView.heightAnchor.constraint(equalToConstant: pagerHeight).isActive = true
+        return pagerCollectionView
     }
 
-    // MARK: - Recent Card
-
-    private func rebuildRecentCard() {
-        guard let container = contentStack.arrangedSubviews.first(where: { $0.tag == Tags.recentContainer }) else { return }
-        container.subviews.forEach { $0.removeFromSuperview() }
-
-        guard let workout = viewModel.mostRecentWorkout else {
-            container.isHidden = true
-            return
-        }
-        container.isHidden = false
-
-        let card = UIView()
-        card.backgroundColor = DesignTokens.Color.surface
-        card.layer.cornerRadius = DesignTokens.Radius.card
-        card.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(card)
-        NSLayoutConstraint.activate([
-            card.topAnchor.constraint(equalTo: container.topAnchor),
-            card.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
-            card.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
-            card.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
-
-        let badge = UILabel()
-        badge.text = "RECENT"
-        badge.font = .systemFont(ofSize: 10, weight: .bold)
-        badge.textColor = DesignTokens.Color.textTertiary
-
-        let nameLabel = UILabel()
-        nameLabel.text = workout.templateName
-        nameLabel.font = .systemFont(ofSize: 17, weight: .bold)
-        nameLabel.textColor = .white
-
-        let timeLabel = UILabel()
-        timeLabel.text = DurationFormatter.hms(workout.totalDuration)
-        timeLabel.font = .monospacedDigitSystemFont(ofSize: 24, weight: .semibold)
-        timeLabel.textColor = .white
-
-        let dateLabel = UILabel()
-        dateLabel.text = RelativeDateFormatter.short(workout.finishedAt)
-        dateLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        dateLabel.textColor = DesignTokens.Color.textTertiary
-
-        let stack = UIStackView(arrangedSubviews: [badge, nameLabel, timeLabel, dateLabel])
-        stack.axis = .vertical
-        stack.spacing = 3
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(stack)
-
-        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
-        chevron.tintColor = DesignTokens.Color.textTertiary
-        chevron.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(chevron)
-
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
-            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
-            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16),
-            chevron.centerYAnchor.constraint(equalTo: card.centerYAnchor),
-            chevron.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16)
-        ])
-
-        card.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(recentTapped)))
-        card.isUserInteractionEnabled = true
+    private var pagerHeight: CGFloat {
+        let stationCount = HyroxPresets.all.map { $0.courseStations.count }.max() ?? 8
+        return CoursePageCell.height(stationCount: stationCount)
     }
 
-    private func rebuildCustomTemplates() {
-        guard
-            let header = contentStack.arrangedSubviews.first(where: { $0.tag == Tags.customTemplatesHeader }),
-            let container = contentStack.arrangedSubviews.first(where: { $0.tag == Tags.customTemplatesContainer })
-        else { return }
+    private func updateSelection() {
+        let total = viewModel.presets.count
+        pageLabel.text = total > 0 ? String(format: "%02d / %02d", currentPage + 1, total) : nil
+        goalValueLabel.text = selectedPreset.map { DurationFormatter.hms($0.estimatedDurationSeconds) } ?? "—"
+        lastRaceValueLabel.text = viewModel.mostRecentWorkout.map { DurationFormatter.hms($0.totalDuration) } ?? "—"
+        historyCountLabel.text = "\(viewModel.recentWorkouts.count)"
+    }
 
-        container.subviews.forEach { $0.removeFromSuperview() }
+    // MARK: - Stats + Start
 
-        guard !viewModel.customTemplates.isEmpty else {
-            header.isHidden = true
-            container.isHidden = true
-            return
-        }
+    private func makeStatsRow() -> UIView {
+        lastRaceValueLabel.textColor = DesignTokens.Color.textPrimary
+        goalValueLabel.textColor = DesignTokens.Color.textSecondary
 
-        header.isHidden = false
-        container.isHidden = false
+        let lastRace = makeStatColumn(caption: "LAST RACE", valueLabel: lastRaceValueLabel)
+        lastRace.isUserInteractionEnabled = true
+        lastRace.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(recentTapped)))
+        lastRace.isAccessibilityElement = true
+        lastRace.accessibilityTraits = .button
+        lastRace.accessibilityLabel = "Last race"
 
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 10
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(stack)
+        let goal = makeStatColumn(caption: "GOAL", valueLabel: goalValueLabel)
+
+        let row = UIStackView(arrangedSubviews: [lastRace, goal])
+        row.axis = .horizontal
+        row.distribution = .fillEqually
+        row.spacing = 12
+        return row
+    }
+
+    private func makeStatColumn(caption: String, valueLabel: UILabel) -> UIView {
+        let captionLabel = UILabel()
+        captionLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        captionLabel.textColor = DesignTokens.Color.textSecondary
+        captionLabel.setTracked(caption, kern: 1.5)
+
+        valueLabel.font = DesignTokens.Font.number(28)
+        valueLabel.adjustsFontSizeToFitWidth = true
+        valueLabel.minimumScaleFactor = 0.7
+
+        let column = UIStackView(arrangedSubviews: [captionLabel, valueLabel])
+        column.axis = .vertical
+        column.spacing = 4
+        return column
+    }
+
+    private func makeStartButton() -> UIView {
+        let button = UIButton(type: .system)
+        button.backgroundColor = DesignTokens.Color.accent
+        button.setAttributedTitle(NSAttributedString(
+            string: HyroxSimStrings.Localizable.Button.startWorkout.uppercased(),
+            attributes: [
+                .font: DesignTokens.Font.wide(16, weight: .heavy),
+                .foregroundColor: UIColor.black,
+                .kern: 1.2
+            ]
+        ), for: .normal)
+        button.addTarget(self, action: #selector(startTapped), for: .touchUpInside)
+        button.heightAnchor.constraint(equalToConstant: 54).isActive = true
+        return button
+    }
+
+    // MARK: - Saved templates
+
+    private func rebuildSavedTemplates() {
+        savedTemplatesStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        savedTemplatesStack.isHidden = viewModel.customTemplates.isEmpty
+        guard !viewModel.customTemplates.isEmpty else { return }
+
+        let header = UILabel()
+        header.font = .systemFont(ofSize: 10, weight: .bold)
+        header.textColor = DesignTokens.Color.textSecondary
+        header.setTracked("SAVED TEMPLATES", kern: 1.5)
+        let headerContainer = UIView()
+        header.translatesAutoresizingMaskIntoConstraints = false
+        headerContainer.addSubview(header)
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: container.topAnchor),
-            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            header.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 28),
+            header.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
+            header.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -10)
         ])
+        savedTemplatesStack.addArrangedSubview(headerContainer)
+        savedTemplatesStack.addArrangedSubview(makeHairline())
 
         for (index, template) in viewModel.customTemplates.enumerated() {
-            stack.addArrangedSubview(makeCustomTemplateRow(template: template, index: index))
+            savedTemplatesStack.addArrangedSubview(makeCustomTemplateRow(template: template, index: index))
         }
-    }
-
-    @objc private func recentTapped() {
-        guard let workout = viewModel.mostRecentWorkout else { return }
-        delegate?.homeDidSelectRecent(workout)
     }
 
     // MARK: - Components
 
-    private func makeSectionHeader(_ text: String) -> UIView {
-        let label = UILabel()
-        label.text = text
-        label.font = .systemFont(ofSize: 12, weight: .bold)
-        label.textColor = DesignTokens.Color.textTertiary
-        label.translatesAutoresizingMaskIntoConstraints = false
-
+    private func inset(_ content: UIView) -> UIView {
         let container = UIView()
-        container.addSubview(label)
+        content.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(content)
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
-            label.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            content.topAnchor.constraint(equalTo: container.topAnchor),
+            content.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
+            content.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
+            content.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         return container
     }
 
-    private func makeActionRow(title: String, icon: String, action: Selector) -> UIView {
-        let button = UIButton(type: .system)
-        var config = UIButton.Configuration.filled()
-        config.title = title
-        config.image = UIImage(systemName: icon)
-        config.imagePadding = 10
-        config.baseForegroundColor = .white
-        config.baseBackgroundColor = DesignTokens.Color.surface
-        config.cornerStyle = .large
-        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
-        button.configuration = config
-        button.contentHorizontalAlignment = .leading
-        button.addTarget(self, action: action, for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
+    private func makeHairline() -> UIView {
+        let line = UIView()
+        line.backgroundColor = DesignTokens.Color.hairline
+        line.heightAnchor.constraint(equalToConstant: 1).isActive = true
+        return line
+    }
 
-        let container = UIView()
-        container.addSubview(button)
+    /// Full-width text row with a hairline underneath.
+    private func makeRow(title: String, subtitle: String?, accessory: UIView?) -> UIButton {
+        let button = UIButton(type: .custom)
+
+        let titleLabel = UILabel()
+        titleLabel.text = title.uppercased()
+        titleLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        titleLabel.textColor = DesignTokens.Color.textPrimary
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.75
+
+        let textStack = UIStackView(arrangedSubviews: [titleLabel])
+        textStack.axis = .vertical
+        textStack.spacing = 3
+        if let subtitle {
+            let subtitleLabel = UILabel()
+            subtitleLabel.text = subtitle
+            subtitleLabel.font = .systemFont(ofSize: 11, weight: .medium)
+            subtitleLabel.textColor = DesignTokens.Color.textSecondary
+            textStack.addArrangedSubview(subtitleLabel)
+        }
+
+        let row = UIStackView(arrangedSubviews: [textStack])
+        if let accessory {
+            accessory.setContentHuggingPriority(.required, for: .horizontal)
+            accessory.setContentCompressionResistancePriority(.required, for: .horizontal)
+            row.addArrangedSubview(accessory)
+        }
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 12
+        row.isUserInteractionEnabled = false
+        row.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(row)
+
+        let line = makeHairline()
+        line.translatesAutoresizingMaskIntoConstraints = false
+        line.isUserInteractionEnabled = false
+        button.addSubview(line)
+
         NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: container.topAnchor),
-            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
-            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
-            button.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: subtitle == nil ? 50 : 58),
+            row.leadingAnchor.constraint(equalTo: button.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+            row.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            line.leadingAnchor.constraint(equalTo: button.leadingAnchor),
+            line.trailingAnchor.constraint(equalTo: button.trailingAnchor),
+            line.bottomAnchor.constraint(equalTo: button.bottomAnchor)
         ])
-        return container
+
+        button.accessibilityLabel = title
+        return button
+    }
+
+    private func makeLinkRow(title: String, accessory: UIView, action: Selector) -> UIView {
+        let button = makeRow(title: title, subtitle: nil, accessory: accessory)
+        button.addTarget(self, action: action, for: .touchUpInside)
+        return button
     }
 
     private func makeCustomTemplateRow(template: WorkoutTemplate, index: Int) -> UIView {
-        let button = UIButton(type: .system)
-        var config = UIButton.Configuration.filled()
-        config.title = template.name
-        config.subtitle = customTemplateSummary(for: template)
-        config.image = UIImage(systemName: template.usesRoxZone ? "square.stack.3d.forward.dottedline.fill" : "figure.run")
-        config.imagePadding = 10
-        config.baseForegroundColor = .white
-        config.baseBackgroundColor = DesignTokens.Color.surface
-        config.cornerStyle = .large
-        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
-        button.configuration = config
-        button.contentHorizontalAlignment = .leading
+        let button = makeRow(title: template.name, subtitle: customTemplateSummary(for: template), accessory: nil)
         button.tag = index
         button.addTarget(self, action: #selector(customTemplateTapped(_:)), for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
         button.addInteraction(UIContextMenuInteraction(delegate: self))
-
-        let container = UIView()
-        container.addSubview(button)
-        NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: container.topAnchor),
-            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: hMargin),
-            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -hMargin),
-            button.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
-        return container
+        return button
     }
 
     private func confirmDeleteCustomTemplate(_ template: WorkoutTemplate) {
@@ -357,6 +397,16 @@ final class HomeViewController: UIViewController {
     }
 
     // MARK: - Actions
+
+    @objc private func startTapped() {
+        guard let preset = selectedPreset else { return }
+        delegate?.homeDidTapStart(preset)
+    }
+
+    @objc private func recentTapped() {
+        guard let workout = viewModel.mostRecentWorkout else { return }
+        delegate?.homeDidSelectRecent(workout)
+    }
 
     @objc private func newWorkoutTapped() { delegate?.homeDidTapNewWorkout() }
     @objc private func historyTapped() { delegate?.homeDidTapHistory() }
@@ -405,7 +455,7 @@ extension HomeViewController: UICollectionViewDataSource {
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: PresetCardCell.reuseId, for: indexPath) as! PresetCardCell
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CoursePageCell.reuseId, for: indexPath) as! CoursePageCell
         cell.configure(with: viewModel.presets[indexPath.item])
         return cell
     }
@@ -416,31 +466,19 @@ extension HomeViewController: UICollectionViewDataSource {
 extension HomeViewController: UICollectionViewDelegateFlowLayout {
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        CGSize(width: cardWidth, height: 160)
+        CGSize(width: collectionView.bounds.width, height: collectionView.bounds.height)
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         delegate?.homeDidSelectTemplate(viewModel.presets[indexPath.item])
     }
 
-    // Snap-to-card paging
-    func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
-        guard scrollView == carouselCollectionView else { return }
-        let pageWidth = cardWidth + cardSpacing
-        let currentOffset = scrollView.contentOffset.x
-        let targetOffset = targetContentOffset.pointee.x
-
-        var newPage: Int
-        if velocity.x > 0.3 {
-            newPage = Int(ceil(currentOffset / pageWidth))
-        } else if velocity.x < -0.3 {
-            newPage = Int(floor(currentOffset / pageWidth))
-        } else {
-            newPage = Int(round(targetOffset / pageWidth))
-        }
-
-        newPage = max(0, min(newPage, viewModel.presets.count - 1))
-        targetContentOffset.pointee.x = CGFloat(newPage) * pageWidth
-        pageControl.currentPage = newPage
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard scrollView == pagerCollectionView, scrollView.bounds.width > 0 else { return }
+        let page = Int((scrollView.contentOffset.x / scrollView.bounds.width).rounded())
+        let clamped = max(0, min(page, viewModel.presets.count - 1))
+        guard clamped != currentPage else { return }
+        currentPage = clamped
+        updateSelection()
     }
 }

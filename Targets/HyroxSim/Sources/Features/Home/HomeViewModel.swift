@@ -24,7 +24,8 @@ public final class HomeViewModel {
     }
 
     public func load() {
-        presets = HyroxPresets.all
+        let goalOverrides = TemplateGoalOverrideStore()
+        presets = HyroxPresets.all.map(goalOverrides.resolvedTemplate(from:))
         customTemplates = (try? persistence.fetchAllTemplates()) ?? []
         recentWorkouts = (try? persistence.fetchAllCompletedWorkouts()) ?? []
     }
