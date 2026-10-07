@@ -133,11 +133,7 @@ final class HomeViewController: UIViewController {
     private func buildContent() {
         let header = makeHeaderRow()
         contentStack.addArrangedSubview(inset(header))
-        contentStack.setCustomSpacing(14, after: contentStack.arrangedSubviews.last!)
-
-        // 내 대회 (D-day)
-        contentStack.addArrangedSubview(inset(raceTargetContainer))
-        contentStack.setCustomSpacing(20, after: contentStack.arrangedSubviews.last!)
+        contentStack.setCustomSpacing(18, after: contentStack.arrangedSubviews.last!)
 
         contentStack.addArrangedSubview(makePager())
         contentStack.setCustomSpacing(18, after: pagerCollectionView)
@@ -149,6 +145,10 @@ final class HomeViewController: UIViewController {
         contentStack.setCustomSpacing(18, after: contentStack.arrangedSubviews.last!)
 
         contentStack.addArrangedSubview(inset(makeStartButton()))
+        contentStack.setCustomSpacing(20, after: contentStack.arrangedSubviews.last!)
+
+        // 내 대회 (D-day). 시작 버튼이 작은 화면에서도 첫 화면에 보이도록 그 아래에 둔다.
+        contentStack.addArrangedSubview(inset(raceTargetContainer))
         contentStack.setCustomSpacing(20, after: contentStack.arrangedSubviews.last!)
 
         historyCountLabel.font = DesignTokens.Font.number(13, weight: .bold)

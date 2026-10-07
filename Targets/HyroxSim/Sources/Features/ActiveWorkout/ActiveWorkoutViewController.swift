@@ -18,6 +18,10 @@ final class ActiveWorkoutViewController: UIViewController {
     private let titleLabel = UILabel()
     private let courseMapView = CourseMapView(style: .compact)
     private let segmentTimeLabel = UILabel()
+    private let timeCaption = UILabel()
+    private let contentStack = UIStackView()
+    /// 작은 화면에서 랩 카운터가 하단 컨트롤과 겹치지 않도록 줄인 배치를 쓰는지.
+    private var appliedCompactLayout: Bool?
     private let primaryStat = StatColumn()
     private let heartStat = StatColumn()
     private let totalStat = StatColumn()
@@ -99,7 +103,6 @@ final class ActiveWorkoutViewController: UIViewController {
 
         courseMapView.stations = viewModel.template.courseStations
 
-        let timeCaption = UILabel()
         timeCaption.font = .systemFont(ofSize: 10, weight: .bold)
         timeCaption.textColor = DesignTokens.Color.textSecondary
         timeCaption.setTracked("SEGMENT TIME", kern: 1.5)
@@ -114,10 +117,10 @@ final class ActiveWorkoutViewController: UIViewController {
         statsRow.distribution = .fillEqually
         statsRow.spacing = 12
 
-        let contentStack = UIStackView(arrangedSubviews: [
+        [
             topRow, titleLabel, courseMapView, timeCaption, segmentTimeLabel,
             makeHairline(), statsRow, makeHairline(), segmentGoalRow, totalGoalRow
-        ])
+        ].forEach(contentStack.addArrangedSubview)
         contentStack.axis = .vertical
         contentStack.alignment = .fill
         contentStack.spacing = 12
@@ -185,6 +188,12 @@ final class ActiveWorkoutViewController: UIViewController {
         raceModeButton.addTarget(self, action: #selector(raceModeTapped), for: .touchUpInside)
         raceModeButton.accessibilityLabel = RaceDayLocalization.Workout.raceModeToggle
         raceModeButton.setContentHuggingPriority(.required, for: .horizontal)
+        // 좁은 화면에서 "RACE" 가 세로로 꺾이지 않게: 버튼은 줄어들지 않고 GPS 문구가 양보한다.
+        raceModeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        raceModeButton.configuration?.titleLineBreakMode = .byClipping
+        headerLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        gpsLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        gpsLabel.lineBreakMode = .byTruncatingTail
 
         var dayConfig = UIButton.Configuration.plain()
         dayConfig.image = UIImage(systemName: "flag.checkered")
@@ -443,6 +452,15 @@ final class ActiveWorkoutViewController: UIViewController {
         lapCard.isHidden = !(isRaceMode && viewModel.isLapCounterAvailable)
         lapMinusButton.isEnabled = viewModel.lapCount > 0
         lapMinusButton.alpha = viewModel.lapCount > 0 ? 1 : 0.35
+
+        // 작은 화면 + 랩 카운터: 타이머를 줄이고 캡션을 접어 하단 컨트롤 위 공간을 만든다.
+        let compact = view.bounds.height < 700 && !lapCard.isHidden
+        if appliedCompactLayout != compact {
+            appliedCompactLayout = compact
+            segmentTimeLabel.font = DesignTokens.Font.number(compact ? 60 : 104)
+            timeCaption.isHidden = compact
+            contentStack.setCustomSpacing(compact ? 6 : 22, after: courseMapView)
+        }
 
         guard appliedRaceMode != isRaceMode else { return }
         appliedRaceMode = isRaceMode
