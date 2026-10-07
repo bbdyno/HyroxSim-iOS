@@ -38,12 +38,16 @@
 
 - tuist가 mise 기본 버전에 없으면: `mise exec tuist@4.209.0 -- tuist generate --no-open`
 - iOS 빌드는 `-sdk iphonesimulator` 없이 `-destination`만 지정 (지정하면 워치 타겟이 iOS SDK로 빌드되어 실패).
-- `xcodebuild test -scheme HyroxSim -only-testing:HyroxSimTests -only-testing:HyroxKitTests` ✅ (2026-10-07)
-- 화면 확인: `ScreenshotPhoneHome|Summary|History|Builder|PacePlanner|Mirror` 런치 인자로 영어/한국어 확인.
+- 2026-10-07 검증 결과:
+  - `HyroxSimTests` + `HyroxKitTests` ✅, `HyroxSimUITests` ✅ (4개 중 real watch E2E 1개는 flag 없으면 skip)
+  - real watch mirror E2E ✅ — `.codex/handoffs/2026-04-08.md` 절차 + `-testLanguage ko -testRegion KR` (테스트가 "종료" 버튼을 찾음). 워치 시뮬레이터 첫 실행 시 건강 권한 창을 먼저 넘겨야 종료 단계가 통과함.
+  - iPhone SE (3세대) 시뮬레이터: 홈 → 운동 시작 → 31개 구간 전부 넘김 → 결과 화면까지 확인. 가장 긴 스테이션 이름(Burpee Broad Jumps)도 들어감.
+  - `CourseMapViewTests`: 스테이션 0~20개 렌더링 확인. 16개 이상이면 긴 라벨은 말줄임.
+  - 스테이션 편집·런 편집·목표 설정·종료 알림창·설정·가민 페어링 화면 확인.
+  - 한국어: 홈, 결과 화면 확인.
 
 ## 남은 작업
 
-1. 실기기 확인: 작은 화면(iPhone SE)에서 운동 중 화면, 실제 워치 연동 미러 화면.
-2. 스테이션 수가 많은 커스텀 템플릿의 코스 그림 확인.
-3. main 병합, 버전 올리기, 스토어 스크린샷 교체.
-4. (논의됨, 미착수) 유료 앱 → 무료+구독 전환, 실제 대회 랭킹 기능.
+1. 실기기 확인(시뮬레이터로 대체 불가): 실제 가민 기기에서 오는 기록 수신, 실제 워치의 심박·GPS.
+2. main 병합, 버전 올리기, 스토어 스크린샷 교체.
+3. (논의됨, 미착수) 유료 앱 → 무료+구독 전환, 실제 대회 랭킹 기능.
