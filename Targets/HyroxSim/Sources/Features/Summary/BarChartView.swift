@@ -55,12 +55,12 @@ final class BarChartView: UIView {
 
             let barContainer = UIView()
             barContainer.backgroundColor = UIColor.systemFill
-            barContainer.layer.cornerRadius = 4
+            barContainer.layer.cornerRadius = 0
             barContainer.clipsToBounds = true
 
             let fill = UIView()
             fill.backgroundColor = accentColor
-            fill.layer.cornerRadius = 4
+            fill.layer.cornerRadius = 0
             fill.translatesAutoresizingMaskIntoConstraints = false
             barContainer.addSubview(fill)
 

@@ -23,7 +23,7 @@ final class StackedZoneBarView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        layer.cornerRadius = 8
+        layer.cornerRadius = 0
         clipsToBounds = true
         backgroundColor = .systemFill
 

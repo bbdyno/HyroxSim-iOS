@@ -17,8 +17,8 @@ final class WorkoutSummaryViewController: UIViewController {
 
     private enum Layout {
         static let badgeWidth: CGFloat = 30
-        static let timeWidth: CGFloat = 82
-        static let deltaWidth: CGFloat = 58
+        static let timeWidth: CGFloat = 68
+        static let deltaWidth: CGFloat = 52
         static let chevronWidth: CGFloat = 12
         static let rowSpacing: CGFloat = 8
     }
@@ -104,7 +104,7 @@ final class WorkoutSummaryViewController: UIViewController {
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStack)
 
-        let margin: CGFloat = 10
+        let margin: CGFloat = 24
         NSLayoutConstraint.activate([
             contentStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: margin),
             contentStack.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor, constant: margin),
@@ -127,7 +127,8 @@ final class WorkoutSummaryViewController: UIViewController {
     private func buildContent() {
         addSpacer(2)
         addHeader()
-        addSpacer(10)
+        addCourseMap()
+        addSpacer(14)
         addSeparator()
         addSpacer(10)
         addTableHeader(["Split", "Time", "Delta"])
@@ -157,44 +158,113 @@ final class WorkoutSummaryViewController: UIViewController {
     }
 
     private func addHeader() {
+        let captionLabel = UILabel()
+        captionLabel.font = DesignTokens.Font.wide(11, weight: .bold)
+        captionLabel.textColor = DesignTokens.Color.textSecondary
+        captionLabel.setTracked("FINISH · \(viewModel.titleText.uppercased())", kern: 3)
+        captionLabel.adjustsFontSizeToFitWidth = true
+        captionLabel.minimumScaleFactor = 0.7
+
         let totalLabel = UILabel()
         totalLabel.text = viewModel.totalTimeText
-        totalLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 32, weight: .black)
-        totalLabel.textColor = .white
-        totalLabel.textAlignment = .center
+        totalLabel.font = DesignTokens.Font.number(72)
+        totalLabel.textColor = DesignTokens.Color.textPrimary
+        totalLabel.adjustsFontSizeToFitWidth = true
+        totalLabel.minimumScaleFactor = 0.5
+
+        let hasGoal = viewModel.totalGoalText != "—"
+
+        let goalLabel = UILabel()
+        goalLabel.font = .systemFont(ofSize: 12, weight: .bold)
+        goalLabel.textColor = DesignTokens.Color.textSecondary
+        goalLabel.setTracked(
+            hasGoal
+                ? HyroxSimStrings.Localizable.Summary.goalFormat(viewModel.totalGoalText).uppercased()
+                : viewModel.dateText.uppercased(),
+            kern: 1
+        )
 
         let deltaLabel = UILabel()
         deltaLabel.text = viewModel.totalDelta.text
-        deltaLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .black)
+        deltaLabel.font = DesignTokens.Font.number(16)
         deltaLabel.textColor = color(for: viewModel.totalDelta.tone)
-        deltaLabel.textAlignment = .center
-        deltaLabel.isHidden = viewModel.totalGoalText == "—"
+        deltaLabel.textAlignment = .right
+        deltaLabel.isHidden = !hasGoal
+        deltaLabel.setContentHuggingPriority(.required, for: .horizontal)
 
-        let goalLabel = UILabel()
-        goalLabel.text = HyroxSimStrings.Localizable.Summary.goalFormat(viewModel.totalGoalText)
-        goalLabel.font = .systemFont(ofSize: 10, weight: .bold)
-        goalLabel.textColor = DesignTokens.Color.textSecondary
-        goalLabel.textAlignment = .center
-        goalLabel.isHidden = viewModel.totalGoalText == "—"
-
-        let titleLabel = UILabel()
-        titleLabel.text = viewModel.titleText
-        titleLabel.font = .systemFont(ofSize: 13, weight: .bold)
-        titleLabel.textColor = DesignTokens.Color.accent
-        titleLabel.textAlignment = .center
-        titleLabel.numberOfLines = 1
-        titleLabel.adjustsFontSizeToFitWidth = true
-        titleLabel.minimumScaleFactor = 0.8
+        let goalRow = UIStackView(arrangedSubviews: [goalLabel, deltaLabel])
+        goalRow.axis = .horizontal
+        goalRow.alignment = .firstBaseline
 
         let dateLabel = UILabel()
         dateLabel.text = viewModel.dateText
-        dateLabel.font = .systemFont(ofSize: 10, weight: .medium)
+        dateLabel.font = .systemFont(ofSize: 11, weight: .medium)
         dateLabel.textColor = DesignTokens.Color.textTertiary
-        dateLabel.textAlignment = .center
+        dateLabel.isHidden = !hasGoal
 
-        let stack = UIStackView(arrangedSubviews: [totalLabel, deltaLabel, goalLabel, titleLabel, dateLabel])
+        let stack = UIStackView(arrangedSubviews: [captionLabel, totalLabel, goalRow, dateLabel])
         stack.axis = .vertical
-        stack.spacing = 1
+        stack.spacing = 2
+        stack.setCustomSpacing(4, after: goalRow)
+        contentStack.addArrangedSubview(stack)
+    }
+
+    /// Course with each station marked ahead/behind its goal, plus the costliest station.
+    private func addCourseMap() {
+        let stations = viewModel.sections.compactMap(\.station)
+        guard !stations.isEmpty else { return }
+
+        let mapView = CourseMapView(style: .regular)
+        mapView.stations = stations.map { station in
+            let isBehind = station.delta.tone == .behind
+            return CourseMapView.Station(
+                label: station.delta.tone == .neutral ? nil : station.delta.text,
+                color: isBehind ? DesignTokens.Color.overGoal : DesignTokens.Color.accent,
+                labelColor: isBehind ? DesignTokens.Color.overGoal : DesignTokens.Color.textPrimary
+            )
+        }
+        addSpacer(20)
+        contentStack.addArrangedSubview(mapView)
+
+        let worst = stations
+            .filter { ($0.delta.seconds ?? 0) > 0 }
+            .max { ($0.delta.seconds ?? 0) < ($1.delta.seconds ?? 0) }
+        guard let worst else { return }
+
+        let captionLabel = UILabel()
+        captionLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        captionLabel.textColor = DesignTokens.Color.textSecondary
+        captionLabel.setTracked("BIGGEST LOSS", kern: 1.5)
+
+        let nameLabel = makeLabel(
+            String(format: "%02d  %@", worst.index, worst.title.uppercased()),
+            font: .systemFont(ofSize: 18, weight: .heavy),
+            color: DesignTokens.Color.textPrimary
+        )
+        nameLabel.adjustsFontSizeToFitWidth = true
+        nameLabel.minimumScaleFactor = 0.7
+
+        let lossLabel = makeLabel(
+            worst.delta.text,
+            font: DesignTokens.Font.number(18),
+            color: DesignTokens.Color.overGoal
+        )
+        lossLabel.textAlignment = .right
+        lossLabel.setContentHuggingPriority(.required, for: .horizontal)
+        lossLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let lossRow = UIStackView(arrangedSubviews: [nameLabel, lossLabel])
+        lossRow.axis = .horizontal
+        lossRow.alignment = .firstBaseline
+        lossRow.spacing = 12
+
+        let stack = UIStackView(arrangedSubviews: [captionLabel, lossRow])
+        stack.axis = .vertical
+        stack.spacing = 6
+
+        addSpacer(8)
+        addSeparator()
+        addSpacer(12)
         contentStack.addArrangedSubview(stack)
     }
 
@@ -208,15 +278,15 @@ final class WorkoutSummaryViewController: UIViewController {
         leadSpacer.widthAnchor.constraint(equalToConstant: Layout.badgeWidth).isActive = true
         row.addArrangedSubview(leadSpacer)
 
-        let splitLabel = makeLabel(columns[0], font: .systemFont(ofSize: 13, weight: .bold), color: DesignTokens.Color.accent)
+        let splitLabel = makeLabel(columns[0].uppercased(), font: .systemFont(ofSize: 10, weight: .bold), color: DesignTokens.Color.textSecondary)
         row.addArrangedSubview(splitLabel)
 
-        let timeLabel = makeLabel(columns[1], font: .systemFont(ofSize: 13, weight: .bold), color: DesignTokens.Color.accent)
+        let timeLabel = makeLabel(columns[1].uppercased(), font: .systemFont(ofSize: 10, weight: .bold), color: DesignTokens.Color.textSecondary)
         timeLabel.textAlignment = .right
         timeLabel.widthAnchor.constraint(equalToConstant: Layout.timeWidth).isActive = true
         row.addArrangedSubview(timeLabel)
 
-        let deltaLabel = makeLabel(columns[2], font: .systemFont(ofSize: 13, weight: .bold), color: DesignTokens.Color.accent)
+        let deltaLabel = makeLabel(columns[2].uppercased(), font: .systemFont(ofSize: 10, weight: .bold), color: DesignTokens.Color.textSecondary)
         deltaLabel.textAlignment = .right
         deltaLabel.widthAnchor.constraint(equalToConstant: Layout.deltaWidth).isActive = true
         row.addArrangedSubview(deltaLabel)
@@ -227,7 +297,7 @@ final class WorkoutSummaryViewController: UIViewController {
         row.addArrangedSubview(trailingSpacer)
 
         contentStack.addArrangedSubview(row)
-        addSeparator(color: DesignTokens.Color.accentDim)
+        addSeparator()
     }
 
     private func addRunGroupRow(
@@ -527,7 +597,6 @@ final class WorkoutSummaryViewController: UIViewController {
     private func makeBadge(text: String) -> UIView {
         let container = UIView()
         container.backgroundColor = DesignTokens.Color.accent
-        container.layer.cornerRadius = 4
         container.translatesAutoresizingMaskIntoConstraints = false
         container.widthAnchor.constraint(equalToConstant: 30).isActive = true
         container.heightAnchor.constraint(equalToConstant: 18).isActive = true
@@ -605,9 +674,9 @@ final class WorkoutSummaryViewController: UIViewController {
     private func color(for tone: WorkoutSummaryViewModel.DeltaTone) -> UIColor {
         switch tone {
         case .ahead:
-            return DesignTokens.Color.success
+            return DesignTokens.Color.accent
         case .behind:
-            return .systemRed
+            return DesignTokens.Color.overGoal
         case .neutral:
             return DesignTokens.Color.textSecondary
         }
@@ -636,6 +705,8 @@ final class WorkoutSummaryViewController: UIViewController {
         label.text = text
         label.font = font
         label.textColor = color
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.75
         return label
     }
 
