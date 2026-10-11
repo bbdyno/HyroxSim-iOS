@@ -29,7 +29,6 @@ final class TemplateDetailViewController: UIViewController {
     private let roxZoneSwitch = UISwitch()
     private let roxSubtitleLabel = UILabel()
     private let courseRowsStack = UIStackView()
-    private let courseMapView = CourseMapView(style: .regular)
     private let footerContainer = UIView()
     private let startButton = UIButton(type: .system)
 
@@ -167,7 +166,6 @@ final class TemplateDetailViewController: UIViewController {
         let runDist = template.segments.filter { $0.type == .run }.compactMap(\.distanceMeters).reduce(0, +)
         let mins = Int(template.estimatedDurationSeconds / 60)
         metaLabel.setTracked("\(stations) STATIONS  ·  \(DistanceFormatter.short(runDist).uppercased()) RUN  ·  ~\(mins) MIN", kern: 1.2)
-        courseMapView.stations = template.courseStations
         goalValueLabel.text = DurationFormatter.hms(template.estimatedDurationSeconds)
         goalHintLabel.text = HyroxSimStrings.Localizable.Button.editSegmentTargets
 
@@ -195,8 +193,6 @@ final class TemplateDetailViewController: UIViewController {
         contentStack.addArrangedSubview(metaLabel)
 
         addSpacer(20)
-        contentStack.addArrangedSubview(courseMapView)
-        addSpacer(14)
         addSeparator(color: DesignTokens.Color.hairline)
         contentStack.addArrangedSubview(makeGoalCard())
         addSeparator(color: DesignTokens.Color.hairline)

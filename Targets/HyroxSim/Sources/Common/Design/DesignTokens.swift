@@ -77,6 +77,13 @@ public enum DesignTokens {
             .systemFont(ofSize: size, weight: weight, width: .expanded)
         }
 
+        /// 운동 중 화면의 주인공 숫자: 기울어진 가장 굵은 숫자.
+        public static func bigNumber(_ size: CGFloat) -> UIFont {
+            let base = UIFont.monospacedDigitSystemFont(ofSize: size, weight: .black)
+            guard let descriptor = base.fontDescriptor.withSymbolicTraits([.traitItalic, .traitBold]) else { return base }
+            return UIFont(descriptor: descriptor, size: size)
+        }
+
         public static func number(_ size: CGFloat, weight: UIFont.Weight = .heavy) -> UIFont {
             .monospacedDigitSystemFont(ofSize: size, weight: weight)
         }

@@ -30,14 +30,19 @@ final class HomeViewController: UIViewController {
     private let viewModel: HomeViewModel
 
     /// Unified horizontal margin for all sections
-    private let hMargin: CGFloat = CoursePageCell.horizontalInset
+    private let hMargin: CGFloat = DivisionPageCell.horizontalInset
 
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private var pagerCollectionView: UICollectionView!
     private let pageLabel = UILabel()
-    private let lastRaceValueLabel = UILabel()
+    private let lastRaceLabel = UILabel()
+    private let lastRaceDeltaLabel = UILabel()
     private let goalValueLabel = UILabel()
+    private let stripView = SegmentStripView()
+    private let planStack = UIStackView()
+    /// 홈 표에 미리 보여줄 구간 수. 나머지는 상세 화면에서 본다.
+    private let planPreviewCount = 5
     private let historyCountLabel = UILabel()
     private let savedTemplatesStack = UIStackView()
     private var currentPage = 0
@@ -136,13 +141,20 @@ final class HomeViewController: UIViewController {
         contentStack.setCustomSpacing(18, after: contentStack.arrangedSubviews.last!)
 
         contentStack.addArrangedSubview(makePager())
-        contentStack.setCustomSpacing(18, after: pagerCollectionView)
+        contentStack.setCustomSpacing(10, after: pagerCollectionView)
 
         contentStack.addArrangedSubview(inset(makeHairline()))
         contentStack.setCustomSpacing(14, after: contentStack.arrangedSubviews.last!)
 
-        contentStack.addArrangedSubview(inset(makeStatsRow()))
-        contentStack.setCustomSpacing(18, after: contentStack.arrangedSubviews.last!)
+        contentStack.addArrangedSubview(inset(makeGoalBlock()))
+        contentStack.setCustomSpacing(16, after: contentStack.arrangedSubviews.last!)
+
+        contentStack.addArrangedSubview(inset(makeHairline()))
+        contentStack.setCustomSpacing(10, after: contentStack.arrangedSubviews.last!)
+
+        planStack.axis = .vertical
+        contentStack.addArrangedSubview(inset(planStack))
+        contentStack.setCustomSpacing(14, after: contentStack.arrangedSubviews.last!)
 
         contentStack.addArrangedSubview(inset(makeStartButton()))
         contentStack.setCustomSpacing(20, after: contentStack.arrangedSubviews.last!)
@@ -231,7 +243,7 @@ final class HomeViewController: UIViewController {
         pagerCollectionView.isPagingEnabled = true
         pagerCollectionView.dataSource = self
         pagerCollectionView.delegate = self
-        pagerCollectionView.register(CoursePageCell.self, forCellWithReuseIdentifier: CoursePageCell.reuseId)
+        pagerCollectionView.register(DivisionPageCell.self, forCellWithReuseIdentifier: DivisionPageCell.reuseId)
         pagerCollectionView.heightAnchor.constraint(equalToConstant: pagerHeight).isActive = true
         return pagerCollectionView
     }
@@ -288,55 +300,160 @@ final class HomeViewController: UIViewController {
         delegate?.homeDidSelectTemplate(viewModel.trainingSessions[sender.tag].template)
     }
 
-    private var pagerHeight: CGFloat {
-        let stationCount = HyroxPresets.all.map { $0.courseStations.count }.max() ?? 8
-        return CoursePageCell.height(stationCount: stationCount)
-    }
+    private var pagerHeight: CGFloat { DivisionPageCell.height }
 
     private func updateSelection() {
         let total = viewModel.presets.count
         pageLabel.text = total > 0 ? String(format: "%02d / %02d", currentPage + 1, total) : nil
-        goalValueLabel.text = selectedPreset.map { DurationFormatter.hms($0.estimatedDurationSeconds) } ?? "—"
-        lastRaceValueLabel.text = viewModel.mostRecentWorkout.map { DurationFormatter.hms($0.totalDuration) } ?? "—"
         historyCountLabel.text = "\(viewModel.recentWorkouts.count)"
+
+        let preset = selectedPreset
+        goalValueLabel.text = preset.map { DurationFormatter.hms($0.estimatedDurationSeconds) } ?? "—"
+        let blocks = preset?.planBlocks ?? []
+        rebuildPlanRows(blocks)
+
+        // 지난 기록이 지금 고른 디비전의 것일 때만 띠에 색을 입힌다. 다른 코스의 기록이면 계획만 보여준다.
+        let recent = viewModel.mostRecentWorkout
+        if let recent {
+            lastRaceLabel.setTracked("LAST RACE  \(DurationFormatter.hms(recent.totalDuration))", kern: 1)
+        } else {
+            lastRaceLabel.setTracked("NO RACE YET", kern: 1)
+        }
+        if let recent, let division = preset?.division, recent.division == division {
+            let summary = WorkoutSummaryViewModel(workout: recent)
+            stripView.cells = SegmentStripView.cells(for: recent)
+            let hasGoal = summary.totalGoalText != "—"
+            lastRaceDeltaLabel.isHidden = !hasGoal
+            lastRaceDeltaLabel.text = summary.totalDelta.text
+            lastRaceDeltaLabel.textColor = summary.totalDelta.tone == .behind
+                ? DesignTokens.Color.overGoal
+                : DesignTokens.Color.accent
+        } else {
+            stripView.cells = Array(repeating: .upcoming, count: blocks.count)
+            lastRaceDeltaLabel.isHidden = true
+        }
     }
 
-    // MARK: - Stats + Start
+    // MARK: - Goal + Plan
 
-    private func makeStatsRow() -> UIView {
-        lastRaceValueLabel.textColor = DesignTokens.Color.textPrimary
-        goalValueLabel.textColor = DesignTokens.Color.textSecondary
+    private func makeGoalBlock() -> UIView {
+        let caption = makeCaptionLabel("GOAL")
 
-        let lastRace = makeStatColumn(caption: "LAST RACE", valueLabel: lastRaceValueLabel)
-        lastRace.isUserInteractionEnabled = true
-        lastRace.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(recentTapped)))
-        lastRace.isAccessibilityElement = true
-        lastRace.accessibilityTraits = .button
-        lastRace.accessibilityLabel = "Last race"
+        let editButton = UIButton(type: .system)
+        editButton.setAttributedTitle(NSAttributedString(
+            string: "EDIT PLAN →",
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 10, weight: .bold),
+                .foregroundColor: DesignTokens.Color.accent,
+                .kern: 1
+            ]
+        ), for: .normal)
+        editButton.addTarget(self, action: #selector(editPlanTapped), for: .touchUpInside)
+        editButton.accessibilityLabel = HyroxSimStrings.Localizable.Button.editSegmentTargets
 
-        let goal = makeStatColumn(caption: "GOAL", valueLabel: goalValueLabel)
+        let captionRow = UIStackView(arrangedSubviews: [caption, UIView(), editButton])
+        captionRow.axis = .horizontal
+        captionRow.alignment = .center
 
-        let row = UIStackView(arrangedSubviews: [lastRace, goal])
+        goalValueLabel.font = DesignTokens.Font.number(56)
+        goalValueLabel.textColor = DesignTokens.Color.textPrimary
+        goalValueLabel.adjustsFontSizeToFitWidth = true
+        goalValueLabel.minimumScaleFactor = 0.6
+
+        lastRaceLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        lastRaceLabel.textColor = DesignTokens.Color.textSecondary
+        lastRaceDeltaLabel.font = DesignTokens.Font.number(12)
+        lastRaceDeltaLabel.textAlignment = .right
+
+        let lastRow = UIStackView(arrangedSubviews: [lastRaceLabel, UIView(), lastRaceDeltaLabel])
+        lastRow.axis = .horizontal
+        lastRow.alignment = .center
+        lastRow.isUserInteractionEnabled = true
+        lastRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(recentTapped)))
+        lastRow.isAccessibilityElement = true
+        lastRow.accessibilityTraits = .button
+        lastRow.accessibilityLabel = "Last race"
+
+        let stack = UIStackView(arrangedSubviews: [captionRow, goalValueLabel, stripView, lastRow])
+        stack.axis = .vertical
+        stack.spacing = 2
+        stack.setCustomSpacing(6, after: goalValueLabel)
+        stack.setCustomSpacing(8, after: stripView)
+        return stack
+    }
+
+    private func makeCaptionLabel(_ text: String) -> UILabel {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 10, weight: .bold)
+        label.textColor = DesignTokens.Color.textSecondary
+        label.setTracked(text, kern: 1.5)
+        return label
+    }
+
+    /// 구간별 목표 표. 앞의 몇 줄만 보여주고 나머지는 상세 화면으로 넘긴다.
+    private func rebuildPlanRows(_ blocks: [PlanBlock]) {
+        planStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        guard !blocks.isEmpty else { return }
+
+        planStack.addArrangedSubview(makePlanRow(tag: "#", title: "SEGMENT", value: "TARGET", isHeader: true, isStation: false))
+        for block in blocks.prefix(planPreviewCount) {
+            planStack.addArrangedSubview(makePlanRow(
+                tag: block.tag,
+                title: block.title,
+                value: DurationFormatter.ms(block.goalSeconds),
+                isHeader: false,
+                isStation: block.isStation
+            ))
+        }
+
+        let remaining = blocks.count - planPreviewCount
+        if remaining > 0 {
+            let more = UIButton(type: .system)
+            more.setAttributedTitle(NSAttributedString(
+                string: "+ \(remaining) MORE",
+                attributes: [
+                    .font: UIFont.systemFont(ofSize: 10, weight: .bold),
+                    .foregroundColor: DesignTokens.Color.textSecondary,
+                    .kern: 1.5
+                ]
+            ), for: .normal)
+            more.addTarget(self, action: #selector(editPlanTapped), for: .touchUpInside)
+            more.heightAnchor.constraint(equalToConstant: 30).isActive = true
+            planStack.addArrangedSubview(more)
+        }
+    }
+
+    private func makePlanRow(tag: String, title: String, value: String, isHeader: Bool, isStation: Bool) -> UIView {
+        let captionFont = UIFont.systemFont(ofSize: 10, weight: .bold)
+        let secondary = DesignTokens.Color.textSecondary
+
+        let tagLabel = UILabel()
+        tagLabel.text = tag
+        tagLabel.font = isHeader ? captionFont : DesignTokens.Font.number(10, weight: .bold)
+        tagLabel.textColor = isStation ? DesignTokens.Color.accent : secondary
+        tagLabel.widthAnchor.constraint(equalToConstant: 26).isActive = true
+
+        let titleLabel = UILabel()
+        titleLabel.font = isHeader ? captionFont : .systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.textColor = isHeader ? secondary : DesignTokens.Color.textPrimary
+        if isHeader { titleLabel.setTracked(title, kern: 1) } else { titleLabel.text = title }
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.75
+
+        let valueLabel = UILabel()
+        valueLabel.font = isHeader ? captionFont : DesignTokens.Font.number(13, weight: .semibold)
+        valueLabel.textColor = isHeader ? secondary : DesignTokens.Color.textPrimary
+        valueLabel.textAlignment = .right
+        if isHeader { valueLabel.setTracked(value, kern: 1) } else { valueLabel.text = value }
+        valueLabel.setContentHuggingPriority(.required, for: .horizontal)
+        valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let row = UIStackView(arrangedSubviews: [tagLabel, titleLabel, valueLabel])
         row.axis = .horizontal
-        row.distribution = .fillEqually
-        row.spacing = 12
+        row.alignment = .center
+        row.spacing = 8
+        row.heightAnchor.constraint(equalToConstant: isHeader ? 22 : 28).isActive = true
         return row
-    }
-
-    private func makeStatColumn(caption: String, valueLabel: UILabel) -> UIView {
-        let captionLabel = UILabel()
-        captionLabel.font = .systemFont(ofSize: 10, weight: .bold)
-        captionLabel.textColor = DesignTokens.Color.textSecondary
-        captionLabel.setTracked(caption, kern: 1.5)
-
-        valueLabel.font = DesignTokens.Font.number(28)
-        valueLabel.adjustsFontSizeToFitWidth = true
-        valueLabel.minimumScaleFactor = 0.7
-
-        let column = UIStackView(arrangedSubviews: [captionLabel, valueLabel])
-        column.axis = .vertical
-        column.spacing = 4
-        return column
     }
 
     private func makeStartButton() -> UIView {
@@ -526,6 +643,11 @@ final class HomeViewController: UIViewController {
 
     // MARK: - Actions
 
+    @objc private func editPlanTapped() {
+        guard let preset = selectedPreset else { return }
+        delegate?.homeDidSelectTemplate(preset)
+    }
+
     @objc private func startTapped() {
         guard let preset = selectedPreset else { return }
         delegate?.homeDidTapStart(preset)
@@ -586,7 +708,7 @@ extension HomeViewController: UICollectionViewDataSource {
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CoursePageCell.reuseId, for: indexPath) as! CoursePageCell
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: DivisionPageCell.reuseId, for: indexPath) as! DivisionPageCell
         cell.configure(with: viewModel.presets[indexPath.item])
         return cell
     }

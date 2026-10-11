@@ -147,7 +147,7 @@ final class WorkoutSummaryViewController: UIViewController {
     private func buildContent() {
         addSpacer(2)
         addHeader()
-        addCourseMap()
+        addStrip()
         addSpacer(14)
         addGapCard()
         addSeparator()
@@ -397,22 +397,25 @@ final class WorkoutSummaryViewController: UIViewController {
         contentStack.addArrangedSubview(stack)
     }
 
-    /// Course with each station marked ahead/behind its goal.
-    private func addCourseMap() {
-        let stations = viewModel.sections.compactMap(\.station)
-        guard !stations.isEmpty else { return }
+    /// 구간 띠: 런 블록과 스테이션을 한 칸씩, 목표보다 빨랐으면 골드·늦었으면 주황.
+    private func addStrip() {
+        let cells = SegmentStripView.cells(for: viewModel.workout)
+        guard !cells.isEmpty else { return }
 
-        let mapView = CourseMapView(style: .regular)
-        mapView.stations = stations.map { station in
-            let isBehind = station.delta.tone == .behind
-            return CourseMapView.Station(
-                label: station.delta.tone == .neutral ? nil : station.delta.text,
-                color: isBehind ? DesignTokens.Color.overGoal : DesignTokens.Color.accent,
-                labelColor: isBehind ? DesignTokens.Color.overGoal : DesignTokens.Color.textPrimary
-            )
-        }
-        addSpacer(20)
-        contentStack.addArrangedSubview(mapView)
+        let strip = SegmentStripView()
+        strip.cells = cells
+        addSpacer(14)
+        contentStack.addArrangedSubview(strip)
+
+        let judged = cells.filter { $0 != .neutral }
+        guard !judged.isEmpty else { return }
+        let ahead = judged.filter { $0 == .ahead }.count
+        let caption = UILabel()
+        caption.font = .systemFont(ofSize: 10, weight: .bold)
+        caption.textColor = DesignTokens.Color.textSecondary
+        caption.setTracked("\(ahead) OF \(judged.count) SEGMENTS AHEAD OF GOAL", kern: 1)
+        addSpacer(8)
+        contentStack.addArrangedSubview(caption)
     }
 
     private func addTableHeader(_ columns: [String]) {
@@ -485,6 +488,7 @@ final class WorkoutSummaryViewController: UIViewController {
             color: color(for: runGroup.delta.tone)
         )
         deltaLabel.textAlignment = .right
+        styleDeltaChip(deltaLabel, tone: runGroup.delta.tone)
         deltaLabel.widthAnchor.constraint(equalToConstant: Layout.deltaWidth).isActive = true
         row.addArrangedSubview(deltaLabel)
 
@@ -625,6 +629,7 @@ final class WorkoutSummaryViewController: UIViewController {
             color: color(for: station.delta.tone)
         )
         deltaLabel.textAlignment = .right
+        styleDeltaChip(deltaLabel, tone: station.delta.tone)
         deltaLabel.widthAnchor.constraint(equalToConstant: Layout.deltaWidth).isActive = true
         row.addArrangedSubview(deltaLabel)
 
@@ -827,6 +832,14 @@ final class WorkoutSummaryViewController: UIViewController {
         case .neutral:
             return DesignTokens.Color.textSecondary
         }
+    }
+
+    /// 타이밍 표의 차이 칸: 앞섬/뒤짐 색을 옅게 깐 칩.
+    private func styleDeltaChip(_ label: UILabel, tone: WorkoutSummaryViewModel.DeltaTone) {
+        guard tone != .neutral else { return }
+        label.textAlignment = .center
+        label.backgroundColor = color(for: tone).withAlphaComponent(0.2)
+        label.heightAnchor.constraint(equalToConstant: 20).isActive = true
     }
 
     private func makeLabel(_ text: String, font: UIFont, color: UIColor) -> UILabel {

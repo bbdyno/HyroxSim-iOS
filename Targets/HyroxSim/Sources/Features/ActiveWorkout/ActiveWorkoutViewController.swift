@@ -16,7 +16,7 @@ final class ActiveWorkoutViewController: UIViewController {
     private let gpsStatusView = UIStackView()
     private let headerLabel = UILabel()
     private let titleLabel = UILabel()
-    private let courseMapView = CourseMapView(style: .compact)
+    private let stripView = SegmentStripView(cellHeight: 6)
     private let segmentTimeLabel = UILabel()
     private let timeCaption = UILabel()
     private let contentStack = UIStackView()
@@ -25,7 +25,7 @@ final class ActiveWorkoutViewController: UIViewController {
     private let primaryStat = StatColumn()
     private let heartStat = StatColumn()
     private let totalStat = StatColumn()
-    private let segmentGoalRow = GoalRow(caption: "SEGMENT GOAL")
+    private let segmentGoalRow = GoalRow(caption: "VS GOAL", isProminent: true)
     private let totalGoalRow = GoalRow(caption: "TOTAL GOAL")
     private let advanceControl = SlideActionControl()
     private let pauseButton = UIButton(type: .system)
@@ -101,13 +101,12 @@ final class ActiveWorkoutViewController: UIViewController {
         titleLabel.minimumScaleFactor = 0.6
         titleLabel.isHidden = true
 
-        courseMapView.stations = viewModel.template.courseStations
-
         timeCaption.font = .systemFont(ofSize: 10, weight: .bold)
         timeCaption.textColor = DesignTokens.Color.textSecondary
         timeCaption.setTracked("SEGMENT TIME", kern: 1.5)
+        timeCaption.isHidden = true
 
-        segmentTimeLabel.font = DesignTokens.Font.number(104)
+        segmentTimeLabel.font = DesignTokens.Font.bigNumber(Self.timerFontSize)
         segmentTimeLabel.textColor = DesignTokens.Color.textPrimary
         segmentTimeLabel.adjustsFontSizeToFitWidth = true
         segmentTimeLabel.minimumScaleFactor = 0.5
@@ -118,18 +117,17 @@ final class ActiveWorkoutViewController: UIViewController {
         statsRow.spacing = 12
 
         [
-            topRow, titleLabel, courseMapView, timeCaption, segmentTimeLabel,
-            makeHairline(), statsRow, makeHairline(), segmentGoalRow, totalGoalRow
+            stripView, topRow, titleLabel, timeCaption, segmentTimeLabel,
+            segmentGoalRow, makeHairline(), statsRow, makeHairline(), totalGoalRow
         ].forEach(contentStack.addArrangedSubview)
         contentStack.axis = .vertical
         contentStack.alignment = .fill
         contentStack.spacing = 12
-        contentStack.setCustomSpacing(14, after: topRow)
-        contentStack.setCustomSpacing(18, after: titleLabel)
-        contentStack.setCustomSpacing(22, after: courseMapView)
-        contentStack.setCustomSpacing(-6, after: timeCaption)
-        contentStack.setCustomSpacing(4, after: segmentTimeLabel)
-        contentStack.setCustomSpacing(8, after: segmentGoalRow)
+        contentStack.setCustomSpacing(14, after: stripView)
+        contentStack.setCustomSpacing(10, after: topRow)
+        contentStack.setCustomSpacing(Self.timerTopSpacing, after: titleLabel)
+        contentStack.setCustomSpacing(0, after: segmentTimeLabel)
+        contentStack.setCustomSpacing(16, after: segmentGoalRow)
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         contentStack.addArrangedSubview(lapCard)
         view.addSubview(contentStack)
@@ -162,6 +160,9 @@ final class ActiveWorkoutViewController: UIViewController {
             pauseLabel.centerYAnchor.constraint(equalTo: pauseOverlay.centerYAnchor)
         ])
     }
+
+    private static let timerFontSize: CGFloat = 116
+    private static let timerTopSpacing: CGFloat = 8
 
     private func makeHairline() -> UIView {
         let line = UIView()
@@ -390,10 +391,7 @@ final class ActiveWorkoutViewController: UIViewController {
         titleLabel.text = viewModel.segmentSubLabel?.uppercased()
         titleLabel.isHidden = viewModel.segmentSubLabel == nil
 
-        courseMapView.progress = CourseMapView.Progress(
-            stationsReached: viewModel.courseStationsReached,
-            fractionToNext: CGFloat(viewModel.courseFractionToNext)
-        )
+        stripView.cells = viewModel.stripCells
 
         segmentTimeLabel.text = viewModel.segmentElapsedText
         segmentTimeLabel.textColor = viewModel.isOverGoal
@@ -457,9 +455,8 @@ final class ActiveWorkoutViewController: UIViewController {
         let compact = view.bounds.height < 700 && !lapCard.isHidden
         if appliedCompactLayout != compact {
             appliedCompactLayout = compact
-            segmentTimeLabel.font = DesignTokens.Font.number(compact ? 60 : 104)
-            timeCaption.isHidden = compact
-            contentStack.setCustomSpacing(compact ? 6 : 22, after: courseMapView)
+            segmentTimeLabel.font = DesignTokens.Font.bigNumber(compact ? 64 : Self.timerFontSize)
+            segmentGoalRow.setProminent(!compact)
         }
 
         guard appliedRaceMode != isRaceMode else { return }
@@ -628,7 +625,7 @@ private final class GoalRow: UIStackView {
     private let deltaLabel = UILabel()
     private lazy var minHeight = heightAnchor.constraint(greaterThanOrEqualToConstant: 0)
 
-    init(caption: String) {
+    init(caption: String, isProminent: Bool = false) {
         super.init(frame: .zero)
         axis = .horizontal
         alignment = .lastBaseline
@@ -651,6 +648,7 @@ private final class GoalRow: UIStackView {
         addArrangedSubview(captionLabel)
         addArrangedSubview(valueLabel)
         addArrangedSubview(deltaLabel)
+        if isProminent { setProminent(true) }
     }
 
     @available(*, unavailable)
@@ -658,7 +656,7 @@ private final class GoalRow: UIStackView {
 
     /// Race mode: the cumulative delta becomes the largest number on the row.
     func setProminent(_ isProminent: Bool) {
-        deltaLabel.font = DesignTokens.Font.number(isProminent ? 36 : 20)
+        deltaLabel.font = isProminent ? DesignTokens.Font.bigNumber(40) : DesignTokens.Font.number(20)
         // 큰 숫자가 윗줄(구간 목표)과 겹치지 않도록 줄 높이를 확보한다.
         minHeight.constant = isProminent ? 46 : 0
     }

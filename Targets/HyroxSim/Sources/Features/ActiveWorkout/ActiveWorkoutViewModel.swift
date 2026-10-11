@@ -41,9 +41,9 @@ public final class ActiveWorkoutViewModel {
     public private(set) var isFinished: Bool = false
     public private(set) var isLastSegment: Bool = false
     public private(set) var gpsStatus: GPSStatus = .searching
-    /// Course map position: markers already reached + progress toward the next one.
-    public private(set) var courseStationsReached: Int = 0
-    public private(set) var courseFractionToNext: Double = 0
+    /// 구간 띠의 칸 상태(런 블록·스테이션 단위). 구간이 바뀔 때만 다시 계산한다.
+    private(set) var stripCells: [SegmentStripView.Cell] = []
+    private var stripCellsIndex: Int?
 
     // MARK: - 레이스 데이 (대회 당일 표시)
 
@@ -477,7 +477,7 @@ public final class ActiveWorkoutViewModel {
             gpsStatus = .searching
         }
 
-        updateCoursePosition(current: current, index: index, segElapsed: segElapsed)
+        updateStripCells(currentIndex: index)
 
         isFinished = engine.isFinished
         isLastSegment = engine.isLastSegment
@@ -685,25 +685,48 @@ public final class ActiveWorkoutViewModel {
 
     public var template: WorkoutTemplate { engine.template }
 
-    private func updateCoursePosition(current: WorkoutSegment, index: Int, segElapsed: TimeInterval) {
+    private func updateStripCells(currentIndex: Int) {
+        guard stripCellsIndex != currentIndex else { return }
+        stripCellsIndex = currentIndex
+
         let segments = engine.template.segments
-        let stationsBefore = countOfType(.station, upTo: index)
-        guard current.type != .station else {
-            courseStationsReached = stationsBefore + 1
-            courseFractionToNext = 0
-            return
+        let records = engine.records
+        var cells: [SegmentStripView.Cell] = []
+
+        func append(_ range: Range<Int>) {
+            if range.contains(currentIndex) {
+                cells.append(.current)
+            } else if range.upperBound <= currentIndex {
+                var actual: TimeInterval = 0
+                var goal: TimeInterval = 0
+                var hasGoal = false
+                for index in range where index < records.count {
+                    actual += records[index].activeDuration
+                    if let segmentGoal = records[index].goalDurationSeconds {
+                        goal += segmentGoal
+                        hasGoal = true
+                    }
+                }
+                cells.append(hasGoal ? (actual > goal ? .behind : .ahead) : .neutral)
+            } else {
+                cells.append(.upcoming)
+            }
         }
 
-        // Run/RoxZone: spread the segments between two stations along that stretch of track.
-        let gapStart = (segments[..<index].lastIndex { $0.type == .station } ?? -1) + 1
-        let gapEnd = segments[index...].firstIndex { $0.type == .station } ?? segments.count
-        let goal = current.goalDurationSeconds ?? WorkoutSegment.defaultGoalDurationSeconds(
-            for: current.type,
-            distanceMeters: current.distanceMeters
-        )
-        let within = goal > 0 ? min(segElapsed / goal, 1) : 0
-        courseStationsReached = stationsBefore
-        courseFractionToNext = 0.92 * (Double(index - gapStart) + within) / Double(max(gapEnd - gapStart, 1))
+        // 스테이션은 한 칸, 그 사이의 런·록스존은 묶어서 한 칸.
+        var index = 0
+        while index < segments.count {
+            if segments[index].type == .station {
+                append(index..<(index + 1))
+                index += 1
+            } else {
+                var end = index
+                while end < segments.count, segments[end].type != .station { end += 1 }
+                append(index..<end)
+                index = end
+            }
+        }
+        stripCells = cells
     }
 
     private func countOfType(_ type: SegmentType, upTo end: Int) -> Int {
