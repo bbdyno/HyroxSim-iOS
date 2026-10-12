@@ -113,6 +113,92 @@ final class GarminImportServiceTests: XCTestCase {
         XCTAssertEqual(reply.types, [GarminMessageCodec.MessageType.ack])
     }
 
+    // MARK: - 분할 전송
+
+    private func makeSegment(_ index: Int) -> [String: Any] {
+        [
+            "index": index,
+            "type": index % 2 == 0 ? "run" : "station",
+            "startedAtMs": 1_000 + index * 1_000,
+            "endedAtMs": 2_000 + index * 1_000,
+            "pausedDurationMs": 0,
+        ]
+    }
+
+    private func makePartEnvelope(
+        workoutId: UUID, index: Int, count: Int, segments: [Int]
+    ) -> [String: Any] {
+        var payload: [String: Any] = ["segments": segments.map(makeSegment)]
+        if index == 0 {
+            payload["id"] = workoutId.uuidString
+            payload["templateName"] = "Hyrox Men's Open"
+            payload["division"] = "menOpenSingle"
+            payload["startedAtMs"] = 1_000
+            payload["finishedAtMs"] = 10_000
+            payload["source"] = "garmin"
+        }
+        return [
+            GarminMessageCodec.Key.version: 1,
+            GarminMessageCodec.Key.type: GarminMessageCodec.MessageType.workoutPart,
+            GarminMessageCodec.Key.id: workoutId.uuidString,
+            GarminMessageCodec.Key.chunk: ["i": index, "n": count],
+            GarminMessageCodec.Key.payload: payload,
+        ]
+    }
+
+    /// 조각이 다 모여야 저장하고 ack 한다. 그 전에는 아무것도 하지 않는다.
+    func test_handleWorkoutParts_assemblesInOrder_andAcksOnce() throws {
+        let persistence = try PersistenceController(inMemory: true)
+        let reply = FakeReplySender()
+        let service = GarminImportService(replySender: reply, makePersistence: { persistence })
+        let id = UUID()
+
+        service.handle(envelope: makePartEnvelope(workoutId: id, index: 0, count: 3, segments: [0, 1]))
+        service.handle(envelope: makePartEnvelope(workoutId: id, index: 1, count: 3, segments: [2, 3]))
+        XCTAssertTrue(try persistence.fetchAllCompletedWorkouts().isEmpty)
+        XCTAssertTrue(reply.types.isEmpty)
+
+        service.handle(envelope: makePartEnvelope(workoutId: id, index: 2, count: 3, segments: [4]))
+
+        let all = try persistence.fetchAllCompletedWorkouts()
+        XCTAssertEqual(all.count, 1)
+        XCTAssertEqual(all.first?.id, id)
+        XCTAssertEqual(all.first?.segments.map(\.index), [0, 1, 2, 3, 4])
+        XCTAssertEqual(reply.types, [GarminMessageCodec.MessageType.ack])
+        XCTAssertEqual(reply.sent.first?[GarminMessageCodec.Key.id] as? String, id.uuidString)
+    }
+
+    /// 중간에 끊긴 뒤 워치가 처음부터 다시 보내면, 지난 조각과 섞이지 않는다.
+    func test_handleWorkoutParts_restartDiscardsStaleParts() throws {
+        let persistence = try PersistenceController(inMemory: true)
+        let reply = FakeReplySender()
+        let service = GarminImportService(replySender: reply, makePersistence: { persistence })
+        let id = UUID()
+
+        service.handle(envelope: makePartEnvelope(workoutId: id, index: 0, count: 2, segments: [0]))
+        // 1번 조각이 유실되고, 다음 연결에서 전체 재전송.
+        service.handle(envelope: makePartEnvelope(workoutId: id, index: 0, count: 2, segments: [0]))
+        XCTAssertTrue(reply.types.isEmpty)
+        service.handle(envelope: makePartEnvelope(workoutId: id, index: 1, count: 2, segments: [1]))
+
+        let all = try persistence.fetchAllCompletedWorkouts()
+        XCTAssertEqual(all.count, 1)
+        XCTAssertEqual(all.first?.segments.count, 2)
+        XCTAssertEqual(reply.types, [GarminMessageCodec.MessageType.ack])
+    }
+
+    /// 0번 조각 없이 뒤 조각만 오면 저장하지 않는다.
+    func test_handleWorkoutParts_missingFirstPart_storesNothing() throws {
+        let persistence = try PersistenceController(inMemory: true)
+        let reply = FakeReplySender()
+        let service = GarminImportService(replySender: reply, makePersistence: { persistence })
+
+        service.handle(envelope: makePartEnvelope(workoutId: UUID(), index: 1, count: 2, segments: [1]))
+
+        XCTAssertTrue(try persistence.fetchAllCompletedWorkouts().isEmpty)
+        XCTAssertTrue(reply.types.isEmpty)
+    }
+
     func test_handleNonWorkoutEnvelope_doesNothing() throws {
         let persistence = try PersistenceController(inMemory: true)
         let service = GarminImportService(makePersistence: { persistence })

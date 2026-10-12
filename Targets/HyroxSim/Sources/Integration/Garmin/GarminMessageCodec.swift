@@ -21,6 +21,8 @@ public enum GarminMessageCodec {
         public static let type = "t"
         public static let id = "id"
         public static let payload = "payload"
+        /// 분할 전송 위치 `{ "i": 순번, "n": 전체 개수 }`.
+        public static let chunk = "chunk"
     }
 
     public enum MessageType {
@@ -31,6 +33,9 @@ public enum GarminMessageCodec {
         public static let templateUpsert     = "template.upsert"
         public static let templateDelete     = "template.delete"
         public static let workoutCompleted   = "workout.completed"
+        /// 한 메시지에 담기지 않는 기록의 조각. `GarminWorkoutPartAssembler` 가
+        /// 모아서 `workout.completed` 봉투로 되돌린다.
+        public static let workoutPart        = "workout.completed.part"
         public static let ack                = "ack"
         /// 수신 거부. `ack` 를 보내지 않는 것만으로도 워치는 원본을 지우지
         /// 않지만, 왜 거부했는지 알려 주면 워치 로그에서 원인을 볼 수 있다.

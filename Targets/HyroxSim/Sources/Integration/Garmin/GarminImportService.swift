@@ -34,6 +34,7 @@ public final class GarminImportService {
     private let replySender: GarminReplySender
     private let makePersistence: () -> PersistenceController
     private let notificationCenter: NotificationCenter
+    private var partAssembler = GarminWorkoutPartAssembler()
 
     public init(
         bridge: GarminBridge = .shared,
@@ -62,6 +63,11 @@ public final class GarminImportService {
         switch type {
         case GarminMessageCodec.MessageType.workoutCompleted:
             handleWorkoutCompleted(envelope: envelope)
+        case GarminMessageCodec.MessageType.workoutPart:
+            // 마지막 조각이 올 때까지는 저장도 ack 도 하지 않는다.
+            if let assembled = partAssembler.add(envelope) {
+                handleWorkoutCompleted(envelope: assembled)
+            }
         // `ack` 은 `GarminBridge` 가 곧바로 `GarminSyncDispatcher` 로 넘긴다.
         // 이 서비스가 시작되기 전에 도착해도 큐가 정리되도록 한 곳에서만 처리한다.
         default:
