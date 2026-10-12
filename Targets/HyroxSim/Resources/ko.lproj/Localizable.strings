@@ -468,3 +468,36 @@
 "training_plan.phase.peak" = "정점";
 "training_plan.phase.taper" = "조절";
 "training_plan.phase.race_week" = "대회";
+
+/* 2.0 — race archive */
+"home.action.race_archive" = "대회 기록";
+"race_archive.title" = "대회 기록";
+"race_archive.empty" = "아직 대회 기록이 없습니다.\n결과 화면 사진으로 추가하거나 직접 입력하세요.";
+"race_archive.save_failed_title" = "저장하지 못했습니다";
+"race_archive.add.title" = "대회 기록 추가";
+"race_archive.add.message" = "결과 화면 캡처를 읽어 오거나 기록을 직접 입력합니다.";
+"race_archive.add.scan" = "사진에서 읽기";
+"race_archive.add.manual" = "직접 입력";
+"race_archive.scan.failed_title" = "사진을 읽지 못했습니다";
+"race_archive.scan.failed_message" = "구간 기록을 찾지 못했습니다. 결과 표가 선명하게 나온 캡처로 다시 시도하거나 직접 입력해 주세요.";
+"race_archive.editor.title_new" = "새 기록";
+"race_archive.editor.title_edit" = "대회 기록";
+"race_archive.editor.scan_note" = "사진에서 읽은 값입니다. 저장하기 전에 모든 기록을 확인해 주세요. 비어 있는 칸은 읽지 못한 것입니다.";
+"race_archive.editor.name" = "대회";
+"race_archive.editor.name_placeholder" = "HYROX Seoul";
+"race_archive.editor.date" = "날짜";
+"race_archive.editor.division" = "디비전";
+"race_archive.editor.section_totals" = "합계";
+"race_archive.editor.section_stations" = "스테이션";
+"race_archive.editor.total" = "완주 시간";
+"race_archive.editor.run_total" = "러닝 합계";
+"race_archive.editor.roxzone" = "록스존 시간";
+"race_archive.editor.hint" = "시간은 분:초 또는 시:분:초로 입력합니다. 스테이션 8개를 모두 채우면 이 대회의 수준과 약점을 볼 수 있습니다.";
+"race_archive.editor.show_level" = "내 수준 보기";
+"race_archive.editor.delete" = "기록 삭제";
+"race_archive.editor.delete_confirm_title" = "이 기록을 삭제할까요?";
+"race_archive.editor.delete_confirm_message" = "되돌릴 수 없습니다.";
+"race_archive.editor.error.title" = "입력을 확인해 주세요";
+"race_archive.editor.error.bad_time" = "“%@”은(는) 시간 형식이 아닙니다. 분:초 또는 시:분:초로 입력하세요.";
+"race_archive.editor.error.missing_total" = "완주 시간을 입력하세요. 러닝 합계·록스존·스테이션 8개를 모두 채우면 자동으로 더합니다.";
+"race_archive.editor.error.missing_name" = "대회 이름을 입력하세요.";

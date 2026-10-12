@@ -126,7 +126,7 @@ public enum RaceResultTextParser {
     // MARK: - 시간
 
     /// "00:05:03", "1:03:29", "05:03" → 초. 글자 인식이 흔히 틀리는 O/o → 0, l/I → 1 을 되돌린다.
-    static func seconds(from text: String) -> Int? {
+    public static func seconds(from text: String) -> Int? {
         let cleaned = text
             .replacingOccurrences(of: " ", with: "")
             .replacingOccurrences(of: "O", with: "0")

@@ -468,3 +468,36 @@
 "training_plan.phase.peak" = "Peak";
 "training_plan.phase.taper" = "Taper";
 "training_plan.phase.race_week" = "Race";
+
+/* 2.0 — race archive */
+"home.action.race_archive" = "Race Results";
+"race_archive.title" = "Race Results";
+"race_archive.empty" = "No race results yet.\nAdd one from a photo of your results screen, or type it in.";
+"race_archive.save_failed_title" = "Couldn't save";
+"race_archive.add.title" = "Add a race result";
+"race_archive.add.message" = "Scan a screenshot of your results, or enter the times yourself.";
+"race_archive.add.scan" = "Scan a photo";
+"race_archive.add.manual" = "Enter manually";
+"race_archive.scan.failed_title" = "Couldn't read that photo";
+"race_archive.scan.failed_message" = "No split times were found. Try a sharper screenshot of the results table, or enter the times yourself.";
+"race_archive.editor.title_new" = "New Result";
+"race_archive.editor.title_edit" = "Race Result";
+"race_archive.editor.scan_note" = "Read from your photo. Check every time before saving — empty rows could not be read.";
+"race_archive.editor.name" = "Event";
+"race_archive.editor.name_placeholder" = "HYROX Seoul";
+"race_archive.editor.date" = "Date";
+"race_archive.editor.division" = "Division";
+"race_archive.editor.section_totals" = "Totals";
+"race_archive.editor.section_stations" = "Stations";
+"race_archive.editor.total" = "Finish time";
+"race_archive.editor.run_total" = "Run total";
+"race_archive.editor.roxzone" = "Roxzone time";
+"race_archive.editor.hint" = "Times as m:ss or h:mm:ss. With all eight stations filled in you can see your level and weak spots for this race.";
+"race_archive.editor.show_level" = "SEE MY LEVEL";
+"race_archive.editor.delete" = "DELETE RESULT";
+"race_archive.editor.delete_confirm_title" = "Delete this result?";
+"race_archive.editor.delete_confirm_message" = "This cannot be undone.";
+"race_archive.editor.error.title" = "Check the form";
+"race_archive.editor.error.bad_time" = "“%@” is not a time. Use m:ss or h:mm:ss.";
+"race_archive.editor.error.missing_total" = "Enter the finish time, or fill in run total, Roxzone and all eight stations so it can be added up.";
+"race_archive.editor.error.missing_name" = "Enter the event name.";

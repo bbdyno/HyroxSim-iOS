@@ -468,3 +468,36 @@
 "training_plan.phase.peak" = "ピーク";
 "training_plan.phase.taper" = "テーパー";
 "training_plan.phase.race_week" = "レース";
+
+/* 2.0 — race archive */
+"home.action.race_archive" = "レース記録";
+"race_archive.title" = "レース記録";
+"race_archive.empty" = "レース記録はまだありません。\nリザルト画面の写真から追加するか、手入力してください。";
+"race_archive.save_failed_title" = "保存できませんでした";
+"race_archive.add.title" = "レース記録を追加";
+"race_archive.add.message" = "リザルトのスクリーンショットを読み取るか、タイムを手入力します。";
+"race_archive.add.scan" = "写真から読み取る";
+"race_archive.add.manual" = "手入力";
+"race_archive.scan.failed_title" = "写真を読み取れませんでした";
+"race_archive.scan.failed_message" = "スプリットタイムが見つかりませんでした。リザルト表が鮮明なスクリーンショットで再試行するか、手入力してください。";
+"race_archive.editor.title_new" = "新しい記録";
+"race_archive.editor.title_edit" = "レース記録";
+"race_archive.editor.scan_note" = "写真から読み取った値です。保存前にすべてのタイムを確認してください。空欄は読み取れなかった項目です。";
+"race_archive.editor.name" = "大会";
+"race_archive.editor.name_placeholder" = "HYROX Seoul";
+"race_archive.editor.date" = "日付";
+"race_archive.editor.division" = "ディビジョン";
+"race_archive.editor.section_totals" = "合計";
+"race_archive.editor.section_stations" = "ステーション";
+"race_archive.editor.total" = "フィニッシュタイム";
+"race_archive.editor.run_total" = "ラン合計";
+"race_archive.editor.roxzone" = "ロックスゾーン";
+"race_archive.editor.hint" = "タイムは 分:秒 または 時:分:秒 で入力します。8つのステーションをすべて入力すると、このレースのレベルと弱点を確認できます。";
+"race_archive.editor.show_level" = "マイレベルを見る";
+"race_archive.editor.delete" = "記録を削除";
+"race_archive.editor.delete_confirm_title" = "この記録を削除しますか？";
+"race_archive.editor.delete_confirm_message" = "元に戻せません。";
+"race_archive.editor.error.title" = "入力を確認してください";
+"race_archive.editor.error.bad_time" = "「%@」は時間の形式ではありません。分:秒 または 時:分:秒 で入力してください。";
+"race_archive.editor.error.missing_total" = "フィニッシュタイムを入力してください。ラン合計・ロックスゾーン・8ステーションをすべて入力すると自動で合計します。";
+"race_archive.editor.error.missing_name" = "大会名を入力してください。";

@@ -26,6 +26,7 @@ public final class AppCoordinator {
     /// 진척 화면의 퍼센타일 기준. 번들 스냅샷이든 내려받은 표든 여기서 나온다.
     private let paceData: PaceDataRepository
     private let subscription: SubscriptionStore
+    private let raceResultStore = RaceResultStore()
     private let templateGoalOverrideStore = TemplateGoalOverrideStore()
     private let heartRateProfile = HeartRateProfile()
     private let checkpointStore: WorkoutCheckpointStore
@@ -617,6 +618,9 @@ public final class AppCoordinator {
                 self?.showLevel(for: history[0], history: history, goalSeconds: 85 * 60)
             }
         }
+        if arguments.contains("-ShowRaceArchive") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.homeDidTapRaceArchive() }
+        }
         if arguments.contains("-ShowTrainingPlan") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 guard let self, let plan = TrainingPlanBuilder.build(
@@ -729,6 +733,15 @@ extension AppCoordinator: HomeViewControllerDelegate {
 
     func homeDidTapProgress() {
         navigationController.pushViewController(makeProgressViewController(), animated: true)
+    }
+
+    func homeDidTapRaceArchive() {
+        let vc = RaceArchiveViewController(
+            store: raceResultStore,
+            defaultDivision: lastKnownRaceDivision() ?? .menOpenSingle
+        )
+        vc.onShowLevel = { [weak self] workout in self?.showLevel(for: workout) }
+        navigationController.pushViewController(vc, animated: true)
     }
 
     func homeDidTapLevel() {

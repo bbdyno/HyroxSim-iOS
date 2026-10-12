@@ -468,3 +468,36 @@
 "training_plan.phase.peak" = "巅峰";
 "training_plan.phase.taper" = "减量";
 "training_plan.phase.race_week" = "比赛";
+
+/* 2.0 — race archive */
+"home.action.race_archive" = "比赛成绩";
+"race_archive.title" = "比赛成绩";
+"race_archive.empty" = "还没有比赛成绩。\n可通过成绩页照片添加，或手动输入。";
+"race_archive.save_failed_title" = "无法保存";
+"race_archive.add.title" = "添加比赛成绩";
+"race_archive.add.message" = "识别成绩截图，或自己输入各段用时。";
+"race_archive.add.scan" = "从照片识别";
+"race_archive.add.manual" = "手动输入";
+"race_archive.scan.failed_title" = "无法识别这张照片";
+"race_archive.scan.failed_message" = "没有找到分段用时。请换一张更清晰的成绩表截图，或手动输入。";
+"race_archive.editor.title_new" = "新成绩";
+"race_archive.editor.title_edit" = "比赛成绩";
+"race_archive.editor.scan_note" = "以下为从照片识别的数值。保存前请逐项核对，空白项为未能识别。";
+"race_archive.editor.name" = "赛事";
+"race_archive.editor.name_placeholder" = "HYROX Seoul";
+"race_archive.editor.date" = "日期";
+"race_archive.editor.division" = "组别";
+"race_archive.editor.section_totals" = "合计";
+"race_archive.editor.section_stations" = "站点";
+"race_archive.editor.total" = "完赛时间";
+"race_archive.editor.run_total" = "跑步合计";
+"race_archive.editor.roxzone" = "Roxzone 用时";
+"race_archive.editor.hint" = "用时按 分:秒 或 时:分:秒 输入。填满 8 个站点后，可查看这场比赛的水平和弱项。";
+"race_archive.editor.show_level" = "查看我的水平";
+"race_archive.editor.delete" = "删除成绩";
+"race_archive.editor.delete_confirm_title" = "删除这条成绩？";
+"race_archive.editor.delete_confirm_message" = "此操作无法撤销。";
+"race_archive.editor.error.title" = "请检查输入";
+"race_archive.editor.error.bad_time" = "“%@”不是有效的时间。请按 分:秒 或 时:分:秒 输入。";
+"race_archive.editor.error.missing_total" = "请输入完赛时间；或填满跑步合计、Roxzone 和 8 个站点，由系统相加。";
+"race_archive.editor.error.missing_name" = "请输入赛事名称。";
