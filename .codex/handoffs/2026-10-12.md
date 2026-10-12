@@ -51,3 +51,13 @@
 5. 가민 스토어 업로드는 처음 올릴 때 쓴 `developer_key.der` 로 서명해야 한다(이 맥에는 없음).
 6. Play Console: 구독 상품 생성, 내부 테스트로 결제 확인.
 7. `release/2.0` → main 병합, 태그, 푸시.
+
+## 2.0 아카이브·업로드 (2026-10-12 확인)
+
+- `MANUAL_SIGNING=1 ./scripts/release.sh archive` 로 배포 서명(iPhone Distribution, 팀 M79H9K226Y)된
+  아카이브가 만들어진다. 배포 프로필 3개가 이 맥에 있다.
+- IPA 내보내기: `xcodebuild -exportArchive` 에 method `app-store-connect`, destination `export`,
+  signingStyle `manual`, 번들별 프로필 이름을 준 plist 를 쓴다 → `build/export-<버전>-<빌드>/HyroxSim.ipa`.
+- 업로드는 발급자 ID 가 있어야 한다(이 맥에는 키 파일만 있다):
+  `xcrun altool --upload-app -f build/export-2.0.0-2026.10.12.1/HyroxSim.ipa -t ios --apiKey 46NR2AZ3W8 --apiIssuer <ISSUER_ID>`
+  또는 Transporter 앱에 IPA 를 끌어다 놓는다.

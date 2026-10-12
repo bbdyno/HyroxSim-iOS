@@ -10,6 +10,10 @@
 #   ./scripts/release.sh archive        # 아카이브만
 #   ./scripts/release.sh upload         # 아카이브 + App Store Connect 업로드
 #
+# 이름이 정해진 배포 프로필이 이 맥에 있으면 로그인 없이 서명까지 된다:
+#   MANUAL_SIGNING=1 ./scripts/release.sh archive
+# 그 아카이브를 IPA 로 내보내고 올리는 방법은 .codex/handoffs/latest.md 참고.
+#
 # 업로드 후 심사 제출은 App Store Connect 웹에서 진행한다.
 # "이번 버전의 새로운 기능" 문구는 docs/release-notes/<버전>.md 에 있다.
 
@@ -74,14 +78,15 @@ echo "▸ 아카이브 완료: $ARCHIVE"
 # 계정이 없으면 xcodebuild 는 조용히 *서명 없는* 아카이브를 만든다. 업로드 단계에서야
 # 실패하므로 여기서 먼저 잡는다.
 APP="$ARCHIVE/Products/Applications/HyroxSim.app"
-if ! codesign -dv "$APP" 2>&1 | grep -q "Authority"; then
+# `Authority` 줄은 -dvv 에서만 나온다 (-dv 로는 서명된 아카이브도 서명 없음으로 보인다).
+if ! codesign -dvv "$APP" 2>&1 | grep -q "Authority"; then
     echo
     echo "  ✗ 서명되지 않은 아카이브다. App Store 에 업로드할 수 없다."
     echo "    Xcode → Settings → Accounts 에 Apple ID 를 추가하거나,"
     echo "    ASC_KEY_ID / ASC_ISSUER_ID 를 설정한 뒤 다시 실행할 것."
     exit 2
 fi
-echo "  서명: $(codesign -dv "$APP" 2>&1 | grep Authority | head -1 | sed 's/^Authority=//')"
+echo "  서명: $(codesign -dvv "$APP" 2>&1 | grep Authority | head -1 | sed 's/^Authority=//')"
 
 if [[ "$MODE" != "upload" ]]; then
     echo "  업로드까지 하려면: $0 upload"
