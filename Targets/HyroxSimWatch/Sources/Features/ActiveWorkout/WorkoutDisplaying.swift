@@ -39,6 +39,9 @@ protocol WorkoutDisplaying: AnyObject {
     var isLastSegment: Bool { get }
     var isConnected: Bool { get }
 
+    /// 화면 위의 구간 띠. 폰 미러처럼 구간 기록을 모르는 모델은 비워 둔다(띠를 그리지 않는다).
+    var stripCells: [SegmentStripState] { get }
+
     // MARK: - 레이스 데이
 
     /// 랩 카운터 페이지를 붙일 수 있는 모델인지.
@@ -62,6 +65,7 @@ protocol WorkoutDisplaying: AnyObject {
 /// 랩 카운터는 워치 자체 운동에서만 의미가 있어 기본 구현을 "없음"으로 둔다.
 /// 미러 모델은 이 기본값을 그대로 쓴다.
 extension WorkoutDisplaying {
+    var stripCells: [SegmentStripState] { [] }
     var supportsLapCounter: Bool { false }
     var lapCount: Int { 0 }
     var isLapCounterAvailable: Bool { false }

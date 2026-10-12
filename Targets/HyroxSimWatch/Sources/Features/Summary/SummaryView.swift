@@ -155,8 +155,9 @@ struct SummaryView: View {
     }
 
     private func deltaColor(for delta: TimeInterval) -> Color {
-        if delta < 0 { return .green }
-        if delta > 0 { return .red }
+        // 앞서면 골드, 뒤지면 오렌지 (운동 화면·폰과 같은 규칙).
+        if delta < 0 { return WatchPalette.accent }
+        if delta > 0 { return WatchPalette.overGoal }
         return .white
     }
 }

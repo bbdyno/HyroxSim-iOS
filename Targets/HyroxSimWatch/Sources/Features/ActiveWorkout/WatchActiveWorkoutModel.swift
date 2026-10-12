@@ -555,6 +555,14 @@ extension WatchActiveWorkoutModel: WorkoutDisplaying {
 
     /// 워치 자체 운동은 항상 "연결" 상태. 폰 연결 여부와 무관하게 엔진은 로컬에서 돈다.
     var isConnected: Bool { true }
+
+    var stripCells: [SegmentStripState] {
+        SegmentStripBuilder.cells(
+            segments: engine.template.segments,
+            records: engine.records,
+            currentIndex: engine.currentSegmentIndex
+        )
+    }
 }
 
 // MARK: - Remote Sync

@@ -30,89 +30,46 @@ enum WatchScreenshotSeeder {
     }
 }
 
+/// 스크린샷용 운동 화면. 가짜 그림이 아니라 실제 `WorkoutDisplayView` 를 고정된 값으로 띄운다 —
+/// 그래야 스토어 이미지가 실제 화면과 어긋나지 않는다.
 struct WatchScreenshotActiveWorkoutView: View {
-    private let accent = Color.blue
-    private let heart = Color.orange
+    @State private var model = WatchScreenshotWorkoutModel()
 
     var body: some View {
-        VStack(spacing: 6) {
-            HStack {
-                HStack(spacing: 4) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.green)
-                    Text("RUN 3 / 8")
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundStyle(accent)
-                }
-                Spacer()
-                Text("0:27:41")
-                    .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.62))
-            }
-
-            Text("04:28")
-                .font(.system(size: 44, weight: .black, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white)
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
-
-            HStack {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("GOAL")
-                        .font(.system(size: 9, weight: .black))
-                        .foregroundStyle(.white.opacity(0.55))
-                    Text("06:00")
-                        .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
-                        .foregroundStyle(.white)
-                }
-                Spacer()
-                Text("-1:32")
-                    .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
-                    .foregroundStyle(.green)
-            }
-
-            Text("4'13\" /km  •  680 m")
-                .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.86))
-
-            HStack(spacing: 3) {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(heart)
-                Text("172")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(heart)
-            }
-
-            Spacer(minLength: 14)
-
-            HStack(spacing: 8) {
-                Button {} label: {
-                    Image(systemName: "pause.fill")
-                        .font(.system(size: 14))
-                }
-                .buttonStyle(.bordered)
-                .tint(.gray)
-
-                Button {} label: {
-                    Text("NEXT")
-                        .font(.system(size: 13, weight: .bold))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(accent)
-
-                Button {} label: {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 14))
-                }
-                .buttonStyle(.bordered)
-                .tint(.red)
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.top, 8)
-        .background(Color.black)
+        WorkoutDisplayView(model: model)
     }
+}
+
+@MainActor
+final class WatchScreenshotWorkoutModel: WorkoutDisplaying {
+    /// `ScreenshotWatchStation` 인자를 주면 스테이션 화면.
+    private let isStation = ProcessInfo.processInfo.arguments.contains("ScreenshotWatchStation")
+
+    var segmentElapsedText: String { isStation ? "03:47" : "04:12" }
+    var totalElapsedText: String { isStation ? "0:31:20" : "0:24:31" }
+    var currentDisplayTitle: String { isStation ? "Burpee Broad Jumps" : "Run 4 / 8" }
+    var nextDisplayTitle: String? { isStation ? "Run 5" : "Burpee Broad Jumps" }
+    var paceText: String { "4'12\"" }
+    var stationTargetText: String? { isStation ? "80 m" : nil }
+    var heartRateText: String { isStation ? "171" : "162" }
+    var heartRateZone: HeartRateZone? { .z4 }
+    var goalText: String { isStation ? "03:26" : "04:24" }
+    var goalDeltaText: String { isStation ? "+0:21" : "-0:12" }
+    var isOverGoal: Bool { isStation }
+    var totalGoalText: String { "1:15:00" }
+    var totalDeltaText: String { "-0:35" }
+    var isOverTotalGoal: Bool { false }
+    var accent: WorkoutDisplayAccent { isStation ? .station : .run }
+    var isPaused: Bool { false }
+    var isLastSegment: Bool { false }
+    var isConnected: Bool { true }
+    var stripCells: [SegmentStripState] {
+        let done: [SegmentStripState] = [.ahead, .ahead, .ahead, .behind, .ahead, .ahead]
+        let finished = isStation ? done + [.ahead] : done
+        return finished + [.current] + Array(repeating: .upcoming, count: 16 - finished.count - 1)
+    }
+
+    func advance() {}
+    func togglePause() {}
+    func endWorkout() {}
 }

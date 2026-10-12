@@ -51,46 +51,82 @@ struct WorkoutDisplayView<Model: WorkoutDisplaying & AnyObject>: View {
         }
     }
 
+    /// 한눈에 읽히는 것만 둔다: 구간 띠, 지금 구간 이름, 큰 타이머, 목표 대비, 그리고 심박·총 시간.
+    /// 페이스·다음 구간·총 목표 대비는 뺐다 — 작은 화면에서 숫자가 많으면 아무것도 안 읽힌다.
+    /// 자세한 조작은 옆 페이지(스와이프)에 그대로 있다.
     @ViewBuilder
     private func metricsPage(in proxy: GeometryProxy) -> some View {
         let horizontalPadding: CGFloat = proxy.size.width < 190 ? 10 : 12
-        let topPadding: CGFloat = isLuminanceReduced ? 28 : 34
-        let timerSize: CGFloat = isLuminanceReduced ? 38 : 40
-        let bottomContentInset: CGFloat = isLuminanceReduced ? 20 : 42
+        let topPadding: CGFloat = 4
+        let isCompact = proxy.size.height < 190
+        let timerSize: CGFloat = isLuminanceReduced ? 44 : (isCompact ? 50 : 58)
         let edgeClearance = max(proxy.size.width * 0.08, 14)
+        let knobSize: CGFloat = 44
+        // 넘김 손잡이는 왼쪽 아래 구석에 있다. 심박·총 시간은 그 오른쪽 같은 높이에 둔다 —
+        // 손잡이 위로 한 줄을 통째로 비우면 타이머가 작아진다.
+        let bottomContentInset: CGFloat = isLuminanceReduced ? 14 : edgeClearance + (knobSize - 20) / 2
+        let knobColumn: CGFloat = edgeClearance + knobSize + 6 - horizontalPadding
 
-        VStack(spacing: 2) {
+        VStack(spacing: 0) {
+            if !model.stripCells.isEmpty {
+                WatchSegmentStrip(cells: model.stripCells, dimmed: isLuminanceReduced)
+                    .frame(height: 5)
+                    .padding(.bottom, 6)
+            }
+
+            Text(currentTitleText.uppercased())
+                .font(.system(size: 12, weight: .heavy).width(.expanded))
+                .tracking(1.2)
+                .foregroundStyle(titleColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 0)
+
             Text(model.segmentElapsedText)
-                .font(.system(size: timerSize, weight: .black, design: .rounded).monospacedDigit())
+                .font(.system(size: timerSize, weight: .black).italic().monospacedDigit())
                 .foregroundStyle(.white)
-                .minimumScaleFactor(0.72)
+                .minimumScaleFactor(0.6)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
 
-            totalTimeLine
-
-            activityTitleBlock
-
             if model.goalText != "—" {
-                deltaLine(fontSize: isLuminanceReduced ? 18 : 24)
+                Text(model.goalDeltaText)
+                    .font(.system(size: isLuminanceReduced ? 20 : 26, weight: .black).italic().monospacedDigit())
+                    .foregroundStyle(goalDeltaColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity)
+            } else if !isLuminanceReduced, model.accent == .station, let target = model.stationTargetText {
+                // 목표 시간이 없는 스테이션은 수행량이라도 보여 준다.
+                Text(target)
+                    .font(.system(size: 15, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.8))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
 
-            if model.totalGoalText != "—" {
-                totalDeltaLine
-            }
+            Spacer(minLength: 0)
 
             if !isLuminanceReduced {
-                if let detail = detailText {
-                    Text(detail)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded).monospacedDigit())
-                        .foregroundStyle(detailColor)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.75)
-                        .frame(maxWidth: .infinity)
+                HStack(alignment: .lastTextBaseline) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(model.heartRateText)
+                            .font(.system(size: 17, weight: .heavy).monospacedDigit())
+                    }
+                    .foregroundStyle(model.heartRateText == "—" ? .white.opacity(0.5) : displayHeartColor)
+                    .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(model.totalElapsedText)
+                        .font(.system(size: 17, weight: .heavy).monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.75))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-
-                heartRateLine
+                .padding(.leading, knobColumn)
             }
         }
         .padding(.horizontal, horizontalPadding)
@@ -104,7 +140,7 @@ struct WorkoutDisplayView<Model: WorkoutDisplaying & AnyObject>: View {
                     isLastSegment: model.isLastSegment,
                     accentColor: accentColor,
                     edgeClearance: edgeClearance,
-                    knobSize: 44,
+                    knobSize: knobSize,
                     onAdvance: {
                         WKInterfaceDevice.current().play(model.isLastSegment ? .success : .directionUp)
                         model.advance()
@@ -133,43 +169,6 @@ struct WorkoutDisplayView<Model: WorkoutDisplaying & AnyObject>: View {
         model.isConnected ? model.currentDisplayTitle : "PHONE DISCONNECTED"
     }
 
-    private var nextTitleText: String? {
-        guard model.isConnected else { return nil }
-        return model.nextDisplayTitle.map { "NEXT \($0)" }
-    }
-
-    private var activityTitleBlock: some View {
-        VStack(spacing: 2) {
-            Text(currentTitleText)
-                .font(.system(size: isLuminanceReduced ? 14 : 20, weight: .bold))
-                .foregroundStyle(titleColor)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-                .frame(maxWidth: .infinity)
-
-            if !isLuminanceReduced, let next = nextTitleText {
-                Text(next)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.65))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-    }
-
-    private var detailText: String? {
-        switch model.accent {
-        case .run:
-            return model.paceText == "—" ? "PACE —" : "PACE \(model.paceText)"
-        case .roxZone:
-            return nil
-        case .station:
-            return model.stationTargetText
-        }
-    }
-
     private var heartColor: Color {
         switch model.heartRateZone {
         case .z1: return .gray
@@ -194,120 +193,50 @@ struct WorkoutDisplayView<Model: WorkoutDisplaying & AnyObject>: View {
         }
     }
 
-    private var detailColor: Color {
-        switch model.accent {
-        case .run: return .white.opacity(0.86)
-        case .roxZone: return .white.opacity(0.72)
-        case .station: return .white.opacity(0.84)
-        }
-    }
-
-    @ViewBuilder
-    private var displayBackgroundView: some View {
-        ZStack {
-            Color.black
-
-            switch model.accent {
-            case .run:
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.02, green: 0.06, blue: 0.18).opacity(0.55),
-                        Color(red: 0.01, green: 0.02, blue: 0.08).opacity(0.15)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                Color.blue.opacity(0.04)
-            case .roxZone:
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.20, green: 0.10, blue: 0.02).opacity(0.55),
-                        Color(red: 0.08, green: 0.04, blue: 0.01).opacity(0.15)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                Color.orange.opacity(0.04)
-            case .station:
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.18, green: 0.16, blue: 0.02).opacity(0.55),
-                        Color(red: 0.08, green: 0.06, blue: 0.01).opacity(0.15)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                Color.yellow.opacity(0.04)
-            }
-
-            if model.isOverGoal, model.goalText != "—" {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.32, green: 0.04, blue: 0.07).opacity(0.55),
-                        Color(red: 0.12, green: 0.01, blue: 0.02).opacity(0.15)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                Color.red.opacity(0.06)
-            }
-        }
-        .animation(.easeInOut(duration: 0.4), value: model.accent)
-        .animation(.easeInOut(duration: 0.25), value: model.isOverGoal)
-    }
+    /// 운동 중 배경은 항상 블랙 — 구간 종류는 이름 색으로만 구분한다(폰과 같은 규칙).
+    private var displayBackgroundView: some View { Color.black }
 
     private var goalDeltaColor: Color {
         if model.goalText == "—" { return .white.opacity(0.8) }
-        return model.isOverGoal ? .red : .green
+        // 앞서면 골드, 뒤지면 오렌지 (폰과 같은 규칙).
+        return model.isOverGoal ? WatchPalette.overGoal : WatchPalette.accent
     }
 
-    private func deltaLine(fontSize: CGFloat) -> some View {
-        HStack {
-            Spacer()
-            Text(model.goalText == "—" ? " " : model.goalDeltaText)
-                .font(.system(size: fontSize, weight: .black, design: .rounded).monospacedDigit())
-                .foregroundStyle(model.goalText == "—" ? .clear : goalDeltaColor)
-            Spacer()
+}
+
+// MARK: - 구간 띠
+
+enum WatchPalette {
+    static let accent = Color(red: 1.0, green: 0.84, blue: 0.0)
+    static let overGoal = Color(red: 1.0, green: 0.48, blue: 0.2)
+}
+
+/// 레이스 전체를 한 줄로. 끝난 칸은 목표 대비 색, 지금 칸은 흰색.
+struct WatchSegmentStrip: View {
+    let cells: [SegmentStripState]
+    var dimmed = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let gap: CGFloat = 1.5
+            let count = CGFloat(max(cells.count, 1))
+            let width = max((proxy.size.width - gap * (count - 1)) / count, 1)
+            HStack(spacing: gap) {
+                ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
+                    Rectangle().fill(color(for: cell)).frame(width: width)
+                }
+            }
         }
-        .frame(maxWidth: .infinity)
+        .accessibilityHidden(true)
     }
 
-    private var totalTimeLine: some View {
-        Text(model.totalElapsedText)
-            .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
-            .foregroundStyle(.white.opacity(0.52))
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .frame(maxWidth: .infinity)
-    }
-
-    private var totalDeltaColor: Color {
-        model.isOverTotalGoal ? .red : .green
-    }
-
-    private var totalDeltaLine: some View {
-        HStack(spacing: 6) {
-            Spacer(minLength: 0)
-            Text("TOTAL")
-                .font(.system(size: 11, weight: .black, design: .rounded))
-                .foregroundStyle(.white.opacity(0.55))
-            Text(model.totalDeltaText)
-                .font(.system(size: isLuminanceReduced ? 16 : 18, weight: .black, design: .rounded).monospacedDigit())
-                .foregroundStyle(totalDeltaColor)
-            Spacer(minLength: 0)
+    private func color(for cell: SegmentStripState) -> Color {
+        switch cell {
+        case .ahead: return dimmed ? .white.opacity(0.7) : WatchPalette.accent
+        case .behind: return dimmed ? .white.opacity(0.45) : WatchPalette.overGoal
+        case .neutral: return .white.opacity(0.45)
+        case .current: return .white
+        case .upcoming: return .white.opacity(0.18)
         }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var heartRateLine: some View {
-        HStack(spacing: 5) {
-            Image(systemName: "heart.fill")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(model.heartRateText == "—" ? .white.opacity(0.4) : displayHeartColor)
-            Text(model.heartRateText)
-                .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
-                .foregroundStyle(model.heartRateText == "—" ? .white.opacity(0.55) : displayHeartColor)
-        }
-        .frame(height: 22)
     }
 }
