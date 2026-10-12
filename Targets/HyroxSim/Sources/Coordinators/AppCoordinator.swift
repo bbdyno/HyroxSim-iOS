@@ -593,6 +593,13 @@ public final class AppCoordinator {
         // 방금 끝낸 기록이 아직 목록에 없을 수 있어 함께 넣는다.
         var history = injectedHistory ?? (try? persistence.fetchAllCompletedWorkouts()) ?? []
         if !history.contains(where: { $0.id == workout.id }) { history.append(workout) }
+        // 보관함의 실제 대회 기록도 예측의 근거다 — 구간이 다 있는 것만 공식 코스 기록으로 바꿔 넣는다.
+        if injectedHistory == nil {
+            for race in raceResultStore.all().compactMap({ $0.asCompletedWorkout() })
+            where !history.contains(where: { $0.id == race.id }) {
+                history.append(race)
+            }
+        }
         let race = try? persistence.fetchUpcomingRaceTarget()
         let goal = injectedGoal
             ?? (race?.division == nil || race?.division == division ? race?.goalDurationSeconds : nil)
