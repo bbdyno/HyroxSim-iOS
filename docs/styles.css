@@ -131,6 +131,7 @@ button {
 
 .hero,
 .feature-section,
+.pricing-section,
 .gallery-section,
 .release-section,
 .contact-section,
@@ -717,4 +718,73 @@ h3 {
 .planner-headline strong,
 .planner-cta {
   word-break: keep-all;
+}
+
+
+/* 2.0 — pricing */
+
+.pricing-table-wrap {
+  margin-top: 28px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.98rem;
+}
+
+.pricing-table th,
+.pricing-table td {
+  padding: 14px 18px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.pricing-table tbody tr:last-child th,
+.pricing-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pricing-table thead th {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pricing-table tbody th {
+  font-weight: 600;
+}
+
+.pricing-table td {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.pricing-table .pricing-pro {
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.pricing-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+  .pricing-table th,
+  .pricing-table td {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+
+  .pricing-table td {
+    white-space: normal;
+  }
 }
