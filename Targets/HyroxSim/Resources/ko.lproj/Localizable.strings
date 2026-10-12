@@ -429,3 +429,11 @@
 "summary.action.level" = "내 수준 보기";
 "settings.row.fitboost" = "FitBoost";
 "settings.row.fitboost.subtitle" = "저희가 만든 웨이트 기록 앱";
+"level.prediction.caption" = "대회 예상 기록";
+"level.prediction.basis_single" = "가장 최근 풀 시뮬레이션 기준";
+"level.prediction.basis_format" = "최근 %1$d회 기준 · 범위 %2$@ – %3$@";
+"level.prediction.trend_faster_format" = "주당 %@씩 빨라지는 중";
+"level.prediction.trend_slower_format" = "주당 %@씩 느려지는 중";
+"level.prediction.goal_ahead_format" = "대회 목표보다 %@ 빠름";
+"level.prediction.goal_behind_format" = "대회 목표보다 %@ 느림";
+"level.prediction.low_confidence" = "아직 기록이 1개입니다. 풀 시뮬레이션을 두 번 더 하면 예측이 안정됩니다.";

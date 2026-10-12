@@ -29,12 +29,20 @@ struct LevelViewModel {
     private(set) var assessment: LevelAssessment?
     let diagnosis: WeaknessDiagnosis?
     let ageGroupOptions: [String]
+    /// 최근 공식 코스 기록들로 낸 대회 예상 기록. 근거가 없으면 nil.
+    let prediction: FinishPrediction?
 
     private typealias L = HyroxSimStrings.Localizable.Level
 
-    init(workout: CompletedWorkout, dataset: PaceDataset, ageGroup: String?) {
+    init(
+        workout: CompletedWorkout,
+        dataset: PaceDataset,
+        ageGroup: String?,
+        prediction: FinishPrediction? = nil
+    ) {
         self.workout = workout
         self.dataset = dataset
+        self.prediction = prediction
         let options = LevelAssessor.ageGroups(in: dataset)
         self.ageGroupOptions = options
         self.ageGroup = ageGroup.flatMap { options.contains($0) ? $0 : nil }
@@ -136,6 +144,46 @@ struct LevelViewModel {
     }
 
     var footnote: String { L.footnote(dataset.datasetVersion) }
+
+    // MARK: - 예측
+
+    var predictionTime: String? { prediction.map { DurationFormatter.hms($0.seconds) } }
+
+    /// "최근 3회 기준 · 1:25:10 – 1:28:02"
+    var predictionBasis: String? {
+        guard let prediction else { return nil }
+        guard prediction.basedOn > 1 else { return L.Prediction.basisSingle }
+        return L.Prediction.basisFormat(
+            prediction.basedOn,
+            DurationFormatter.hms(prediction.fastestSeconds),
+            DurationFormatter.hms(prediction.slowestSeconds)
+        )
+    }
+
+    /// 추세·목표 대비·순위를 한 줄씩.
+    var predictionNotes: [(text: String, tone: Row.Tone)] {
+        guard let prediction else { return [] }
+        var notes: [(String, Row.Tone)] = []
+        if let top = prediction.topPercent {
+            notes.append((L.topFormat(Self.percentText(top, clamped: false)), .even))
+        }
+        if let trend = prediction.trendSecondsPerWeek, abs(trend) >= 1 {
+            let amount = DurationFormatter.ms(abs(trend))
+            notes.append(trend < 0
+                ? (L.Prediction.trendFasterFormat(amount), .gained)
+                : (L.Prediction.trendSlowerFormat(amount), .lost))
+        }
+        if let gap = prediction.gapToGoalSeconds {
+            let amount = DurationFormatter.ms(abs(gap))
+            notes.append(gap <= 0
+                ? (L.Prediction.goalAheadFormat(amount), .gained)
+                : (L.Prediction.goalBehindFormat(amount), .lost))
+        }
+        if prediction.confidence == .low {
+            notes.append((L.Prediction.lowConfidence, .even))
+        }
+        return notes
+    }
 
     private static let strengthStations: Set<StationKind> = [
         .sledPush, .sledPull, .farmersCarry, .sandbagLunges, .wallBalls

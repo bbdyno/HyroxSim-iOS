@@ -559,12 +559,29 @@ public final class AppCoordinator {
     }
 
     /// 기록 하나의 수준 판정·약점 진단 화면. 결과 화면 위에서도, 홈에서도 같은 모양으로 뜬다.
-    func showLevel(for workout: CompletedWorkout) {
+    /// - Parameters:
+    ///   - history: 예측의 근거가 될 기록. 생략하면 저장소에서 읽는다.
+    ///   - goalSeconds: 대회 목표. 생략하면 등록한 대회에서 읽는다.
+    func showLevel(
+        for workout: CompletedWorkout,
+        history injectedHistory: [CompletedWorkout]? = nil,
+        goalSeconds injectedGoal: TimeInterval? = nil
+    ) {
         guard let division = workout.division, let dataset = paceData.dataset(for: division) else { return }
+        // 예측은 이 기록 하나가 아니라 저장된 공식 코스 기록 전체에서 낸다.
+        // 방금 끝낸 기록이 아직 목록에 없을 수 있어 함께 넣는다.
+        var history = injectedHistory ?? (try? persistence.fetchAllCompletedWorkouts()) ?? []
+        if !history.contains(where: { $0.id == workout.id }) { history.append(workout) }
+        let race = try? persistence.fetchUpcomingRaceTarget()
+        let goal = injectedGoal
+            ?? (race?.division == nil || race?.division == division ? race?.goalDurationSeconds : nil)
         let viewModel = LevelViewModel(
             workout: workout,
             dataset: dataset,
-            ageGroup: UserDefaults.standard.string(forKey: LevelViewModel.ageGroupKey)
+            ageGroup: UserDefaults.standard.string(forKey: LevelViewModel.ageGroupKey),
+            prediction: FinishPredictor.predict(
+                from: history, division: division, dataset: dataset, goalSeconds: goal
+            )
         )
         let nav = UINavigationController(rootViewController: LevelViewController(viewModel: viewModel))
         nav.applyDarkTheme()
@@ -578,7 +595,8 @@ public final class AppCoordinator {
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-ShowLevel") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-                self?.showLevel(for: ScreenshotFixtures.fullRaceWorkout)
+                let history = ScreenshotFixtures.fullRaceHistory(endingAt: Date())
+                self?.showLevel(for: history[0], history: history, goalSeconds: 85 * 60)
             }
         }
         guard let index = arguments.firstIndex(of: "-ShowPaywall") else { return }

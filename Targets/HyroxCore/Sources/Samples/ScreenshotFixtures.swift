@@ -81,12 +81,26 @@ public enum ScreenshotFixtures {
 
     /// 공식 코스를 끝까지 달린 기록 (남자 오픈, 1:27:57). 수준 판정·약점 진단 화면용.
     /// 월볼과 썰매가 같은 수준 선수보다 느리고, 러닝은 빠른 선수의 모양이다.
-    public static let fullRaceWorkout: CompletedWorkout = {
-        let runs: [TimeInterval] = [298, 312, 318, 322, 327, 331, 334, 338]
+    public static let fullRaceWorkout: CompletedWorkout = fullRace(startedAt: referenceDate, slowdown: 0)
+
+    /// 수준·예측 화면용 최근 기록 3개. 최신이 `fullRaceWorkout` 과 같은 기록이고,
+    /// 앞선 두 번은 러닝이 조금씩 더 느리다 (점점 빨라지는 중).
+    public static func fullRaceHistory(endingAt now: Date) -> [CompletedWorkout] {
+        [
+            fullRace(startedAt: now.addingTimeInterval(-3 * 86_400), slowdown: 0),
+            fullRace(startedAt: now.addingTimeInterval(-31 * 86_400), slowdown: 12),
+            fullRace(startedAt: now.addingTimeInterval(-66 * 86_400), slowdown: 27)
+        ]
+    }
+
+    /// - Parameter slowdown: 러닝 한 번마다 더하는 초.
+    private static func fullRace(startedAt: Date, slowdown: TimeInterval) -> CompletedWorkout {
+        let runs: [TimeInterval] = [298, 312, 318, 322, 327, 331, 334, 338].map { $0 + slowdown }
         let stations: [TimeInterval] = [262, 205, 318, 301, 279, 118, 296, 468]
         let rox: TimeInterval = 30
+        let base = startedAt.timeIntervalSince(referenceDate)
         var segments: [SegmentRecord] = []
-        var offset: TimeInterval = 0
+        var offset: TimeInterval = base
         for (i, kind) in StationKind.standardOrder.enumerated() {
             segments.append(runRecord(
                 index: segments.count, startedAtOffset: offset, duration: runs[i],
@@ -112,11 +126,11 @@ public enum ScreenshotFixtures {
         return CompletedWorkout(
             templateName: "HYROX Men's Open",
             division: .menOpenSingle,
-            startedAt: referenceDate,
+            startedAt: startedAt,
             finishedAt: referenceDate.addingTimeInterval(offset),
             segments: segments
         )
-    }()
+    }
 
     private static func runRecord(index: Int, startedAtOffset: TimeInterval, duration: TimeInterval, distanceMeters: Double, heartRates: [Int], goalDuration: TimeInterval) -> SegmentRecord {
         let startedAt = referenceDate.addingTimeInterval(startedAtOffset)

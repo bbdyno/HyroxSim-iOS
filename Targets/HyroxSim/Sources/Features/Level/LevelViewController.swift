@@ -106,6 +106,8 @@ final class LevelViewController: UIViewController {
             add(hairline(), spacing: 0)
         }
 
+        addPredictionSection()
+
         let rows = viewModel.rows
         if !rows.isEmpty {
             contentStack.setCustomSpacing(26, after: contentStack.arrangedSubviews.last!)
@@ -145,6 +147,44 @@ final class LevelViewController: UIViewController {
         footnote.text = viewModel.footnote
         contentStack.setCustomSpacing(22, after: contentStack.arrangedSubviews.last!)
         add(footnote, spacing: 0)
+    }
+
+    private func addPredictionSection() {
+        guard let time = viewModel.predictionTime else { return }
+        contentStack.setCustomSpacing(26, after: contentStack.arrangedSubviews.last!)
+        add(caption(L.Prediction.caption.uppercased(), color: DesignTokens.Color.accent), spacing: 2)
+
+        let big = UILabel()
+        big.font = DesignTokens.Font.bigNumber(56)
+        big.textColor = DesignTokens.Color.textPrimary
+        big.text = time
+        big.adjustsFontSizeToFitWidth = true
+        big.minimumScaleFactor = 0.6
+        big.accessibilityIdentifier = "level.prediction"
+        add(big, spacing: 2)
+
+        if let basis = viewModel.predictionBasis {
+            let label = UILabel()
+            label.font = .systemFont(ofSize: 13, weight: .medium)
+            label.textColor = DesignTokens.Color.textSecondary
+            label.numberOfLines = 0
+            label.text = basis
+            add(label, spacing: 10)
+        }
+        for note in viewModel.predictionNotes {
+            let label = UILabel()
+            label.font = .systemFont(ofSize: 13.5, weight: .semibold)
+            label.numberOfLines = 0
+            label.text = note.text
+            switch note.tone {
+            case .gained: label.textColor = DesignTokens.Color.accent
+            case .lost: label.textColor = DesignTokens.Color.overGoal
+            case .even: label.textColor = DesignTokens.Color.textSecondary
+            }
+            add(label, spacing: 4)
+        }
+        contentStack.setCustomSpacing(14, after: contentStack.arrangedSubviews.last!)
+        add(hairline(), spacing: 0)
     }
 
     private func add(_ view: UIView, spacing: CGFloat) {
