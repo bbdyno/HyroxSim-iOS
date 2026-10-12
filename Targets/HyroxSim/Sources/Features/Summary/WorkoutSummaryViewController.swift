@@ -27,6 +27,8 @@ final class WorkoutSummaryViewController: UIViewController {
     }
 
     weak var delegate: WorkoutSummaryViewControllerDelegate?
+    /// 공유 카드에 넣을 "상위 몇 %". 공식 코스가 아니거나 데이터가 없으면 nil 을 돌려준다.
+    var levelTopPercentProvider: ((CompletedWorkout) -> Double?)?
 
     private let viewModel: WorkoutSummaryViewModel
     private let reviewGate: ReviewRequestGate
@@ -86,18 +88,21 @@ final class WorkoutSummaryViewController: UIViewController {
         reviewGate.markRequested()
     }
 
+    /// 공유 레이아웃을 고르는 화면을 띄운다. 이미지는 여기서 한 번만 그린다.
     @objc private func shareTapped() {
-        let shareImage = SummaryShareCardRenderer(content: viewModel.shareCardContent).makeImage()
-
-        let activityViewController = UIActivityViewController(
-            activityItems: [shareImage, viewModel.shareText],
-            applicationActivities: nil
-        )
-        if let popover = activityViewController.popoverPresentationController {
-            popover.barButtonItem = navigationItem.rightBarButtonItem
-            popover.sourceView = view
-        }
-        present(activityViewController, animated: true)
+        let workout = viewModel.workout
+        let data = ShareCardData(workout: workout, topPercent: levelTopPercentProvider?(workout))
+        let renderer = ShareTemplateRenderer(data: data)
+        let images: [ShareTemplate: UIImage] = [
+            .classic: SummaryShareCardRenderer(content: viewModel.shareCardContent).makeImage(),
+            .bigNumber: renderer.makeImage(.bigNumber),
+            .splits: renderer.makeImage(.splits)
+        ]
+        let picker = ShareTemplatePickerViewController(images: images, shareText: viewModel.shareText)
+        let nav = UINavigationController(rootViewController: picker)
+        nav.applyDarkTheme()
+        if let sheet = nav.sheetPresentationController { sheet.detents = [.large()] }
+        present(nav, animated: true)
     }
 
     private func applyDarkNavigationStyle() {

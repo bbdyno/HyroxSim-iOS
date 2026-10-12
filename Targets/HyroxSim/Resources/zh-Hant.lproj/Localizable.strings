@@ -501,3 +501,12 @@
 "race_archive.editor.error.bad_time" = "「%@」不是有效的時間。請以 分:秒 或 時:分:秒 輸入。";
 "race_archive.editor.error.missing_total" = "請輸入完賽時間；或填滿跑步合計、Roxzone 與 8 個站點，由系統相加。";
 "race_archive.editor.error.missing_name" = "請輸入賽事名稱。";
+
+/* 2.0 — share */
+"share.title" = "分享";
+"share.template.classic" = "摘要";
+"share.template.big_number" = "限時動態";
+"share.template.splits" = "分段";
+"share.running" = "跑步 + ROXZONE";
+"share.finish" = "完賽";
+"share.vs_goal" = "對比目標";

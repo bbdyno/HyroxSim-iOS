@@ -501,3 +501,12 @@
 "race_archive.editor.error.bad_time" = "“%@”은(는) 시간 형식이 아닙니다. 분:초 또는 시:분:초로 입력하세요.";
 "race_archive.editor.error.missing_total" = "완주 시간을 입력하세요. 러닝 합계·록스존·스테이션 8개를 모두 채우면 자동으로 더합니다.";
 "race_archive.editor.error.missing_name" = "대회 이름을 입력하세요.";
+
+/* 2.0 — share */
+"share.title" = "공유";
+"share.template.classic" = "요약";
+"share.template.big_number" = "스토리";
+"share.template.splits" = "구간 기록";
+"share.running" = "러닝 + 록스존";
+"share.finish" = "완주";
+"share.vs_goal" = "목표 대비";

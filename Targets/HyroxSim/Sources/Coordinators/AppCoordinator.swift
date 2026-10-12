@@ -618,6 +618,11 @@ public final class AppCoordinator {
                 self?.showLevel(for: history[0], history: history, goalSeconds: 85 * 60)
             }
         }
+        if arguments.contains("-ShowShare") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.showSummary(for: ScreenshotFixtures.fullRaceWorkout, fromHistory: true, animated: false)
+            }
+        }
         if arguments.contains("-ShowRaceArchive") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.homeDidTapRaceArchive() }
         }
@@ -1028,6 +1033,14 @@ extension AppCoordinator {
         )
         let vc = WorkoutSummaryViewController(viewModel: vm)
         vc.delegate = self
+        vc.levelTopPercentProvider = { [weak self] workout in
+            // 순위는 Pro 기능이다. 공유 카드에도 구독자에게만 넣는다.
+            guard let self, self.subscription.gate.allows(.levelAssessment), workout.isStandardHyroxCourse,
+                  let division = workout.division, let dataset = self.paceData.dataset(for: division) else {
+                return nil
+            }
+            return LevelAssessor.assess(finishSeconds: workout.totalActiveDuration, dataset: dataset)?.overallTopPercent
+        }
         if fromHistory {
             navigationController.pushViewController(vc, animated: animated)
         } else {
