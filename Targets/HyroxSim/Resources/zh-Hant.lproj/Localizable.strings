@@ -437,3 +437,13 @@
 "level.prediction.goal_ahead_format" = "比比賽目標快 %@";
 "level.prediction.goal_behind_format" = "比比賽目標慢 %@";
 "level.prediction.low_confidence" = "目前只有 1 筆紀錄。再完成兩次完整模擬，預測會更穩定。";
+"team_split.section.strategy" = "策略";
+"team_split.strategy.button" = "取得分工建議";
+"team_split.strategy.button_subtitle" = "告訴我們每個站點誰比較強";
+"team_split.strategy.title" = "誰比較強？";
+"team_split.strategy.apply" = "套用建議";
+"team_split.strategy.even" = "差不多";
+"team_split.strategy.intro_relay" = "為每個站點選出最強的隊員。每人負責兩段，所以被選了三處以上的人無法全部承擔。";
+"team_split.strategy.intro_doubles" = "為每個站點選出較強的搭檔，由其承擔 65%。維持「差不多」的站點用於平衡負荷。";
+"team_split.strategy.applied" = "已套用建議。可在下方逐站調整。";
+"team_split.strategy.unhonored_format" = "未能分給所選隊員的站點：%@（每人兩段）。";

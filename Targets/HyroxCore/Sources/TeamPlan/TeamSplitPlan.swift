@@ -321,6 +321,13 @@ public struct TeamSplitPlan: Codable, Hashable, Sendable {
         return copy
     }
 
+    /// 분담 전체를 한 번에 바꾼다 (추천 적용). 불변식은 여기서도 정규화로 지킨다.
+    public func settingStationShares(_ shares: [[Double]]) -> TeamSplitPlan {
+        var copy = self
+        copy.stationShares = Self.normalizedShares(shares, memberCount: memberCount)
+        return copy
+    }
+
     /// 모든 스테이션을 기본 분담으로 되돌린다.
     public func resettingToBalanced() -> TeamSplitPlan {
         var copy = self

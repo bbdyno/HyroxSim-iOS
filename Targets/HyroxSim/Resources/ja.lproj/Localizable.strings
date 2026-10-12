@@ -437,3 +437,13 @@
 "level.prediction.goal_ahead_format" = "レース目標より %@ 速い";
 "level.prediction.goal_behind_format" = "レース目標より %@ 遅い";
 "level.prediction.low_confidence" = "記録はまだ1件です。フルシミュレーションをあと2回行うと予想が安定します。";
+"team_split.section.strategy" = "戦略";
+"team_split.strategy.button" = "分担の提案を受ける";
+"team_split.strategy.button_subtitle" = "各ステーションで誰が強いか教えてください";
+"team_split.strategy.title" = "どちらが強いですか？";
+"team_split.strategy.apply" = "提案を適用";
+"team_split.strategy.even" = "同じくらい";
+"team_split.strategy.intro_relay" = "ステーションごとに最も強いメンバーを選んでください。1人2区間なので、3か所以上で選ばれた人はすべてを担当できません。";
+"team_split.strategy.intro_doubles" = "ステーションごとに強いほうのパートナーを選んでください。その人が65%を担当します。「同じくらい」のステーションは負荷の調整に使います。";
+"team_split.strategy.applied" = "提案を適用しました。下でステーションごとに調整できます。";
+"team_split.strategy.unhonored_format" = "希望のメンバーに割り当てられなかった箇所: %@（1人2区間）。";

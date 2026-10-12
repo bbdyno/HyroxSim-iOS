@@ -47,6 +47,9 @@ final class TeamSplitPlannerViewController: UIViewController {
     private let noteLabel = UILabel()
     private let resetButton = UIButton(type: .system)
     private var stationRows: [TeamSplitStationRowView] = []
+    private let strategyNoteLabel = UILabel()
+    /// 스테이션별 "더 강한 팀원". 추천을 다시 받을 때 지난 입력에서 이어 간다.
+    private var strongerSlot: [Int?] = []
 
     // MARK: - Init
 
@@ -177,6 +180,15 @@ final class TeamSplitPlannerViewController: UIViewController {
         memberStack.spacing = 10
         contentStack.addArrangedSubview(memberStack)
 
+        contentStack.addArrangedSubview(makeSectionHeader(TeamSplitStrings.sectionStrategy))
+        contentStack.addArrangedSubview(makeStrategyButton())
+        strategyNoteLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        strategyNoteLabel.textColor = DesignTokens.Color.accent
+        strategyNoteLabel.numberOfLines = 0
+        strategyNoteLabel.isHidden = true
+        strategyNoteLabel.accessibilityIdentifier = "teamSplit.strategyNote"
+        contentStack.addArrangedSubview(strategyNoteLabel)
+
         contentStack.addArrangedSubview(makeSectionHeader(TeamSplitStrings.sectionStations))
         stationStack.axis = .vertical
         stationStack.spacing = 10
@@ -273,6 +285,69 @@ final class TeamSplitPlannerViewController: UIViewController {
         button.addTarget(self, action: action, for: .touchUpInside)
         button.setContentHuggingPriority(.required, for: .horizontal)
         return button
+    }
+
+    // MARK: - 전략 추천
+
+    private func makeStrategyButton() -> UIView {
+        var config = UIButton.Configuration.plain()
+        config.title = TeamSplitStrings.strategyButton
+        config.subtitle = TeamSplitStrings.strategyButtonSubtitle
+        config.image = UIImage(systemName: "arrow.right")
+        config.imagePlacement = .trailing
+        config.titleAlignment = .leading
+        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 13, weight: .bold)
+        config.baseForegroundColor = DesignTokens.Color.accent
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var out = incoming
+            out.font = .systemFont(ofSize: 15, weight: .bold)
+            return out
+        }
+        config.subtitleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var out = incoming
+            out.font = .systemFont(ofSize: 12, weight: .medium)
+            out.foregroundColor = DesignTokens.Color.textSecondary
+            return out
+        }
+        config.contentInsets = .init(top: 14, leading: 16, bottom: 14, trailing: 16)
+        config.background.cornerRadius = 0
+        config.background.strokeColor = DesignTokens.Color.accent
+        config.background.strokeWidth = 1
+        let button = UIButton(configuration: config)
+        button.contentHorizontalAlignment = .fill
+        button.accessibilityIdentifier = "teamSplit.recommend"
+        button.addTarget(self, action: #selector(recommendTapped), for: .touchUpInside)
+        return button
+    }
+
+    @objc private func recommendTapped() {
+        guard PremiumAccess.require(.teamStrategy) else { return }
+        let names = (0..<plan.memberCount).map { plan.name(forSlot: $0) }
+        let editor = TeamStrengthEditorViewController(memberNames: names, strongerSlot: strongerSlot) { [weak self] picked in
+            self?.applyRecommendation(strongerSlot: picked)
+        }
+        let nav = UINavigationController(rootViewController: editor)
+        nav.applyDarkTheme()
+        present(nav, animated: true)
+    }
+
+    private func applyRecommendation(strongerSlot picked: [Int?]) {
+        guard let dataset = try? paceData?.dataset(for: plan.entry.referenceDivision) else { return }
+        strongerSlot = picked
+        let reference = TeamSplitReference.make(
+            entry: plan.entry, dataset: dataset, goalSeconds: Int(plan.goalTotalSeconds.rounded())
+        )
+        let strategy = TeamStrategyRecommender.recommend(
+            entry: plan.entry, strongerSlot: picked, reference: reference
+        )
+        plan = plan.settingStationShares(strategy.stationShares)
+
+        let missed = strategy.unhonoredStationIndices.map { StationKind.standardOrder[$0].displayName }
+        strategyNoteLabel.text = missed.isEmpty
+            ? TeamSplitStrings.strategyApplied
+            : TeamSplitStrings.strategyApplied + "\n" + TeamSplitStrings.strategyUnhonored(missed.joined(separator: ", "))
+        strategyNoteLabel.textColor = missed.isEmpty ? DesignTokens.Color.accent : DesignTokens.Color.overGoal
+        strategyNoteLabel.isHidden = false
     }
 
     private func makeSectionHeader(_ text: String) -> UIView {
@@ -517,7 +592,9 @@ final class TeamSplitPlannerViewController: UIViewController {
         case .doubles: entry = .doubles(baseDivision.doublesCounterpart)
         case .relay: entry = .relay(RelayDivision(matching: baseDivision))
         }
-        // 팀원 수가 달라지므로 분담은 기본값으로 다시 시작한다.
+        // 팀원 수가 달라지므로 분담은 기본값으로 다시 시작한다. 강점 입력도 팀원 순번 기준이라 버린다.
+        strongerSlot = []
+        strategyNoteLabel.isHidden = true
         plan = .balanced(entry: entry, goalTotalSeconds: plan.goalTotalSeconds)
     }
 

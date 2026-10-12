@@ -25,6 +25,28 @@ enum TeamSplitStrings {
         localized("race_target.action.team_split.subtitle", "Divide the stations with your partner")
     }
 
+    // MARK: 전략 추천
+
+    static var sectionStrategy: String { localized("team_split.section.strategy", "STRATEGY") }
+    static var strategyButton: String { localized("team_split.strategy.button", "Recommend a split") }
+    static var strategyButtonSubtitle: String {
+        localized("team_split.strategy.button_subtitle", "Tell us who is stronger at each station")
+    }
+    static var strategyTitle: String { localized("team_split.strategy.title", "Who is stronger?") }
+    static var strategyApply: String { localized("team_split.strategy.apply", "APPLY RECOMMENDATION") }
+    static var strategyEven: String { localized("team_split.strategy.even", "Even") }
+    static func strategyIntro(isRelay: Bool) -> String {
+        isRelay
+            ? localized("team_split.strategy.intro_relay", "Pick the strongest teammate for each station. Everyone takes two legs, so a teammate picked for more than two cannot get them all.")
+            : localized("team_split.strategy.intro_doubles", "Pick the stronger partner at each station. They take 65%. Stations left on Even are used to keep the workload balanced.")
+    }
+    static var strategyApplied: String {
+        localized("team_split.strategy.applied", "Recommendation applied. You can still adjust any station below.")
+    }
+    static func strategyUnhonored(_ stations: String) -> String {
+        String(format: localized("team_split.strategy.unhonored_format", "Could not give the preferred teammate: %@ (two legs each)."), stations)
+    }
+
     static var sectionGoal: String { localized("team_split.section.goal", "TEAM GOAL") }
     static var sectionWorkload: String { localized("team_split.section.workload", "WORKLOAD") }
     static var sectionStations: String { localized("team_split.section.stations", "STATION SPLIT") }

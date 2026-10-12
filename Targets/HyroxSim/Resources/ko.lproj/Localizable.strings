@@ -437,3 +437,13 @@
 "level.prediction.goal_ahead_format" = "대회 목표보다 %@ 빠름";
 "level.prediction.goal_behind_format" = "대회 목표보다 %@ 느림";
 "level.prediction.low_confidence" = "아직 기록이 1개입니다. 풀 시뮬레이션을 두 번 더 하면 예측이 안정됩니다.";
+"team_split.section.strategy" = "전략";
+"team_split.strategy.button" = "분담 추천 받기";
+"team_split.strategy.button_subtitle" = "스테이션마다 누가 더 강한지 알려 주세요";
+"team_split.strategy.title" = "누가 더 강한가요?";
+"team_split.strategy.apply" = "추천 적용";
+"team_split.strategy.even" = "비슷";
+"team_split.strategy.intro_relay" = "스테이션마다 가장 강한 팀원을 고르세요. 한 사람이 두 구간씩 맡으므로, 세 곳 이상에 지목된 사람은 전부 맡을 수 없습니다.";
+"team_split.strategy.intro_doubles" = "스테이션마다 더 강한 파트너를 고르세요. 그 사람이 65%를 맡습니다. ‘비슷’으로 둔 스테이션은 부하를 고르게 맞추는 데 씁니다.";
+"team_split.strategy.applied" = "추천을 적용했습니다. 아래에서 스테이션별로 다시 조정할 수 있습니다.";
+"team_split.strategy.unhonored_format" = "지목한 팀원에게 주지 못한 곳: %@ (한 사람당 두 구간).";

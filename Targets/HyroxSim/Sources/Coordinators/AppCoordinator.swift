@@ -82,6 +82,7 @@ public final class AppCoordinator {
         self.garminTemplateSyncService = services.garminTemplateSyncService
         self.paceData = services.paceData
         self.subscription = services.subscription
+        PremiumAccess.gate = { [subscription = services.subscription] in subscription.gate }
 
         // Global dark nav bar appearance
         let navAppearance = UINavigationBarAppearance()
@@ -130,6 +131,7 @@ public final class AppCoordinator {
         tabBarController.viewControllers = [navigationController, settingsNavigationController]
         window.rootViewController = tabBarController
         window.makeKeyAndVisible()
+        PremiumAccess.presentPaywall = { [weak self] feature in self?.presentPaywall(trigger: feature) }
         #if DEBUG
         presentPaywallIfRequestedByLaunchArguments()
         #endif
@@ -597,6 +599,17 @@ public final class AppCoordinator {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 let history = ScreenshotFixtures.fullRaceHistory(endingAt: Date())
                 self?.showLevel(for: history[0], history: history, goalSeconds: 85 * 60)
+            }
+        }
+        if arguments.contains("-ShowTeamSplit") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                guard let self else { return }
+                let planner = TeamSplitPlannerViewController(
+                    division: .mixedDouble, goalSeconds: 80 * 60, raceTargetId: nil
+                )
+                let nav = UINavigationController(rootViewController: planner)
+                nav.applyDarkTheme()
+                self.topmostPresentedViewController.present(nav, animated: false)
             }
         }
         guard let index = arguments.firstIndex(of: "-ShowPaywall") else { return }

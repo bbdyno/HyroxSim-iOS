@@ -437,3 +437,13 @@
 "level.prediction.goal_ahead_format" = "%@ ahead of your race goal";
 "level.prediction.goal_behind_format" = "%@ behind your race goal";
 "level.prediction.low_confidence" = "One result so far. Two more full simulations make this steadier.";
+"team_split.section.strategy" = "STRATEGY";
+"team_split.strategy.button" = "Recommend a split";
+"team_split.strategy.button_subtitle" = "Tell us who is stronger at each station";
+"team_split.strategy.title" = "Who is stronger?";
+"team_split.strategy.apply" = "APPLY RECOMMENDATION";
+"team_split.strategy.even" = "Even";
+"team_split.strategy.intro_relay" = "Pick the strongest teammate for each station. Everyone takes two legs, so a teammate picked for more than two cannot get them all.";
+"team_split.strategy.intro_doubles" = "Pick the stronger partner at each station. They take 65%. Stations left on Even are used to keep the workload balanced.";
+"team_split.strategy.applied" = "Recommendation applied. You can still adjust any station below.";
+"team_split.strategy.unhonored_format" = "Could not give the preferred teammate: %@ (two legs each).";

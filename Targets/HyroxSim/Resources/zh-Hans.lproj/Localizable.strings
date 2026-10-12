@@ -437,3 +437,13 @@
 "level.prediction.goal_ahead_format" = "比比赛目标快 %@";
 "level.prediction.goal_behind_format" = "比比赛目标慢 %@";
 "level.prediction.low_confidence" = "目前只有 1 条记录。再完成两次完整模拟，预测会更稳定。";
+"team_split.section.strategy" = "策略";
+"team_split.strategy.button" = "获取分工建议";
+"team_split.strategy.button_subtitle" = "告诉我们每个站点谁更强";
+"team_split.strategy.title" = "谁更强？";
+"team_split.strategy.apply" = "应用建议";
+"team_split.strategy.even" = "差不多";
+"team_split.strategy.intro_relay" = "为每个站点选出最强的队员。每人负责两段，所以被选了三处以上的人无法全部承担。";
+"team_split.strategy.intro_doubles" = "为每个站点选出更强的搭档，由其承担 65%。保持“差不多”的站点用于平衡负荷。";
+"team_split.strategy.applied" = "已应用建议。可在下方逐站调整。";
+"team_split.strategy.unhonored_format" = "未能分给所选队员的站点：%@（每人两段）。";
