@@ -399,3 +399,33 @@
 "paywall.feature.voiceGuide.detail" = "レース中にスプリットと目標との差を読み上げます。";
 "history.locked.title_format" = "ほかに%d件の記録";
 "history.locked.detail" = "以前の記録は保存されています。Proですべて表示できます。";
+
+/* 2.0 — level */
+"level.title" = "マイレベル";
+"level.top_caption" = "上位";
+"level.top_format" = "上位 %@";
+"level.population_format" = "レース完走者 %@人中";
+"level.population_season_format" = "レース完走者 %1$@人中 · シーズン %2$@";
+"level.bar_fast" = "速い";
+"level.bar_slow" = "遅い";
+"level.age_group" = "年代";
+"level.age_group_choose" = "選択";
+"level.age_group_clear" = "選択解除";
+"level.milestone_format" = "上位 %@まで";
+"level.weakness_caption" = "タイムを失っている区間";
+"level.weakness_explain" = "同じタイムで完走した選手と区間ごとに比較します。レベルはその区間だけで見た順位です。";
+"level.column_segment" = "区間";
+"level.column_time" = "タイム";
+"level.column_delta" = "レベル比";
+"level.column_level" = "レベル";
+"level.running" = "ラン + ロックスゾーン";
+"level.recoverable_format" = "遅い区間を自分のレベル並みにするだけで %@ 短縮できます。";
+"level.fitboost_title" = "筋力はFitBoostで";
+"level.fitboost_detail" = "遅い区間は筋力系ステーションです。FitBoostは当方のウエイト記録アプリです。";
+"level.footnote" = "公開されたレース結果と比較しています(データ %@)。一時停止時間は除外。非公式の推定値です。";
+"level.unavailable.title" = "比較できる記録がありません";
+"level.unavailable.message" = "公式コースを一度完走すると、ここにレベルが表示されます。";
+"home.action.level" = "マイレベル";
+"summary.action.level" = "マイレベルを見る";
+"settings.row.fitboost" = "FitBoost";
+"settings.row.fitboost.subtitle" = "当方のウエイト記録アプリ";

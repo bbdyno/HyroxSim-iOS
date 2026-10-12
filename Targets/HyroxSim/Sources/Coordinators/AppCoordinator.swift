@@ -558,11 +558,29 @@ public final class AppCoordinator {
         navigationController.pushViewController(vc, animated: true)
     }
 
+    /// 기록 하나의 수준 판정·약점 진단 화면. 결과 화면 위에서도, 홈에서도 같은 모양으로 뜬다.
+    func showLevel(for workout: CompletedWorkout) {
+        guard let division = workout.division, let dataset = paceData.dataset(for: division) else { return }
+        let viewModel = LevelViewModel(
+            workout: workout,
+            dataset: dataset,
+            ageGroup: UserDefaults.standard.string(forKey: LevelViewModel.ageGroupKey)
+        )
+        let nav = UINavigationController(rootViewController: LevelViewController(viewModel: viewModel))
+        nav.applyDarkTheme()
+        topmostPresentedViewController.present(nav, animated: true)
+    }
+
     /// 잠긴 기능을 눌렀을 때. `trigger` 는 페이월 맨 위에 그 기능을 먼저 보여 준다.
     #if DEBUG
     /// `-ShowPaywall [기능]` 실행 인자로 페이월을 바로 띄운다 (화면 확인용).
     func presentPaywallIfRequestedByLaunchArguments() {
         let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-ShowLevel") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.showLevel(for: ScreenshotFixtures.fullRaceWorkout)
+            }
+        }
         guard let index = arguments.firstIndex(of: "-ShowPaywall") else { return }
         let trigger = arguments.indices.contains(index + 1)
             ? PremiumFeature(rawValue: arguments[index + 1]) : nil
@@ -652,6 +670,25 @@ extension AppCoordinator: HomeViewControllerDelegate {
 
     func homeDidTapProgress() {
         navigationController.pushViewController(makeProgressViewController(), animated: true)
+    }
+
+    func homeDidTapLevel() {
+        guard subscription.gate.allows(.levelAssessment) else {
+            presentPaywall(trigger: .levelAssessment)
+            return
+        }
+        let latest = (try? persistence.fetchAllCompletedWorkouts())?
+            .first { $0.isStandardHyroxCourse && $0.division != nil }
+        guard let latest else {
+            let alert = DarkAlertController(
+                title: HyroxSimStrings.Localizable.Level.Unavailable.title,
+                message: HyroxSimStrings.Localizable.Level.Unavailable.message
+            )
+            alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+            topmostPresentedViewController.present(alert, animated: true)
+            return
+        }
+        showLevel(for: latest)
     }
 
     func homeDidSelectRecent(_ workout: CompletedWorkout) {
@@ -962,6 +999,14 @@ extension AppCoordinator {
 // MARK: - WorkoutSummaryViewControllerDelegate
 
 extension AppCoordinator: WorkoutSummaryViewControllerDelegate {
+
+    func summaryDidTapLevel(for workout: CompletedWorkout) {
+        guard subscription.gate.allows(.levelAssessment) else {
+            presentPaywall(trigger: .levelAssessment)
+            return
+        }
+        showLevel(for: workout)
+    }
 
     func summaryDidTapDone() {
         if presentationHost.presentedViewController != nil {

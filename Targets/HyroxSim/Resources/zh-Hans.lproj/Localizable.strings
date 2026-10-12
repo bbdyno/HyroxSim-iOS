@@ -399,3 +399,33 @@
 "paywall.feature.voiceGuide.detail" = "比赛中播报分段成绩和与目标的差距。";
 "history.locked.title_format" = "还有 %d 条记录";
 "history.locked.detail" = "更早的记录仍已保存。Pro 可查看全部。";
+
+/* 2.0 — level */
+"level.title" = "我的水平";
+"level.top_caption" = "前";
+"level.top_format" = "前 %@";
+"level.population_format" = "在 %@ 名完赛者中";
+"level.population_season_format" = "在 %1$@ 名完赛者中 · 赛季 %2$@";
+"level.bar_fast" = "最快";
+"level.bar_slow" = "最慢";
+"level.age_group" = "年龄组";
+"level.age_group_choose" = "选择";
+"level.age_group_clear" = "清除";
+"level.milestone_format" = "进入前 %@";
+"level.weakness_caption" = "丢时间的分段";
+"level.weakness_explain" = "与完赛成绩和你相同的选手逐段比较。水平是只看该分段时的排名。";
+"level.column_segment" = "分段";
+"level.column_time" = "用时";
+"level.column_delta" = "对比";
+"level.column_level" = "水平";
+"level.running" = "跑步 + ROXZONE";
+"level.recoverable_format" = "慢的分段只要达到自己的水平，就能省下 %@。";
+"level.fitboost_title" = "用 FitBoost 练力量";
+"level.fitboost_detail" = "你慢的分段是力量站。FitBoost 是我们的力量训练记录 App。";
+"level.footnote" = "与公开的比赛成绩比较（数据 %@）。不含暂停时间。非官方估算。";
+"level.unavailable.title" = "还没有可比较的记录";
+"level.unavailable.message" = "完整跑完一次官方赛道后，这里会显示你的水平。";
+"home.action.level" = "我的水平";
+"summary.action.level" = "查看我的水平";
+"settings.row.fitboost" = "FitBoost";
+"settings.row.fitboost.subtitle" = "我们的力量训练记录 App";

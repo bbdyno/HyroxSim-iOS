@@ -200,7 +200,7 @@ public struct WeaknessDiagnosis: Hashable, Sendable {
     public var recoverableSeconds: Double { weaknesses.reduce(0) { $0 + $1.lostSeconds } }
 
     /// 이보다 작은 차이는 측정 오차로 보고 약점·강점으로 부르지 않는다.
-    static let threshold: Double = 5
+    public static let threshold: Double = 5
 }
 
 public enum WeaknessDiagnoser {

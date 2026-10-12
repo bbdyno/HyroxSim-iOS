@@ -24,6 +24,8 @@ protocol HomeViewControllerDelegate: AnyObject {
     func homeDidTapRaceTarget(_ target: RaceTarget?)
     /// 훈련 세션 탭. `index` 는 목록에서의 순서 — 무료 범위 판단에 쓴다.
     func homeDidSelectTrainingSession(_ template: WorkoutTemplate, at index: Int)
+    /// 내 수준 — 가장 최근 공식 코스 기록을 대회 기록과 비교한다.
+    func homeDidTapLevel()
 }
 
 final class HomeViewController: UIViewController {
@@ -193,6 +195,13 @@ final class HomeViewController: UIViewController {
         progress.isHidden = true
         progressRow = progress
         contentStack.addArrangedSubview(inset(progress))
+        let level = makeLinkRow(
+            title: HyroxSimStrings.Localizable.Home.Action.level,
+            accessory: makeRowArrow(),
+            action: #selector(levelTapped)
+        )
+        level.accessibilityIdentifier = "home.level"
+        contentStack.addArrangedSubview(inset(level))
         contentStack.addArrangedSubview(inset(makeLinkRow(
             title: HyroxSimStrings.Localizable.Home.Action.raceDay,
             accessory: makeRowArrow(),
@@ -669,6 +678,7 @@ final class HomeViewController: UIViewController {
     }
 
     @objc private func raceDayTapped() { delegate?.homeDidTapRaceDay() }
+    @objc private func levelTapped() { delegate?.homeDidTapLevel() }
 }
 
 // MARK: - UIContextMenuInteractionDelegate

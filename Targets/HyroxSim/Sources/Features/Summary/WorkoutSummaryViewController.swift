@@ -12,6 +12,8 @@ import HyroxCore
 @MainActor
 protocol WorkoutSummaryViewControllerDelegate: AnyObject {
     func summaryDidTapDone()
+    /// 이 기록을 실제 대회 기록과 비교해 보기.
+    func summaryDidTapLevel(for workout: CompletedWorkout)
 }
 
 final class WorkoutSummaryViewController: UIViewController {
@@ -150,6 +152,7 @@ final class WorkoutSummaryViewController: UIViewController {
         addStrip()
         addSpacer(14)
         addGapCard()
+        addLevelRow()
         addSeparator()
         addSpacer(10)
         addTableHeader(["Split", "Time", "Delta"])
@@ -177,6 +180,36 @@ final class WorkoutSummaryViewController: UIViewController {
         addHeartRateRow()
         addHeartRateZonesSection()
         addSpacer(12)
+    }
+
+    // MARK: - 내 수준
+
+    /// 공식 코스 기록일 때만 보인다 — 다른 구성은 대회 기록과 비교할 수 없다.
+    private func addLevelRow() {
+        guard viewModel.workout.isStandardHyroxCourse, viewModel.workout.division != nil else { return }
+        var config = UIButton.Configuration.plain()
+        var title = AttributedString(HyroxSimStrings.Localizable.Summary.Action.level.uppercased())
+        title.font = DesignTokens.Font.wide(13, weight: .heavy)
+        title.kern = 1.2
+        config.attributedTitle = title
+        config.image = UIImage(systemName: "arrow.right")
+        config.imagePlacement = .trailing
+        config.imagePadding = 8
+        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 12, weight: .bold)
+        config.baseForegroundColor = DesignTokens.Color.accent
+        config.contentInsets = .init(top: 14, leading: 14, bottom: 14, trailing: 14)
+        config.background.cornerRadius = 0
+        config.background.strokeColor = DesignTokens.Color.accent
+        config.background.strokeWidth = 1
+        let button = UIButton(configuration: config)
+        button.contentHorizontalAlignment = .fill
+        button.accessibilityIdentifier = "summary.level"
+        button.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            self.delegate?.summaryDidTapLevel(for: self.viewModel.workout)
+        }, for: .touchUpInside)
+        contentStack.addArrangedSubview(button)
+        addSpacer(14)
     }
 
     // MARK: - 격차 분석 카드

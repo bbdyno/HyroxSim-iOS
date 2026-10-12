@@ -152,6 +152,12 @@ final class SettingsViewController: UIViewController {
             action: #selector(githubTapped)
         ))
         contentStack.addArrangedSubview(makeActionRow(
+            title: HyroxSimStrings.Localizable.Settings.Row.fitboost,
+            subtitle: HyroxSimStrings.Localizable.Settings.Row.Fitboost.subtitle,
+            icon: "dumbbell",
+            action: #selector(fitBoostTapped)
+        ))
+        contentStack.addArrangedSubview(makeActionRow(
             title: HyroxSimStrings.Localizable.Settings.Row.opensource,
             subtitle: nil,
             icon: "doc.text",
@@ -213,6 +219,7 @@ final class SettingsViewController: UIViewController {
         guard let url = URL(string: "https://github.com/bbdyno/HyroxSim-iOS") else { return }
         UIApplication.shared.open(url)
     }
+    @objc private func fitBoostTapped() { UIApplication.shared.open(LevelViewController.Links.fitBoost) }
     @objc private func openSourceTapped() { delegate?.settingsDidTapOpenSource() }
 
     @objc private func garminDisconnectTapped() {

@@ -399,3 +399,33 @@
 "paywall.feature.voiceGuide.detail" = "Spoken splits and goal gaps while you race.";
 "history.locked.title_format" = "%d more workouts";
 "history.locked.detail" = "Your older workouts are saved. Pro shows all of them.";
+
+/* 2.0 — level */
+"level.title" = "My Level";
+"level.top_caption" = "Top";
+"level.top_format" = "Top %@";
+"level.population_format" = "Among %@ race finishers";
+"level.population_season_format" = "Among %1$@ race finishers · seasons %2$@";
+"level.bar_fast" = "Fastest";
+"level.bar_slow" = "Slowest";
+"level.age_group" = "Age group";
+"level.age_group_choose" = "Choose";
+"level.age_group_clear" = "Clear";
+"level.milestone_format" = "To reach top %@";
+"level.weakness_caption" = "Where you lose time";
+"level.weakness_explain" = "Each segment compared with athletes who finish at your level. LEVEL shows where that segment alone would place you.";
+"level.column_segment" = "Segment";
+"level.column_time" = "Time";
+"level.column_delta" = "vs level";
+"level.column_level" = "Level";
+"level.running" = "RUNNING + ROXZONE";
+"level.recoverable_format" = "Matching your own level on the slow segments alone saves %@.";
+"level.fitboost_title" = "Build strength with FitBoost";
+"level.fitboost_detail" = "Your slow segments are strength stations. FitBoost is our weight-training log.";
+"level.footnote" = "Compared with published race results (dataset %@). Paused time is excluded. Unofficial estimate.";
+"level.unavailable.title" = "No race to compare yet";
+"level.unavailable.message" = "Finish the full official course once and your level appears here.";
+"home.action.level" = "My Level";
+"summary.action.level" = "SEE MY LEVEL";
+"settings.row.fitboost" = "FitBoost";
+"settings.row.fitboost.subtitle" = "Our weight-training log";

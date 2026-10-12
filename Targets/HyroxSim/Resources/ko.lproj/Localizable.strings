@@ -399,3 +399,33 @@
 "paywall.feature.voiceGuide.detail" = "레이스 중 구간 기록과 목표 대비 차이를 말해 줍니다.";
 "history.locked.title_format" = "기록 %d개 더 있음";
 "history.locked.detail" = "이전 기록은 그대로 저장되어 있습니다. Pro에서 전부 볼 수 있습니다.";
+
+/* 2.0 — level */
+"level.title" = "내 수준";
+"level.top_caption" = "상위";
+"level.top_format" = "상위 %@";
+"level.population_format" = "대회 완주자 %@명 중";
+"level.population_season_format" = "대회 완주자 %1$@명 중 · 시즌 %2$@";
+"level.bar_fast" = "빠름";
+"level.bar_slow" = "느림";
+"level.age_group" = "연령대";
+"level.age_group_choose" = "선택";
+"level.age_group_clear" = "선택 해제";
+"level.milestone_format" = "상위 %@까지";
+"level.weakness_caption" = "시간을 잃는 구간";
+"level.weakness_explain" = "나와 같은 기록으로 완주한 선수들과 구간별로 비교합니다. 수준은 그 구간만 봤을 때의 순위입니다.";
+"level.column_segment" = "구간";
+"level.column_time" = "기록";
+"level.column_delta" = "수준 대비";
+"level.column_level" = "수준";
+"level.running" = "러닝 + 록스존";
+"level.recoverable_format" = "느린 구간을 내 수준만큼만 해도 %@ 줄어듭니다.";
+"level.fitboost_title" = "근력은 FitBoost로";
+"level.fitboost_detail" = "느린 구간이 근력 스테이션입니다. FitBoost는 저희가 만든 웨이트 기록 앱입니다.";
+"level.footnote" = "공개된 대회 기록과 비교합니다(데이터 %@). 일시정지 시간은 제외합니다. 비공식 추정치입니다.";
+"level.unavailable.title" = "비교할 기록이 없습니다";
+"level.unavailable.message" = "공식 코스를 끝까지 한 번 완주하면 여기에 수준이 표시됩니다.";
+"home.action.level" = "내 수준";
+"summary.action.level" = "내 수준 보기";
+"settings.row.fitboost" = "FitBoost";
+"settings.row.fitboost.subtitle" = "저희가 만든 웨이트 기록 앱";

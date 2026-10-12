@@ -79,6 +79,45 @@ public enum ScreenshotFixtures {
 
     public static let watchSummaryWorkout = summaryWorkout
 
+    /// 공식 코스를 끝까지 달린 기록 (남자 오픈, 1:27:57). 수준 판정·약점 진단 화면용.
+    /// 월볼과 썰매가 같은 수준 선수보다 느리고, 러닝은 빠른 선수의 모양이다.
+    public static let fullRaceWorkout: CompletedWorkout = {
+        let runs: [TimeInterval] = [298, 312, 318, 322, 327, 331, 334, 338]
+        let stations: [TimeInterval] = [262, 205, 318, 301, 279, 118, 296, 468]
+        let rox: TimeInterval = 30
+        var segments: [SegmentRecord] = []
+        var offset: TimeInterval = 0
+        for (i, kind) in StationKind.standardOrder.enumerated() {
+            segments.append(runRecord(
+                index: segments.count, startedAtOffset: offset, duration: runs[i],
+                distanceMeters: 1000, heartRates: [158, 164, 168], goalDuration: 320
+            ))
+            offset += runs[i]
+            segments.append(roxRecord(
+                index: segments.count, startedAtOffset: offset, duration: rox, heartRates: [160], goalDuration: 30
+            ))
+            offset += rox
+            segments.append(stationRecord(
+                index: segments.count, startedAtOffset: offset, duration: stations[i],
+                kind: kind, heartRates: [166, 171], goalDuration: 270
+            ))
+            offset += stations[i]
+            if i < 7 {
+                segments.append(roxRecord(
+                    index: segments.count, startedAtOffset: offset, duration: rox, heartRates: [162], goalDuration: 30
+                ))
+                offset += rox
+            }
+        }
+        return CompletedWorkout(
+            templateName: "HYROX Men's Open",
+            division: .menOpenSingle,
+            startedAt: referenceDate,
+            finishedAt: referenceDate.addingTimeInterval(offset),
+            segments: segments
+        )
+    }()
+
     private static func runRecord(index: Int, startedAtOffset: TimeInterval, duration: TimeInterval, distanceMeters: Double, heartRates: [Int], goalDuration: TimeInterval) -> SegmentRecord {
         let startedAt = referenceDate.addingTimeInterval(startedAtOffset)
         return SegmentRecord(
