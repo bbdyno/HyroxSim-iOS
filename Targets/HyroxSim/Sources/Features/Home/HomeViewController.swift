@@ -22,6 +22,8 @@ protocol HomeViewControllerDelegate: AnyObject {
     func homeDidSelectRecent(_ workout: CompletedWorkout)
     /// 내 대회 카드 탭 — 등록된 대회가 있으면 그 대회를, 없으면 새 대회 작성 화면을 연다.
     func homeDidTapRaceTarget(_ target: RaceTarget?)
+    /// 훈련 세션 탭. `index` 는 목록에서의 순서 — 무료 범위 판단에 쓴다.
+    func homeDidSelectTrainingSession(_ template: WorkoutTemplate, at index: Int)
 }
 
 final class HomeViewController: UIViewController {
@@ -297,7 +299,7 @@ final class HomeViewController: UIViewController {
 
     @objc private func trainingSessionTapped(_ sender: UIControl) {
         guard sender.tag < viewModel.trainingSessions.count else { return }
-        delegate?.homeDidSelectTemplate(viewModel.trainingSessions[sender.tag].template)
+        delegate?.homeDidSelectTrainingSession(viewModel.trainingSessions[sender.tag].template, at: sender.tag)
     }
 
     private var pagerHeight: CGFloat { DivisionPageCell.height }

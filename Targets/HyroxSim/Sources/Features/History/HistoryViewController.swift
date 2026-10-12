@@ -11,11 +11,18 @@ import HyroxCore
 @MainActor
 protocol HistoryViewControllerDelegate: AnyObject {
     func historyDidSelect(_ workout: CompletedWorkout)
+    /// 무료 한도 밖의 기록을 보려고 했다.
+    func historyDidTapLockedRows()
 }
 
 final class HistoryViewController: UIViewController {
 
     weak var delegate: HistoryViewControllerDelegate?
+    /// 무료 한도 판단. 기록은 계속 저장되고, 한도 밖은 잠긴 행 하나로 묶어 보여 준다.
+    var gateProvider: () -> FeatureGate = { FeatureGate(tier: .subscriber) }
+
+    private var visibleCount: Int { gateProvider().visibleHistoryCount(total: viewModel.workouts.count) }
+    private var lockedCount: Int { viewModel.workouts.count - visibleCount }
     private let viewModel: HistoryViewModel
     private var tableView: UITableView!
     private let emptyLabel = UILabel()
@@ -58,6 +65,7 @@ final class HistoryViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(HistoryCardCell.self, forCellReuseIdentifier: HistoryCardCell.reuseId)
+        tableView.register(HistoryLockedCell.self, forCellReuseIdentifier: HistoryLockedCell.reuseId)
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 88
         view.addSubview(tableView)
@@ -109,21 +117,28 @@ final class HistoryViewController: UIViewController {
 extension HistoryViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        viewModel.workouts.count
+        visibleCount + (lockedCount > 0 ? 1 : 0)
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        if indexPath.row >= visibleCount {
+            let cell = tableView.dequeueReusableCell(withIdentifier: HistoryLockedCell.reuseId, for: indexPath) as! HistoryLockedCell
+            cell.configure(lockedCount: lockedCount)
+            return cell
+        }
         let cell = tableView.dequeueReusableCell(withIdentifier: HistoryCardCell.reuseId, for: indexPath) as! HistoryCardCell
         cell.configure(with: viewModel.workouts[indexPath.row])
         return cell
     }
 
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard indexPath.row < visibleCount else { return nil }
         let delete = UIContextualAction(style: .destructive, title: nil) { [weak self] _, _, done in
             guard let self else { return }
             do {
                 try self.viewModel.delete(at: indexPath.row)
-                tableView.deleteRows(at: [indexPath], with: .automatic)
+                // 한도 밖 기록이 하나 올라오고 잠긴 행의 개수가 바뀌므로 통째로 다시 그린다.
+                tableView.reloadData()
                 self.updateEmptyState()
                 done(true)
             } catch {
@@ -146,7 +161,65 @@ extension HistoryViewController: UITableViewDataSource {
 extension HistoryViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        guard indexPath.row < visibleCount else {
+            delegate?.historyDidTapLockedRows()
+            return
+        }
         delegate?.historyDidSelect(viewModel.workouts[indexPath.row])
+    }
+}
+
+// MARK: - Locked rows
+
+private final class HistoryLockedCell: UITableViewCell {
+
+    static let reuseId = "HistoryLockedCell"
+
+    private let titleLabel = UILabel()
+    private let detailLabel = UILabel()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        backgroundColor = .clear
+        selectionStyle = .none
+        accessibilityIdentifier = "history.locked"
+
+        let box = UIView()
+        box.layer.borderWidth = 1
+        box.layer.borderColor = DesignTokens.Color.accent.cgColor
+        box.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(box)
+
+        titleLabel.font = DesignTokens.Font.wide(14, weight: .heavy)
+        titleLabel.textColor = DesignTokens.Color.accent
+        titleLabel.numberOfLines = 0
+        detailLabel.font = .systemFont(ofSize: 12.5)
+        detailLabel.textColor = DesignTokens.Color.textSecondary
+        detailLabel.numberOfLines = 0
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, detailLabel])
+        stack.axis = .vertical
+        stack.spacing = 4
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        box.addSubview(stack)
+        NSLayoutConstraint.activate([
+            box.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            box.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            box.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            box.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
+            stack.topAnchor.constraint(equalTo: box.topAnchor, constant: 14),
+            stack.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: box.trailingAnchor, constant: -16),
+            stack.bottomAnchor.constraint(equalTo: box.bottomAnchor, constant: -14)
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(lockedCount: Int) {
+        titleLabel.text = HyroxSimStrings.Localizable.History.Locked.titleFormat(lockedCount)
+        detailLabel.text = HyroxSimStrings.Localizable.History.Locked.detail
     }
 }
 

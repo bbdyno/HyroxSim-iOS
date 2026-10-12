@@ -5,6 +5,7 @@
 //  Created by bbdyno on 4/7/26.
 //
 
+import StoreKit
 import UIKit
 import HyroxCore
 import HyroxPersistenceApple
@@ -24,6 +25,7 @@ public final class AppCoordinator {
     private let garminTemplateSyncService: GarminTemplateSyncService
     /// 진척 화면의 퍼센타일 기준. 번들 스냅샷이든 내려받은 표든 여기서 나온다.
     private let paceData: PaceDataRepository
+    private let subscription: SubscriptionStore
     private let templateGoalOverrideStore = TemplateGoalOverrideStore()
     private let heartRateProfile = HeartRateProfile()
     private let checkpointStore: WorkoutCheckpointStore
@@ -79,6 +81,7 @@ public final class AppCoordinator {
         self.workoutMirrorController = services.workoutMirrorController
         self.garminTemplateSyncService = services.garminTemplateSyncService
         self.paceData = services.paceData
+        self.subscription = services.subscription
 
         // Global dark nav bar appearance
         let navAppearance = UINavigationBarAppearance()
@@ -127,6 +130,9 @@ public final class AppCoordinator {
         tabBarController.viewControllers = [navigationController, settingsNavigationController]
         window.rootViewController = tabBarController
         window.makeKeyAndVisible()
+        #if DEBUG
+        presentPaywallIfRequestedByLaunchArguments()
+        #endif
 
         syncCoordinator.onReceiveCompletedWorkout = { [weak self] _ in
             self?.refreshHomeIfVisible()
@@ -521,6 +527,7 @@ public final class AppCoordinator {
 
     private func makeSettingsViewController() -> UIViewController {
         let vc = SettingsViewController()
+        vc.subscription = subscription
         vc.delegate = self
         return vc
     }
@@ -528,6 +535,7 @@ public final class AppCoordinator {
     private func makeHistoryViewController() -> UIViewController {
         let vm = HistoryViewModel(persistence: persistence)
         let vc = HistoryViewController(viewModel: vm)
+        vc.gateProvider = { [subscription] in subscription.gate }
         vc.delegate = self
         return vc
     }
@@ -548,6 +556,26 @@ public final class AppCoordinator {
         }
         vc.delegate = self
         navigationController.pushViewController(vc, animated: true)
+    }
+
+    /// 잠긴 기능을 눌렀을 때. `trigger` 는 페이월 맨 위에 그 기능을 먼저 보여 준다.
+    #if DEBUG
+    /// `-ShowPaywall [기능]` 실행 인자로 페이월을 바로 띄운다 (화면 확인용).
+    func presentPaywallIfRequestedByLaunchArguments() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-ShowPaywall") else { return }
+        let trigger = arguments.indices.contains(index + 1)
+            ? PremiumFeature(rawValue: arguments[index + 1]) : nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.presentPaywall(trigger: trigger)
+        }
+    }
+    #endif
+
+    func presentPaywall(trigger: PremiumFeature?) {
+        guard !subscription.tier.isUnlocked else { return }
+        let vc = PaywallViewController(store: subscription, trigger: trigger)
+        topmostPresentedViewController.present(vc, animated: true)
     }
 
     private func presentBuilderEntry() {
@@ -590,7 +618,20 @@ extension AppCoordinator: HomeViewControllerDelegate {
     }
 
     func homeDidTapNewWorkout() {
+        let existing = (try? persistence.fetchAllTemplates().count) ?? 0
+        guard subscription.gate.canCreateCustomTemplate(existingCount: existing) else {
+            presentPaywall(trigger: .unlimitedTemplates)
+            return
+        }
         presentBuilderEntry()
+    }
+
+    func homeDidSelectTrainingSession(_ template: WorkoutTemplate, at index: Int) {
+        guard subscription.gate.canStartTrainingSession(at: index) else {
+            presentPaywall(trigger: .allTrainingSessions)
+            return
+        }
+        showTemplateDetail(template)
     }
 
     func homeDidTapHistory() {
@@ -691,6 +732,22 @@ extension AppCoordinator: SettingsViewControllerDelegate {
         let vc = OpenSourceLicensesViewController()
         settingsNavigationController.pushViewController(vc, animated: true)
     }
+
+    func settingsDidTapSubscription() {
+        switch subscription.tier {
+        case .free:
+            presentPaywall(trigger: nil)
+        case .subscriber:
+            guard let scene = window.windowScene else { return }
+            Task { try? await AppStore.showManageSubscriptions(in: scene) }
+        case .legacyBuyer:
+            break
+        }
+    }
+
+    func settingsDidTapRestorePurchases() {
+        Task { [subscription] in await subscription.restore() }
+    }
 }
 
 // MARK: - HistoryViewControllerDelegate
@@ -699,6 +756,10 @@ extension AppCoordinator: HistoryViewControllerDelegate {
 
     func historyDidSelect(_ workout: CompletedWorkout) {
         showSummary(for: workout, fromHistory: true)
+    }
+
+    func historyDidTapLockedRows() {
+        presentPaywall(trigger: .unlimitedHistory)
     }
 }
 

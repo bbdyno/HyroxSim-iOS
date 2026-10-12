@@ -11,6 +11,9 @@ import UIKit
 protocol SettingsViewControllerDelegate: AnyObject {
     func settingsDidTapGarminPairing()
     func settingsDidTapOpenSource()
+    /// 구독 행 — 무료면 페이월, 구독 중이면 구독 관리.
+    func settingsDidTapSubscription()
+    func settingsDidTapRestorePurchases()
 }
 
 /// Settings tab root. Two sections:
@@ -19,6 +22,9 @@ protocol SettingsViewControllerDelegate: AnyObject {
 final class SettingsViewController: UIViewController {
 
     weak var delegate: SettingsViewControllerDelegate?
+    /// 구독 상태를 보여 줄 저장소. 없으면 구독 섹션을 그리지 않는다.
+    var subscription: SubscriptionStore?
+    private var subscriptionStatusLabel: UILabel?
 
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
@@ -72,7 +78,50 @@ final class SettingsViewController: UIViewController {
         ])
     }
 
+    private func buildSubscriptionSection() {
+        guard let subscription else { return }
+        contentStack.addArrangedSubview(makeSectionHeader(HyroxSimStrings.Localizable.Settings.Section.subscription))
+        let row = makeActionRow(
+            title: HyroxSimStrings.Localizable.Settings.Row.subscription,
+            subtitle: " ",
+            icon: "star.square",
+            action: #selector(subscriptionTapped)
+        )
+        row.accessibilityIdentifier = "settings.subscription"
+        subscriptionStatusLabel = row.viewWithTag(Tags.garminSubtitle) as? UILabel
+        subscriptionStatusLabel?.accessibilityIdentifier = "settings.subscription.status"
+        contentStack.addArrangedSubview(row)
+        // 유료 앱 구매자는 복원할 것이 없다.
+        if subscription.tier != .legacyBuyer {
+            contentStack.addArrangedSubview(makeActionRow(
+                title: HyroxSimStrings.Localizable.Settings.Row.Subscription.restore,
+                subtitle: nil,
+                icon: "arrow.clockwise",
+                action: #selector(restoreTapped)
+            ))
+        }
+        refreshSubscriptionStatus()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshSubscriptionStatus),
+            name: SubscriptionStore.didChangeNotification, object: subscription
+        )
+    }
+
+    @objc private func refreshSubscriptionStatus() {
+        guard let subscription else { return }
+        let strings = HyroxSimStrings.Localizable.Settings.Row.Subscription.self
+        switch subscription.tier {
+        case .free: subscriptionStatusLabel?.text = strings.free
+        case .subscriber: subscriptionStatusLabel?.text = strings.subscriber
+        case .legacyBuyer: subscriptionStatusLabel?.text = strings.legacy
+        }
+    }
+
+    @objc private func subscriptionTapped() { delegate?.settingsDidTapSubscription() }
+    @objc private func restoreTapped() { delegate?.settingsDidTapRestorePurchases() }
+
     private func buildContent() {
+        buildSubscriptionSection()
         contentStack.addArrangedSubview(makeSectionHeader(HyroxSimStrings.Localizable.Settings.Section.device))
         let garminRow = makeActionRow(
             title: HyroxSimStrings.Localizable.Settings.Row.garmin,
