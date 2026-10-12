@@ -7,8 +7,8 @@
 
 import ProjectDescription
 
-let appVersion = "1.5.0"
-let appBuildNumber = "2026.10.07.1"
+let appVersion = "2.0.0"
+let appBuildNumber = "2026.10.12.1"
 
 let signingSettings: SettingsDictionary = [
     "SWIFT_VERSION": "5.9",
@@ -228,7 +228,10 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             infoPlist: .default,
             sources: ["../../Targets/HyroxSimTests/Sources/**"],
+            // 구독 테스트가 `SKTestSession` 으로 읽는 로컬 상품 정의.
+            resources: ["../../Targets/HyroxSim/StoreKit/HyroxSim.storekit"],
             dependencies: [
+                .sdk(name: "StoreKitTest", type: .framework),
                 .target(name: "HyroxSim"),
                 .project(target: "HyroxCore", path: "../HyroxCore"),
                 .project(target: "HyroxPersistenceApple", path: "../HyroxPersistenceApple"),
@@ -268,7 +271,12 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(targets: ["HyroxSim"]),
             testAction: .targets(["HyroxSimTests", "HyroxKitTests", "HyroxSimUITests"], configuration: .debug),
-            runAction: .runAction(configuration: .debug, executable: "HyroxSim")
+            // 시뮬레이터에서 App Store Connect 없이 구독을 사 볼 수 있게 한다.
+            runAction: .runAction(
+                configuration: .debug,
+                executable: "HyroxSim",
+                options: .options(storeKitConfigurationPath: "../../Targets/HyroxSim/StoreKit/HyroxSim.storekit")
+            )
         ),
         .scheme(
             name: "HyroxSimWatch",

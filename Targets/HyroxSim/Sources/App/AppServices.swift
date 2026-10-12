@@ -18,12 +18,18 @@ final class AppServices {
     let garminImportService: GarminImportService
     let garminTemplateSyncService: GarminTemplateSyncService
     let paceData: PaceDataRepository
+    let subscription: SubscriptionStore
 
     private var isStarted = false
     private var paceDataForegroundObserver: PaceDataForegroundObserver?
 
     init() throws {
         let screenshotMode = PhoneScreenshotSeeder.isEnabled
+        // 저장소를 열기 전에 봐야 한다. 열고 나면 새 설치에도 파일이 생긴다.
+        if !screenshotMode {
+            SubscriptionStore.recordInstallOrigin(storeExists: SubscriptionStore.defaultStoreExists())
+        }
+        self.subscription = SubscriptionStore(forcedTier: Self.forcedTier(screenshotMode: screenshotMode))
         let persistence = try PersistenceController(inMemory: screenshotMode)
         self.persistence = persistence
         self.syncCoordinator = WatchConnectivitySyncCoordinator(persistence: persistence)
@@ -38,9 +44,27 @@ final class AppServices {
         }
     }
 
+    /// 스크린샷은 모든 기능이 열린 화면을 찍는다. 디버그 빌드에서는
+    /// `-HyroxTier free|subscriber|legacyBuyer` 실행 인자로 등급을 고정해 화면을 확인할 수 있다.
+    private static func forcedTier(screenshotMode: Bool) -> AccessTier? {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-HyroxTier"), arguments.indices.contains(index + 1),
+           let tier = AccessTier(rawValue: arguments[index + 1]) {
+            return tier
+        }
+        #endif
+        return screenshotMode ? .subscriber : nil
+    }
+
     func start() {
         guard !isStarted else { return }
         isStarted = true
+        // 단위 테스트의 호스트로 뜰 때는 스토어에 손대지 않는다. 앱이 먼저 App Store 에
+        // 연결하면 테스트가 여는 로컬 StoreKit 세션이 적용되지 않는다.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+            subscription.start()
+        }
         syncCoordinator.activate()
         workoutMirrorController.activate()
         garminImportService.start()
