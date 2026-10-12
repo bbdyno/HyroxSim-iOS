@@ -225,4 +225,17 @@ final class LevelAssessmentTests: XCTestCase {
         )
         XCTAssertNil(WeaknessDiagnoser.diagnose(custom, dataset: dataset))
     }
+
+    // MARK: - 말이 안 되는 기록
+
+    /// 화면만 넘긴 62초짜리 "완주" 에 순위를 매기지 않는다.
+    func testImplausiblyFastFinishIsNotAssessed() {
+        XCTAssertNil(LevelAssessor.assess(finishSeconds: 62, dataset: dataset))
+        XCTAssertNil(LevelAssessor.assess(finishSeconds: RacePlausibility.minimumFinishSeconds - 1, dataset: dataset))
+        XCTAssertNotNil(LevelAssessor.assess(finishSeconds: RacePlausibility.minimumFinishSeconds, dataset: dataset))
+
+        let tapped = makeRace(runningSeconds: 16, stationSeconds: Array(repeating: 2, count: 8))
+        XCTAssertTrue(tapped.isStandardHyroxCourse)
+        XCTAssertNil(WeaknessDiagnoser.diagnose(tapped, dataset: dataset))
+    }
 }

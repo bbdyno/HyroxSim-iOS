@@ -92,6 +92,17 @@ public struct LevelAssessment: Hashable, Sendable {
     public let datasetVersion: String
 }
 
+/// 대회 기록과 비교할 수 있는 기록인지 가르는 기준.
+public enum RacePlausibility {
+    /// 공식 코스를 이보다 빨리 끝낸 기록은 실제 레이스가 아니다(세계 기록도 50분대다).
+    /// 화면을 눌러 넘기기만 한 기록에 "상위 0.1%" 가 붙지 않게 한다.
+    public static let minimumFinishSeconds: TimeInterval = 30 * 60
+
+    public static func isPlausible(finishSeconds: TimeInterval) -> Bool {
+        finishSeconds >= minimumFinishSeconds
+    }
+}
+
 public enum LevelAssessor {
 
     /// 넘을 선으로 제시하는 상위 %. 큰 값부터.
@@ -105,7 +116,7 @@ public enum LevelAssessor {
         dataset: PaceDataset,
         ageGroup: String? = nil
     ) -> LevelAssessment? {
-        guard finishSeconds > 0, let division = dataset.division,
+        guard RacePlausibility.isPlausible(finishSeconds: finishSeconds), let division = dataset.division,
               let overall = PercentileCurve(percentiles: dataset.gridP, seconds: dataset.overallS) else {
             return nil
         }
@@ -217,7 +228,7 @@ public enum WeaknessDiagnoser {
 
         // 일시정지를 뺀 시간으로 비교한다. 구간 합과 순위가 같은 기준이어야 한다.
         let total = workout.segments.reduce(0) { $0 + $1.activeDuration }
-        guard total > 0 else { return nil }
+        guard RacePlausibility.isPlausible(finishSeconds: total) else { return nil }
         let finish = overall.topPercent(forSeconds: total).value
 
         var items: [WeaknessItem] = []

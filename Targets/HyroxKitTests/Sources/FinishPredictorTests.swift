@@ -139,4 +139,39 @@ final class FinishPredictorTests: XCTestCase {
         ))
         XCTAssertNil(prediction.topPercent)
     }
+
+    /// 화면만 넘긴 기록(62초짜리 "완주")은 예측의 근거가 되지 않는다.
+    func testImplausibleRacesAreIgnored() throws {
+        func tapped(daysAgo: Double) -> CompletedWorkout {
+            var segments: [SegmentRecord] = []
+            let start = now.addingTimeInterval(-daysAgo * 86_400 - 62)
+            var cursor = start
+            for kind in StationKind.standardOrder {
+                segments.append(SegmentRecord(
+                    segmentId: UUID(), index: segments.count, type: .run,
+                    startedAt: cursor, endedAt: cursor.addingTimeInterval(4), plannedDistanceMeters: 1000
+                ))
+                cursor = cursor.addingTimeInterval(4)
+                segments.append(SegmentRecord(
+                    segmentId: UUID(), index: segments.count, type: .station,
+                    startedAt: cursor, endedAt: cursor.addingTimeInterval(3.75),
+                    stationDisplayName: kind.displayName
+                ))
+                cursor = cursor.addingTimeInterval(3.75)
+            }
+            return CompletedWorkout(
+                templateName: "HYROX", division: .menOpenSingle, startedAt: start, finishedAt: cursor, segments: segments
+            )
+        }
+        XCTAssertTrue(tapped(daysAgo: 1).isStandardHyroxCourse)
+        XCTAssertNil(FinishPredictor.predict(from: [tapped(daysAgo: 1)], division: .menOpenSingle, now: now))
+
+        // 진짜 기록이 섞여 있으면 그것만 쓴다 — 더 최근의 가짜 기록이 끼어들지 않는다.
+        let prediction = try XCTUnwrap(FinishPredictor.predict(
+            from: [tapped(daysAgo: 1), race(total: 5400, daysAgo: 9), tapped(daysAgo: 2)],
+            division: .menOpenSingle, now: now
+        ))
+        XCTAssertEqual(prediction.seconds, 5400, accuracy: 0.001)
+        XCTAssertEqual(prediction.basedOn, 1)
+    }
 }

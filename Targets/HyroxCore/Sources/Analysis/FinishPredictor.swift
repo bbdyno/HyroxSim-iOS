@@ -67,7 +67,8 @@ public enum FinishPredictor {
         let cutoff = now.addingTimeInterval(-Double(lookbackDays) * 86_400)
         let races = workouts
             .filter { $0.division == division && $0.finishedAt >= cutoff && $0.finishedAt <= now }
-            .filter { $0.isStandardHyroxCourse && $0.totalActiveDuration > 0 }
+            .filter { $0.isStandardHyroxCourse }
+            .filter { RacePlausibility.isPlausible(finishSeconds: $0.totalActiveDuration) }
             .sorted { $0.finishedAt > $1.finishedAt }
         guard let latest = races.first else { return nil }
 

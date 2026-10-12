@@ -588,7 +588,17 @@ public final class AppCoordinator {
         history injectedHistory: [CompletedWorkout]? = nil,
         goalSeconds injectedGoal: TimeInterval? = nil
     ) {
-        guard let division = workout.division, let dataset = paceData.dataset(for: division) else { return }
+        // 화면만 넘긴 기록처럼 실제 레이스일 수 없는 기록은 비교하지 않는다.
+        guard RacePlausibility.isPlausible(finishSeconds: workout.totalActiveDuration),
+              let division = workout.division, let dataset = paceData.dataset(for: division) else {
+            let alert = DarkAlertController(
+                title: HyroxSimStrings.Localizable.Level.Unavailable.title,
+                message: HyroxSimStrings.Localizable.Level.Unavailable.message
+            )
+            alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+            topmostPresentedViewController.present(alert, animated: true)
+            return
+        }
         // 예측은 이 기록 하나가 아니라 저장된 공식 코스 기록 전체에서 낸다.
         // 방금 끝낸 기록이 아직 목록에 없을 수 있어 함께 넣는다.
         var history = injectedHistory ?? (try? persistence.fetchAllCompletedWorkouts()) ?? []
@@ -791,7 +801,10 @@ extension AppCoordinator: HomeViewControllerDelegate {
             return
         }
         let latest = (try? persistence.fetchAllCompletedWorkouts())?
-            .first { $0.isStandardHyroxCourse && $0.division != nil }
+            .first {
+                $0.isStandardHyroxCourse && $0.division != nil
+                    && RacePlausibility.isPlausible(finishSeconds: $0.totalActiveDuration)
+            }
         guard let latest else {
             let alert = DarkAlertController(
                 title: HyroxSimStrings.Localizable.Level.Unavailable.title,
