@@ -7,6 +7,7 @@
 
 import StoreKit
 import UIKit
+import UniformTypeIdentifiers
 import HyroxCore
 import HyroxPersistenceApple
 
@@ -27,6 +28,7 @@ public final class AppCoordinator {
     private let paceData: PaceDataRepository
     private let subscription: SubscriptionStore
     private let raceResultStore = RaceResultStore()
+    private let backupImporter = BackupImportPickerDelegate()
     private let templateGoalOverrideStore = TemplateGoalOverrideStore()
     private let heartRateProfile = HeartRateProfile()
     private let checkpointStore: WorkoutCheckpointStore
@@ -886,6 +888,67 @@ extension AppCoordinator: SettingsViewControllerDelegate {
         }
     }
 
+    func settingsDidTapExportBackup(from source: UIView) {
+        guard subscription.gate.allows(.cloudBackup) else {
+            presentPaywall(trigger: .cloudBackup)
+            return
+        }
+        do {
+            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+            let archive = try BackupArchive.make(
+                persistence: persistence, raceResults: raceResultStore, appVersion: version
+            )
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(BackupArchive.fileName())
+            try archive.encoded().write(to: url, options: .atomic)
+            let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            activity.popoverPresentationController?.sourceView = source
+            activity.popoverPresentationController?.sourceRect = source.bounds
+            // 공유가 끝나면 임시 파일을 지운다.
+            activity.completionWithItemsHandler = { _, _, _, _ in try? FileManager.default.removeItem(at: url) }
+            topmostPresentedViewController.present(activity, animated: true)
+        } catch {
+            presentBackupAlert(
+                title: HyroxSimStrings.Localizable.Backup.Alert.exportFailed, message: error.localizedDescription
+            )
+        }
+    }
+
+    func settingsDidTapImportBackup() {
+        guard subscription.gate.allows(.cloudBackup) else {
+            presentPaywall(trigger: .cloudBackup)
+            return
+        }
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .data], asCopy: true)
+        picker.delegate = backupImporter
+        backupImporter.onPicked = { [weak self] url in self?.importBackup(from: url) }
+        topmostPresentedViewController.present(picker, animated: true)
+    }
+
+    /// 백업 파일을 읽어 기존 기록에 합친다.
+    func importBackup(from url: URL) {
+        typealias Text = HyroxSimStrings.Localizable.Backup.Alert
+        do {
+            let archive = try BackupArchive.decode(try Data(contentsOf: url))
+            let counts = try archive.restore(into: persistence, raceResults: raceResultStore)
+            NotificationCenter.default.post(name: .syncDataUpdated, object: nil)
+            refreshHomeIfVisible()
+            presentBackupAlert(
+                title: Text.importDone,
+                message: Text.importSummary(counts.workouts, counts.templates, counts.raceTargets, counts.raceResults)
+            )
+        } catch BackupArchive.BackupError.newerFormat {
+            presentBackupAlert(title: Text.importFailed, message: Text.newerFormat)
+        } catch {
+            presentBackupAlert(title: Text.importFailed, message: Text.unreadable)
+        }
+    }
+
+    private func presentBackupAlert(title: String, message: String) {
+        let alert = DarkAlertController(title: title, message: message)
+        alert.addAction(.init(title: HyroxSimStrings.Localizable.Button.ok, style: .normal, handler: nil))
+        topmostPresentedViewController.present(alert, animated: true)
+    }
+
     func settingsDidTapRestorePurchases() {
         Task { [subscription] in await subscription.restore() }
     }
@@ -1160,5 +1223,17 @@ extension AppCoordinator: LiveWorkoutMirrorDelegate {
             workoutMirrorController.sendCommand(command)
         }
         syncCoordinator.sendCommand(command)
+    }
+}
+
+// MARK: - 백업 파일 선택
+
+/// 문서 선택기의 결과를 클로저로 넘긴다. `AppCoordinator` 가 NSObject 가 아니라서 따로 둔다.
+final class BackupImportPickerDelegate: NSObject, UIDocumentPickerDelegate {
+    var onPicked: ((URL) -> Void)?
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { return }
+        onPicked?(url)
     }
 }

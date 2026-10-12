@@ -14,6 +14,9 @@ protocol SettingsViewControllerDelegate: AnyObject {
     /// 구독 행 — 무료면 페이월, 구독 중이면 구독 관리.
     func settingsDidTapSubscription()
     func settingsDidTapRestorePurchases()
+    /// 기록을 파일로 내보낸다. `source` 는 공유 시트가 붙을 자리.
+    func settingsDidTapExportBackup(from source: UIView)
+    func settingsDidTapImportBackup()
 }
 
 /// Settings tab root. Two sections:
@@ -25,6 +28,7 @@ final class SettingsViewController: UIViewController {
     /// 구독 상태를 보여 줄 저장소. 없으면 구독 섹션을 그리지 않는다.
     var subscription: SubscriptionStore?
     private var subscriptionStatusLabel: UILabel?
+    private var backupExportRow: UIView?
 
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
@@ -144,6 +148,25 @@ final class SettingsViewController: UIViewController {
         garminDisconnectRow = disconnectRow
         contentStack.addArrangedSubview(disconnectRow)
 
+        contentStack.addArrangedSubview(makeSectionHeader(HyroxSimStrings.Localizable.Settings.Section.backup))
+        let exportRow = makeActionRow(
+            title: HyroxSimStrings.Localizable.Settings.Row.Backup.export,
+            subtitle: HyroxSimStrings.Localizable.Settings.Row.Backup.exportSubtitle,
+            icon: "square.and.arrow.up",
+            action: #selector(exportBackupTapped)
+        )
+        exportRow.accessibilityIdentifier = "settings.backup.export"
+        backupExportRow = exportRow
+        contentStack.addArrangedSubview(exportRow)
+        let importRow = makeActionRow(
+            title: HyroxSimStrings.Localizable.Settings.Row.Backup.import,
+            subtitle: HyroxSimStrings.Localizable.Settings.Row.Backup.importSubtitle,
+            icon: "square.and.arrow.down",
+            action: #selector(importBackupTapped)
+        )
+        importRow.accessibilityIdentifier = "settings.backup.import"
+        contentStack.addArrangedSubview(importRow)
+
         contentStack.addArrangedSubview(makeSectionHeader(HyroxSimStrings.Localizable.Settings.Section.about))
         contentStack.addArrangedSubview(makeActionRow(
             title: HyroxSimStrings.Localizable.Settings.Row.github,
@@ -219,6 +242,8 @@ final class SettingsViewController: UIViewController {
         guard let url = URL(string: "https://github.com/bbdyno/HyroxSim-iOS") else { return }
         UIApplication.shared.open(url)
     }
+    @objc private func exportBackupTapped() { delegate?.settingsDidTapExportBackup(from: backupExportRow ?? view) }
+    @objc private func importBackupTapped() { delegate?.settingsDidTapImportBackup() }
     @objc private func fitBoostTapped() { UIApplication.shared.open(LevelViewController.Links.fitBoost) }
     @objc private func openSourceTapped() { delegate?.settingsDidTapOpenSource() }
 

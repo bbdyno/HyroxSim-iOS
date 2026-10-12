@@ -393,8 +393,6 @@
 "paywall.feature.resultScan.detail" = "結果画面を撮影してスプリットを保存。";
 "paywall.feature.seasonReport.title" = "シーズンレポート";
 "paywall.feature.seasonReport.detail" = "一年のレースとトレーニングをまとめます。";
-"paywall.feature.cloudBackup.title" = "iCloudバックアップ";
-"paywall.feature.cloudBackup.detail" = "機種変更しても記録を引き継ぎます。";
 "paywall.feature.voiceGuide.title" = "音声ガイド";
 "paywall.feature.voiceGuide.detail" = "レース中にスプリットと目標との差を読み上げます。";
 "history.locked.title_format" = "ほかに%d件の記録";
@@ -529,3 +527,18 @@
 "season.active_weeks" = "運動した週";
 "season.streak" = "最長連続週";
 "season.busiest_format" = "最も多く運動した月: %@";
+
+/* 2.0 — backup */
+"settings.section.backup" = "バックアップ";
+"settings.row.backup.export" = "バックアップを書き出す";
+"settings.row.backup.export_subtitle" = "すべての記録をファイルに保存（iCloud Drive、ファイルなど）";
+"settings.row.backup.import" = "バックアップから復元";
+"settings.row.backup.import_subtitle" = "バックアップファイルをこのiPhoneの記録に統合します";
+"backup.alert.export_failed" = "バックアップを作成できませんでした";
+"backup.alert.import_done" = "バックアップを復元しました";
+"backup.alert.import_failed" = "復元できませんでした";
+"backup.alert.import_summary" = "ワークアウト %1$d · カスタム %2$d · レース %3$d · レース記録 %4$d\n既存の記録はそのまま残しました。";
+"backup.alert.newer_format" = "より新しいバージョンのHyroxSimで作成されたバックアップです。アプリをアップデートして再試行してください。";
+"backup.alert.unreadable" = "HyroxSimのバックアップファイルではないか、破損しています。";
+"paywall.feature.cloudBackup.title" = "バックアップと復元";
+"paywall.feature.cloudBackup.detail" = "すべての記録をファイルに書き出して保管し、新しいiPhoneで復元できます。";

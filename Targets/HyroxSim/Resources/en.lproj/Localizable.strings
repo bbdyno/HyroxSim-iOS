@@ -393,8 +393,6 @@
 "paywall.feature.resultScan.detail" = "Photograph your results screen and save the splits.";
 "paywall.feature.seasonReport.title" = "Season report";
 "paywall.feature.seasonReport.detail" = "Your year across races and training.";
-"paywall.feature.cloudBackup.title" = "iCloud backup";
-"paywall.feature.cloudBackup.detail" = "Your records follow you to a new iPhone.";
 "paywall.feature.voiceGuide.title" = "Voice cues";
 "paywall.feature.voiceGuide.detail" = "Spoken splits and goal gaps while you race.";
 "history.locked.title_format" = "%d more workouts";
@@ -529,3 +527,18 @@
 "season.active_weeks" = "Active weeks";
 "season.streak" = "Best week streak";
 "season.busiest_format" = "Busiest month: %@";
+
+/* 2.0 — backup */
+"settings.section.backup" = "BACKUP";
+"settings.row.backup.export" = "Export Backup";
+"settings.row.backup.export_subtitle" = "Save all records to a file (iCloud Drive, Files…)";
+"settings.row.backup.import" = "Restore from Backup";
+"settings.row.backup.import_subtitle" = "Merge a backup file into this iPhone";
+"backup.alert.export_failed" = "Couldn't create the backup";
+"backup.alert.import_done" = "Backup restored";
+"backup.alert.import_failed" = "Couldn't restore";
+"backup.alert.import_summary" = "Workouts %1$d · Custom workouts %2$d · Races %3$d · Race results %4$d\nExisting records were kept.";
+"backup.alert.newer_format" = "This backup was made by a newer version of HyroxSim. Update the app and try again.";
+"backup.alert.unreadable" = "This file is not a HyroxSim backup, or it is damaged.";
+"paywall.feature.cloudBackup.title" = "Backup & restore";
+"paywall.feature.cloudBackup.detail" = "Export every record to a file you keep, and restore it on a new iPhone.";

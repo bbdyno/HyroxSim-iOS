@@ -393,8 +393,6 @@
 "paywall.feature.resultScan.detail" = "대회 결과 화면을 찍으면 구간 기록을 저장합니다.";
 "paywall.feature.seasonReport.title" = "시즌 리포트";
 "paywall.feature.seasonReport.detail" = "한 해의 대회와 훈련을 정리해 줍니다.";
-"paywall.feature.cloudBackup.title" = "iCloud 백업";
-"paywall.feature.cloudBackup.detail" = "기기를 바꿔도 기록이 따라옵니다.";
 "paywall.feature.voiceGuide.title" = "음성 안내";
 "paywall.feature.voiceGuide.detail" = "레이스 중 구간 기록과 목표 대비 차이를 말해 줍니다.";
 "history.locked.title_format" = "기록 %d개 더 있음";
@@ -529,3 +527,18 @@
 "season.active_weeks" = "운동한 주";
 "season.streak" = "최장 연속 주";
 "season.busiest_format" = "가장 많이 운동한 달: %@";
+
+/* 2.0 — backup */
+"settings.section.backup" = "백업";
+"settings.row.backup.export" = "백업 내보내기";
+"settings.row.backup.export_subtitle" = "모든 기록을 파일로 저장 (iCloud Drive, 파일 앱 등)";
+"settings.row.backup.import" = "백업에서 복원";
+"settings.row.backup.import_subtitle" = "백업 파일을 이 iPhone의 기록에 합칩니다";
+"backup.alert.export_failed" = "백업을 만들지 못했습니다";
+"backup.alert.import_done" = "백업을 복원했습니다";
+"backup.alert.import_failed" = "복원하지 못했습니다";
+"backup.alert.import_summary" = "운동 %1$d · 커스텀 운동 %2$d · 대회 %3$d · 대회 기록 %4$d\n기존 기록은 그대로 두었습니다.";
+"backup.alert.newer_format" = "더 새로운 버전의 HyroxSim에서 만든 백업입니다. 앱을 업데이트한 뒤 다시 시도해 주세요.";
+"backup.alert.unreadable" = "HyroxSim 백업 파일이 아니거나 손상된 파일입니다.";
+"paywall.feature.cloudBackup.title" = "백업·복원";
+"paywall.feature.cloudBackup.detail" = "모든 기록을 파일로 내보내 보관하고, 새 iPhone에서 복원합니다.";

@@ -393,8 +393,6 @@
 "paywall.feature.resultScan.detail" = "拍下成績頁即可保存分段成績。";
 "paywall.feature.seasonReport.title" = "賽季報告";
 "paywall.feature.seasonReport.detail" = "彙整一年的比賽與訓練。";
-"paywall.feature.cloudBackup.title" = "iCloud 備份";
-"paywall.feature.cloudBackup.detail" = "換手機紀錄也跟著走。";
 "paywall.feature.voiceGuide.title" = "語音提示";
 "paywall.feature.voiceGuide.detail" = "比賽中播報分段成績與目標差距。";
 "history.locked.title_format" = "還有 %d 筆紀錄";
@@ -529,3 +527,18 @@
 "season.active_weeks" = "訓練週數";
 "season.streak" = "最長連續週";
 "season.busiest_format" = "訓練最多的月份：%@";
+
+/* 2.0 — backup */
+"settings.section.backup" = "備份";
+"settings.row.backup.export" = "輸出備份";
+"settings.row.backup.export_subtitle" = "將全部紀錄儲存為檔案（iCloud 雲碟、檔案等）";
+"settings.row.backup.import" = "從備份回復";
+"settings.row.backup.import_subtitle" = "將備份檔合併到這支 iPhone";
+"backup.alert.export_failed" = "無法建立備份";
+"backup.alert.import_done" = "已回復備份";
+"backup.alert.import_failed" = "無法回復";
+"backup.alert.import_summary" = "訓練 %1$d · 自訂訓練 %2$d · 比賽 %3$d · 比賽成績 %4$d\n已保留現有紀錄。";
+"backup.alert.newer_format" = "此備份由較新版本的 HyroxSim 建立。請更新 App 後再試。";
+"backup.alert.unreadable" = "此檔案不是 HyroxSim 備份，或已損毀。";
+"paywall.feature.cloudBackup.title" = "備份與回復";
+"paywall.feature.cloudBackup.detail" = "把全部紀錄輸出成檔案保存，並在新 iPhone 上回復。";
