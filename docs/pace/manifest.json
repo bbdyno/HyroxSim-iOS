@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
-  "published_at": "2026-09-15",
-  "dataset_version": "2026.09.15",
+  "published_at": "2026-10-12",
+  "dataset_version": "2026.10.12",
   "schema_version": 4,
   "generator": {
     "script": "tools/pace-data/build_pace_data.py",
@@ -9,49 +9,49 @@
   },
   "files": [
     {
-      "name": "v4/2026.09.15/menOpenDouble.json",
-      "sha256": "bfe81b22d82474d567d4e3e35497ae0ca81b829f17ff60e821639bb85274ecd2",
-      "bytes": 11824
+      "name": "v4/2026.10.12/menOpenDouble.json",
+      "sha256": "e6ed19621dd8da3bcc1124049d7b738a4100333bf3a4f58646fc7ab5f1ed49cf",
+      "bytes": 11323
     },
     {
-      "name": "v4/2026.09.15/menOpenSingle.json",
-      "sha256": "cb39030d64876d8ec4d5db49c896275d2381f009a3b4783a0b7c3f7cb0592fba",
-      "bytes": 12519
+      "name": "v4/2026.10.12/menOpenSingle.json",
+      "sha256": "1fb998250f8d897a2cdf96acba943bde8ef5b97b34b7a24922066886147269d2",
+      "bytes": 12387
     },
     {
-      "name": "v4/2026.09.15/menProDouble.json",
-      "sha256": "c94501b283f1ab93f26d1f3da57dfd95d3c2e7cff7eb21d77a7e557bad27470a",
+      "name": "v4/2026.10.12/menProDouble.json",
+      "sha256": "1a93d6789f9e4890c73e4fb6685ce37d1c7696f5879854d333c27da5bc794771",
       "bytes": 11104
     },
     {
-      "name": "v4/2026.09.15/menProSingle.json",
-      "sha256": "355cadad3da745307f4ab4f993ec55891cd3641b22a59151135ea3c6f7e13b82",
-      "bytes": 12221
+      "name": "v4/2026.10.12/menProSingle.json",
+      "sha256": "e818e091822ff3ad54954e67b75c94cd1246b6c3d9c80dfe7fbdd5d5fc57624f",
+      "bytes": 12590
     },
     {
-      "name": "v4/2026.09.15/mixedDouble.json",
-      "sha256": "ed5cb9ffac80a90072b7e80f67abbff8b4f57dd56a95a37d8dd409efde8fc15b",
-      "bytes": 11631
+      "name": "v4/2026.10.12/mixedDouble.json",
+      "sha256": "fbba8d1523290e4136e55e72d7c68ac08af0db575816f0d49baeaf8b3b3e74fd",
+      "bytes": 11964
     },
     {
-      "name": "v4/2026.09.15/womenOpenDouble.json",
-      "sha256": "923373e84bca13126c376e353293920ddbfdbfa3ed234ec0f1c7124b059e2073",
-      "bytes": 12029
+      "name": "v4/2026.10.12/womenOpenDouble.json",
+      "sha256": "dd536f8ba91f5ff75633f0cf54b57ba73b595bd8532e5f471d067ad97eabd3cf",
+      "bytes": 11698
     },
     {
-      "name": "v4/2026.09.15/womenOpenSingle.json",
-      "sha256": "35f873b866b867c23342a428122f0cd0c32ebba8e55c92d8c9ea1cea007c1244",
-      "bytes": 11824
+      "name": "v4/2026.10.12/womenOpenSingle.json",
+      "sha256": "6de8439500e5f5e225931a19ac3d320a2c6ed0f21f857cda21ca63593f9a8c9f",
+      "bytes": 11828
     },
     {
-      "name": "v4/2026.09.15/womenProDouble.json",
-      "sha256": "af169c9bf15c5befc42a36d82e7e784390d77557c42f6d93ccfcfc0e48d9b5db",
-      "bytes": 11293
+      "name": "v4/2026.10.12/womenProDouble.json",
+      "sha256": "78c7809e4bd47b93eb0c61177e75a8bcea79f94e9eb3e75e6ccf481168b894bb",
+      "bytes": 11129
     },
     {
-      "name": "v4/2026.09.15/womenProSingle.json",
-      "sha256": "118107003203b0a4ee90a632fafd7a7c804277388f0e4b61b1b1b6497d628a87",
-      "bytes": 11921
+      "name": "v4/2026.10.12/womenProSingle.json",
+      "sha256": "e739190c5ffadf4f0ef92edeaa96ec9f3b52ae047b7499b4a5fe42e05799b3b5",
+      "bytes": 12075
     }
   ],
   "coverage": {
@@ -66,26 +66,26 @@
       "2023",
       "2026"
     ],
-    "events": 240,
+    "events": 252,
     "divisions": 9,
     "excluded_divisions": [
       "ADAPTIVE_MEN",
       "ADAPTIVE_WOMEN"
     ],
-    "athletes_upstream": 1151948,
-    "athletes_published": 1151891,
-    "upstream_version": "20260915b",
-    "upstream_generated": "2026-09-15",
+    "athletes_upstream": 1241605,
+    "athletes_published": 1241550,
+    "upstream_version": "20261012a",
+    "upstream_generated": "2026-10-12",
     "events_by_division": {
-      "PRO MEN": 221,
-      "PRO WOMEN": 221,
-      "MEN": 231,
-      "WOMEN": 231,
-      "PRO MEN DOUBLES": 196,
-      "PRO WOMEN DOUBLES": 194,
-      "MEN DOUBLES": 230,
-      "WOMEN DOUBLES": 229,
-      "MIXED": 229
+      "PRO MEN": 233,
+      "PRO WOMEN": 233,
+      "MEN": 243,
+      "WOMEN": 243,
+      "PRO MEN DOUBLES": 208,
+      "PRO WOMEN DOUBLES": 206,
+      "MEN DOUBLES": 242,
+      "WOMEN DOUBLES": 241,
+      "MIXED": 241
     }
   }
 }
