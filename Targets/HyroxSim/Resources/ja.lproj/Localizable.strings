@@ -339,3 +339,4 @@
 "home.action.race_day" = "大会当日の準備";
 "training_session.pft_benchmark.name" = "体力テスト (PFT)";
 "training_session.pft_benchmark.summary" = "公式6種目のテスト — 数週間ごとに繰り返して現在地を確認します。";
+"startup.failure.message" = "ワークアウトデータを開けませんでした。\nアプリを再起動してください。続く場合は iPhone を再起動してください。";

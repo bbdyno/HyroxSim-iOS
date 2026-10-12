@@ -91,6 +91,9 @@ public final class ActiveWorkoutViewModel {
     private var heartRateTask: Task<Void, Never>?
     private var lastKnownBpm: Int?
     private var liveActivity: Activity<WorkoutActivityAttributes>?
+    private var lastActivityKey = ""
+    private var lastActivityUpdateAt = Date.distantPast
+    private var isActivityUpdateInFlight = false
     private var alertedGoalSegmentId: UUID?
     /// GPS 스트림이 실제로 살아 있는지. 권한 거부/시작 실패 시 false → GPS OFF 표시.
     private var isLocationActive = false
@@ -547,6 +550,7 @@ public final class ActiveWorkoutViewModel {
                 .reduce(0, +)
             guard combinedGoal > 0 else { return (nil, 0) }
             var actualBase: TimeInterval = 0
+            guard start <= currentIndex else { return (nil, 0) }
             for i in start..<currentIndex {
                 if let rec = engine.records.first(where: { $0.index == i }) {
                     actualBase += rec.activeDuration
@@ -602,6 +606,7 @@ public final class ActiveWorkoutViewModel {
             guard combinedGoal > 0 else { return ("—", "—", false) }
 
             var blockActual: TimeInterval = 0
+            guard start <= currentIndex else { return ("—", "—", false) }
             for i in start..<currentIndex {
                 if let rec = engine.records.first(where: { $0.index == i }) {
                     blockActual += rec.activeDuration
@@ -904,8 +909,20 @@ public final class ActiveWorkoutViewModel {
 
     private func updateLiveActivity() {
         guard let liveActivity else { return }
+        // 화면 갱신(초당 2회)마다 보내면 갱신 작업이 쌓이고 시스템 예산도 금방 바닥난다.
+        // 세그먼트·일시정지가 바뀌면 바로, 그 외에는 1초에 한 번만 보낸다.
+        let key = "\(engine.currentSegmentIndex ?? -1)|\(isPaused)|\(isFinished)"
+        let now = Date()
+        guard key != lastActivityKey || now.timeIntervalSince(lastActivityUpdateAt) >= 1 else { return }
+        guard !isActivityUpdateInFlight || key != lastActivityKey else { return }
+        lastActivityKey = key
+        lastActivityUpdateAt = now
+        isActivityUpdateInFlight = true
         let content = makeActivityContent()
-        Task { await liveActivity.update(content) }
+        Task { @MainActor [weak self] in
+            await liveActivity.update(content)
+            self?.isActivityUpdateInFlight = false
+        }
     }
 
     /// staleDate 를 매번 "현재 + 수 분"으로 갱신한다.

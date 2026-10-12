@@ -339,3 +339,4 @@
 "home.action.race_day" = "대회 당일 준비";
 "training_session.pft_benchmark.name" = "체력 테스트 (PFT)";
 "training_session.pft_benchmark.summary" = "공식 6종 테스트 — 몇 주에 한 번 반복해 현재 위치를 확인합니다.";
+"startup.failure.message" = "운동 데이터를 열지 못했습니다.\n앱을 다시 실행해 주세요. 계속되면 iPhone을 재시동해 주세요.";

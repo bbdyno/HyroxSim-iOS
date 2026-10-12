@@ -339,3 +339,4 @@
 "home.action.race_day" = "Race day toolkit";
 "training_session.pft_benchmark.name" = "Physical Fitness Test";
 "training_session.pft_benchmark.summary" = "The official six-part test — repeat it every few weeks to see where you stand.";
+"startup.failure.message" = "Couldn't open your workout data.\nRestart the app. If this keeps happening, restart your iPhone.";

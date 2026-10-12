@@ -92,6 +92,11 @@ public final class CoreLocationAdapter: NSObject, LocationStreaming, CLLocationM
         // 그때 continuation 을 버려버리면 `start()` 가 영원히 깨어나지 못하므로,
         // 권한이 실제로 결정된 뒤에만 continuation 을 소비한다.
         guard authorizationStatus != .notDetermined else { return }
+        // 운동 중에 권한이 꺼지면 갱신을 멈춘다. 다음 `start()` 가 다시 권한을 확인한다.
+        if isStarted, authorizationStatus != .authorized {
+            manager.stopUpdatingLocation()
+            isStarted = false
+        }
         guard let authCont = authorizationContinuation else { return }
         authorizationContinuation = nil
         if authorizationStatus == .authorized {

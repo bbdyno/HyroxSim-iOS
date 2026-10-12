@@ -45,8 +45,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 code: -1,
                 userInfo: [NSLocalizedDescriptionKey: "App services unavailable"]
             )
+            // 빈 화면으로 두면 사용자는 앱이 멈춘 줄 안다. 무슨 일인지와 할 수 있는 일을 보여 준다.
             let vc = UIViewController()
-            vc.view.backgroundColor = .systemBackground
+            vc.view.backgroundColor = .black
+            let label = UILabel()
+            label.numberOfLines = 0
+            label.textAlignment = .center
+            label.textColor = .white
+            label.font = .systemFont(ofSize: 16, weight: .medium)
+            label.text = NSLocalizedString("startup.failure.message", comment: "")
+                + "\n\n" + error.localizedDescription
+            label.translatesAutoresizingMaskIntoConstraints = false
+            vc.view.addSubview(label)
+            NSLayoutConstraint.activate([
+                label.centerYAnchor.constraint(equalTo: vc.view.centerYAnchor),
+                label.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor, constant: 28),
+                label.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor, constant: -28)
+            ])
             window.rootViewController = vc
             window.makeKeyAndVisible()
             assertionFailure("Failed to start coordinator: \(error)")

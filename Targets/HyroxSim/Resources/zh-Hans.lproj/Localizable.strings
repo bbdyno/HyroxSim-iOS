@@ -339,3 +339,4 @@
 "home.action.race_day" = "比赛当天工具";
 "training_session.pft_benchmark.name" = "体能测试 (PFT)";
 "training_session.pft_benchmark.summary" = "官方六项测试 — 每隔几周重复一次，了解当前水平。";
+"startup.failure.message" = "无法打开训练数据。\n请重新启动 App。如果问题持续，请重新启动 iPhone。";
