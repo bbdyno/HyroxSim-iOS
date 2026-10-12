@@ -428,13 +428,13 @@
 "settings.row.fitboost" = "FitBoost";
 "settings.row.fitboost.subtitle" = "Our weight-training log";
 "level.prediction.caption" = "Race prediction";
-"level.prediction.basis_single" = "Based on your latest full race simulation";
+"level.prediction.basis_single" = "Based on your latest full finish";
 "level.prediction.basis_format" = "Based on your last %1$d · range %2$@ – %3$@";
 "level.prediction.trend_faster_format" = "Getting faster by %@ per week";
 "level.prediction.trend_slower_format" = "Getting slower by %@ per week";
 "level.prediction.goal_ahead_format" = "%@ ahead of your race goal";
 "level.prediction.goal_behind_format" = "%@ behind your race goal";
-"level.prediction.low_confidence" = "One result so far. Two more full simulations make this steadier.";
+"level.prediction.low_confidence" = "One result so far. Two more full finishes make this steadier.";
 "team_split.section.strategy" = "STRATEGY";
 "team_split.strategy.button" = "Recommend a split";
 "team_split.strategy.button_subtitle" = "Tell us who is stronger at each station";

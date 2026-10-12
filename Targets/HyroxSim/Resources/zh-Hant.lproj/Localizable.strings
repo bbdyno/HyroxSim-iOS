@@ -428,13 +428,13 @@
 "settings.row.fitboost" = "FitBoost";
 "settings.row.fitboost.subtitle" = "我們的重訓紀錄 App";
 "level.prediction.caption" = "比賽成績預測";
-"level.prediction.basis_single" = "依最近一次完整模擬";
+"level.prediction.basis_single" = "依最近一次完賽紀錄";
 "level.prediction.basis_format" = "依最近 %1$d 次 · 範圍 %2$@ – %3$@";
 "level.prediction.trend_faster_format" = "每週快 %@";
 "level.prediction.trend_slower_format" = "每週慢 %@";
 "level.prediction.goal_ahead_format" = "比比賽目標快 %@";
 "level.prediction.goal_behind_format" = "比比賽目標慢 %@";
-"level.prediction.low_confidence" = "目前只有 1 筆紀錄。再完成兩次完整模擬，預測會更穩定。";
+"level.prediction.low_confidence" = "目前只有 1 筆紀錄。再有兩次完賽紀錄，預測會更穩定。";
 "team_split.section.strategy" = "策略";
 "team_split.strategy.button" = "取得分工建議";
 "team_split.strategy.button_subtitle" = "告訴我們每個站點誰比較強";

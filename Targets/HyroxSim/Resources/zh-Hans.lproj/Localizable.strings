@@ -428,13 +428,13 @@
 "settings.row.fitboost" = "FitBoost";
 "settings.row.fitboost.subtitle" = "我们的力量训练记录 App";
 "level.prediction.caption" = "比赛成绩预测";
-"level.prediction.basis_single" = "基于最近一次完整模拟";
+"level.prediction.basis_single" = "基于最近一次完赛记录";
 "level.prediction.basis_format" = "基于最近 %1$d 次 · 范围 %2$@ – %3$@";
 "level.prediction.trend_faster_format" = "每周快 %@";
 "level.prediction.trend_slower_format" = "每周慢 %@";
 "level.prediction.goal_ahead_format" = "比比赛目标快 %@";
 "level.prediction.goal_behind_format" = "比比赛目标慢 %@";
-"level.prediction.low_confidence" = "目前只有 1 条记录。再完成两次完整模拟，预测会更稳定。";
+"level.prediction.low_confidence" = "目前只有 1 条记录。再有两次完赛记录，预测会更稳定。";
 "team_split.section.strategy" = "策略";
 "team_split.strategy.button" = "获取分工建议";
 "team_split.strategy.button_subtitle" = "告诉我们每个站点谁更强";

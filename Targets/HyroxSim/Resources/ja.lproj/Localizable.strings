@@ -428,13 +428,13 @@
 "settings.row.fitboost" = "FitBoost";
 "settings.row.fitboost.subtitle" = "当方のウエイト記録アプリ";
 "level.prediction.caption" = "レース予想タイム";
-"level.prediction.basis_single" = "直近のフルシミュレーションに基づく";
+"level.prediction.basis_single" = "直近の完走記録に基づく";
 "level.prediction.basis_format" = "直近%1$d回に基づく · 範囲 %2$@ – %3$@";
 "level.prediction.trend_faster_format" = "週あたり %@ 速くなっています";
 "level.prediction.trend_slower_format" = "週あたり %@ 遅くなっています";
 "level.prediction.goal_ahead_format" = "レース目標より %@ 速い";
 "level.prediction.goal_behind_format" = "レース目標より %@ 遅い";
-"level.prediction.low_confidence" = "記録はまだ1件です。フルシミュレーションをあと2回行うと予想が安定します。";
+"level.prediction.low_confidence" = "記録はまだ1件です。完走記録があと2件たまると予想が安定します。";
 "team_split.section.strategy" = "戦略";
 "team_split.strategy.button" = "分担の提案を受ける";
 "team_split.strategy.button_subtitle" = "各ステーションで誰が強いか教えてください";
