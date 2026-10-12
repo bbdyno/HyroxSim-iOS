@@ -116,13 +116,15 @@ xcodebuild test -workspace HyroxSim.xcworkspace -scheme HyroxSim \
 - RoxZone: 오렌지 (`.systemOrange`)
 - Station: 옐로우/골드 (액센트 컬러)
 
-### 레이아웃 (코스 맵 방향)
-- 홈·운동 중·결과 화면의 주인공은 `CourseMapView` (구불구불한 레이스 코스 + 번호 붙은 스테이션 마커)
+### 레이아웃 (2.0 — 타이밍 표 / 큰 숫자)
+- 홈·결과는 "타이밍 표": 큰 목표 시간, 16칸 구간 띠(`SegmentStripView`), 구간 표
+- 운동 중은 "큰 숫자": 위에 구간 띠, 기울어진 큰 타이머(`DesignTokens.Font.bigNumber`), 목표 대비 차이
 - 둥근 카드·배지·그림자 대신 각진 면과 1pt 헤어라인(`DesignTokens.Color.hairline`)으로 구분
-- 제목·캡션은 넓은 폭 서체 `DesignTokens.Font.wide`, 숫자는 `DesignTokens.Font.number`
+- 제목·캡션은 넓은 폭 서체 `DesignTokens.Font.wide`, 숫자는 `DesignTokens.Font.number` / `bigNumber`
 - 캡션은 대문자 + 자간(`UILabel.setTracked`)
-- 목표 대비: 앞서면 골드(`accent`), 뒤지면 오렌지(`overGoal`)
-- 운동 중 화면 배경은 항상 블랙 — 세그먼트 타입은 상단 라벨 색으로만 구분
+- 목표 대비: 앞서면 골드(`accent`), 뒤지면 오렌지(`overGoal`) — 워치·가민·안드로이드도 같은 규칙
+- 운동 중 화면 배경은 항상 블랙 — 세그먼트 타입은 상단 라벨 색으로만 구분 (워치 포함)
+- 워치 운동 화면은 구간 띠·구간 이름·큰 타이머·목표 대비·심박·총 시간만. 나머지는 스와이프 페이지에
 
 ### 컴포넌트
 - 시스템 UIAlertController 사용 금지 → `DarkAlertController` 사용
@@ -138,6 +140,25 @@ xcodebuild test -workspace HyroxSim.xcworkspace -scheme HyroxSim \
 - 도메인 모델은 값 타입 (struct), Codable + Hashable + Sendable
 - WorkoutEngine은 `@MainActor` class, 시간은 외부 주입 (`Date` 파라미터)
 - 센서/동기화 추상화: 프로토콜만 HyroxCore에, 구현은 앱 타겟에
+
+## 구독 (2.0)
+
+- 등급: `AccessTier` — free / subscriber / legacyBuyer. 판단은 전부 `FeatureGate` 에 묻는다 (화면에서 `tier == .free` 직접 비교 금지)
+- 무료 한도: 기록 5 · 커스텀 운동 1 · 훈련 세션 1 · 대회 기록 1 · 공유 레이아웃 1. 한도 밖 기록은 지우지 않고 잠근다
+- 유료 앱 구매자: App Store 최초 설치 빌드가 `LegacyPurchaseRule.firstFreeBuild` 보다 앞이거나, 2.0 첫 실행 때 저장소가 이미 있었으면 legacyBuyer. **무료 전환 첫 빌드 번호는 이 값보다 앞이면 안 된다**
+- 상품 ID: `com.bbdyno.app.HyroxSim.pro.monthly`, `.pro.yearly`. 로컬 테스트용 정의는 `Targets/HyroxSim/StoreKit/HyroxSim.storekit` (Xcode 실행 스킴에 연결됨)
+- 깊은 화면의 잠금 확인은 `PremiumAccess.require(_:)`, 코디네이터에서는 `presentPaywall(trigger:)`
+- 디버그 실행 인자: `-HyroxTier free|subscriber|legacyBuyer`, `-ShowPaywall [기능]`, `-PaywallSamplePlans`, `-ShowLevel`, `-ShowTrainingPlan`, `-ShowTeamSplit`, `-ShowRaceArchive`, `-ShowSeason`, `-ShowShare`
+- 가격은 코드에 쓰지 않는다 — 항상 스토어가 준 `displayPrice`
+
+## 분석 기능 (2.0, 전부 `HyroxCore` 의 순수 함수)
+
+- 수준·약점: `LevelAssessor`, `WeaknessDiagnoser` (v4 퍼센타일 데이터, 러닝+록스존은 합쳐서 비교)
+- 예상 기록: `FinishPredictor` — 최근 180일 공식 코스 기록 3개 가중 평균. 훈련 세션·커스텀 운동은 쓰지 않는다
+- 훈련 계획: `TrainingPlanBuilder`, 팀 전략: `TeamStrategyRecommender`, 시즌: `SeasonReportBuilder`
+- 대회 기록: `RaceResult` (JSON 파일 `RaceResultStore` — SwiftData 스키마에 넣지 않음), 결과 화면 인식 `RaceResultTextParser` + Vision
+- 코치: 사실은 `CoachInsightBuilder` 가 규칙으로 고르고, 문장은 `CoachWriter` — 기기 내 모델(FoundationModels)은 그 사실만으로 다시 쓰며 사실에 없는 숫자가 나오면 버린다
+- 사진·기록을 서버로 보내는 기능은 없다. 새 기능도 이 원칙을 지킨다
 
 ## HYROX 운동 구조
 

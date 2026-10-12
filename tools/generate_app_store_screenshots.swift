@@ -42,87 +42,117 @@ let phoneShots: [MarketingShot] = [
         en: .init(
             tag: "RACE PREP",
             title: "Plan The Full HYROX Rehearsal",
-            subtitle: "Choose official divisions or jump into a custom training session in seconds."
+            subtitle: "Pick an official division, set a goal time and start in one tap."
         ),
         ko: .init(
             tag: "레이스 준비",
-            title: "HYROX 리허설을 바로 설계하세요",
-            subtitle: "공식 디비전을 고르거나 커스텀 세션을 빠르게 시작할 수 있습니다."
+            title: "HYROX 리허설을 바로 시작하세요",
+            subtitle: "공식 디비전을 고르고 목표 시간을 정한 뒤 한 번에 시작합니다."
         )
     ),
     .init(
-        slug: "edit-every-run-rox-zone-and-station",
-        sourceName: "iphone-builder.png",
+        slug: "one-big-number-while-you-race",
+        sourceName: "iphone-mirror.png",
         accentHex: 0xFFB800,
         en: .init(
-            tag: "CUSTOM BUILDER",
-            title: "Edit Every Run, Rox Zone, and Station",
-            subtitle: "Tune segment order, distance, and reusable templates for your next race rehearsal."
+            tag: "LIVE",
+            title: "One Big Number While You Race",
+            subtitle: "Segment time and your gap to goal, readable at a glance."
         ),
         ko: .init(
-            tag: "커스텀 빌더",
-            title: "런, Rox Zone, 스테이션을 세밀하게 편집",
-            subtitle: "구간 순서와 거리, 저장 템플릿까지 한 번에 조정할 수 있습니다."
+            tag: "운동 중",
+            title: "레이스 중에는 큰 숫자 하나",
+            subtitle: "구간 시간과 목표 대비 차이가 한눈에 읽힙니다."
+        )
+    ),
+    .init(
+        slug: "see-every-split-against-your-goal",
+        sourceName: "iphone-summary.png",
+        accentHex: 0xFFD84C,
+        en: .init(
+            tag: "RESULTS",
+            title: "Every Split Against Your Goal",
+            subtitle: "Runs and stations, ahead in gold and behind in orange."
+        ),
+        ko: .init(
+            tag: "결과",
+            title: "구간마다 목표 대비를 확인",
+            subtitle: "러닝과 스테이션을 앞서면 골드, 뒤지면 오렌지로 보여 줍니다."
+        )
+    ),
+    .init(
+        slug: "know-where-you-stand",
+        sourceName: "iphone-level.png",
+        accentHex: 0xFFD84C,
+        en: .init(
+            tag: "MY LEVEL",
+            title: "Know Where You Stand",
+            subtitle: "Your percentile against real race results, and where you lose time."
+        ),
+        ko: .init(
+            tag: "내 수준",
+            title: "상위 몇 %인지 확인하세요",
+            subtitle: "실제 대회 기록과 비교해 순위와 시간을 잃는 구간을 알려 줍니다."
+        )
+    ),
+    .init(
+        slug: "a-weekly-plan-to-race-day",
+        sourceName: "iphone-plan.png",
+        accentHex: 0xFFB800,
+        en: .init(
+            tag: "TRAINING PLAN",
+            title: "A Weekly Plan To Race Day",
+            subtitle: "Counted back from your race date and built around your weak spots."
+        ),
+        ko: .init(
+            tag: "훈련 계획",
+            title: "대회까지 주간 훈련 계획",
+            subtitle: "대회 날짜에서 거꾸로 세고 약점에 맞춰 만듭니다."
+        )
+    ),
+    .init(
+        slug: "your-season-in-numbers",
+        sourceName: "iphone-season.png",
+        accentHex: 0xFFD84C,
+        en: .init(
+            tag: "SEASON REPORT",
+            title: "Your Season In Numbers",
+            subtitle: "Workouts, races and your fastest finish of the year."
+        ),
+        ko: .init(
+            tag: "시즌 리포트",
+            title: "한 해를 숫자로 정리",
+            subtitle: "운동, 대회, 올해 가장 빠른 완주 기록을 모아 봅니다."
         )
     ),
     .init(
         slug: "plan-goal-time-with-data-backed-splits",
         sourceName: "iphone-pace-planner.png",
-        accentHex: 0xFFD84C,
+        accentHex: 0xFFB800,
         en: .init(
             tag: "PACE PLANNER",
-            title: "Plan Goal Time With Data-Backed Splits",
-            subtitle: "Preview percentile, run pacing, and station targets before the workout begins."
+            title: "Goal Splits From Real Race Data",
+            subtitle: "Turn a finish time into targets for every run and station."
         ),
         ko: .init(
             tag: "페이스 플래너",
-            title: "목표 기록과 구간별 페이스를 미리 설계",
-            subtitle: "완주 목표 시간에 맞춰 퍼센타일과 런, 스테이션 목표를 바로 확인할 수 있습니다."
+            title: "실제 기록으로 나눈 구간 목표",
+            subtitle: "목표 완주 시간을 러닝·스테이션별 목표로 바꿔 줍니다."
         )
     ),
     .init(
-        slug: "follow-the-workout-live-from-apple-watch",
-        sourceName: "iphone-mirror.png",
-        accentHex: 0x1EA0FF,
+        slug: "edit-every-run-rox-zone-and-station",
+        sourceName: "iphone-builder.png",
+        accentHex: 0xFFD84C,
         en: .init(
-            tag: "LIVE SYNC",
-            title: "Follow The Workout Live From Apple Watch",
-            subtitle: "See segment progress, pace, GPS, and heart rate on a larger iPhone view."
+            tag: "CUSTOM BUILDER",
+            title: "Build Your Own Session",
+            subtitle: "Arrange runs and stations in any order and save it."
         ),
         ko: .init(
-            tag: "실시간 연동",
-            title: "Apple Watch 진행 상황을 iPhone에서 실시간 확인",
-            subtitle: "현재 구간, 페이스, GPS, 심박을 큰 화면으로 바로 볼 수 있습니다."
-        )
-    ),
-    .init(
-        slug: "review-total-time-splits-and-place",
-        sourceName: "iphone-summary.png",
-        accentHex: 0xFFFFFF,
-        en: .init(
-            tag: "POST-WORKOUT",
-            title: "Review Total Time, Splits, and Place",
-            subtitle: "Break down every finish with a clear summary of segments, pace, and results."
-        ),
-        ko: .init(
-            tag: "운동 요약",
-            title: "완주 후 스플릿과 기록을 한눈에 분석",
-            subtitle: "총 시간과 구간별 흐름을 요약 화면에서 바로 확인할 수 있습니다."
-        )
-    ),
-    .init(
-        slug: "keep-recent-sessions-ready-to-revisit",
-        sourceName: "iphone-history.png",
-        accentHex: 0xE0C36B,
-        en: .init(
-            tag: "PROGRESS LOG",
-            title: "Keep Recent Sessions Ready To Revisit",
-            subtitle: "Open past results fast and stay close to the workouts you want to repeat."
-        ),
-        ko: .init(
-            tag: "기록 관리",
-            title: "최근 세션을 빠르게 다시 열고 비교",
-            subtitle: "지난 결과를 보관하고 다음 리허설에 바로 이어서 사용할 수 있습니다."
+            tag: "커스텀 빌더",
+            title: "나만의 세션을 구성",
+            subtitle: "러닝과 스테이션을 원하는 순서로 짜서 저장합니다."
         )
     )
 ]
@@ -133,59 +163,59 @@ let watchShots: [MarketingShot] = [
         sourceName: "watch-home.png",
         accentHex: 0xFFD84C,
         en: .init(
-            tag: "WRIST START",
+            tag: "ON YOUR WRIST",
             title: "Start HYROX From Your Wrist",
-            subtitle: "Launch presets or custom workouts without touching your phone."
+            subtitle: "Presets and your saved sessions, ready to go."
         ),
         ko: .init(
-            tag: "워치 시작",
-            title: "손목에서 바로 HYROX 시작",
-            subtitle: "프리셋과 내 운동을 워치에서 즉시 실행할 수 있습니다."
+            tag: "손목에서",
+            title: "손목에서 바로 시작",
+            subtitle: "프리셋과 저장한 세션을 바로 실행합니다."
         )
     ),
     .init(
-        slug: "see-pace-segment-and-heart-rate-live",
+        slug: "one-timer-and-your-gap-to-goal",
         sourceName: "watch-active.png",
-        accentHex: 0x1EA0FF,
+        accentHex: 0xFFB800,
         en: .init(
-            tag: "LIVE METRICS",
-            title: "See Pace, Segment, and Heart Rate Live",
-            subtitle: "Track the current block, total time, and effort while you move."
+            tag: "RUN",
+            title: "One Timer And Your Gap To Goal",
+            subtitle: "Nothing else to read while you run."
         ),
         ko: .init(
-            tag: "실시간 지표",
-            title: "페이스와 심박을 실시간으로 확인",
-            subtitle: "현재 구간과 총 시간까지 운동 중 바로 체크할 수 있습니다."
+            tag: "러닝",
+            title: "타이머와 목표 대비만",
+            subtitle: "달리는 동안 읽을 것은 이것뿐입니다."
+        )
+    ),
+    .init(
+        slug: "stations-at-a-glance",
+        sourceName: "watch-station.png",
+        accentHex: 0xFFD84C,
+        en: .init(
+            tag: "STATION",
+            title: "Stations At A Glance",
+            subtitle: "Gold when you are ahead, orange when you are behind."
+        ),
+        ko: .init(
+            tag: "스테이션",
+            title: "스테이션도 한눈에",
+            subtitle: "앞서면 골드, 뒤지면 오렌지."
         )
     ),
     .init(
         slug: "review-every-split-right-after-the-finish",
         sourceName: "watch-summary.png",
-        accentHex: 0xFFFFFF,
+        accentHex: 0xFFB800,
         en: .init(
-            tag: "QUICK REVIEW",
-            title: "Review Every Split Right After The Finish",
-            subtitle: "Open your total time and segment results the moment the session ends."
+            tag: "SUMMARY",
+            title: "Review Every Split At The Finish",
+            subtitle: "Total time and splits as soon as you stop."
         ),
         ko: .init(
-            tag: "즉시 리뷰",
-            title: "완주 후 스플릿을 즉시 요약",
-            subtitle: "구간별 기록과 전체 시간을 손목에서 바로 확인할 수 있습니다."
-        )
-    ),
-    .init(
-        slug: "reopen-your-recent-rehearsals-anytime",
-        sourceName: "watch-history.png",
-        accentHex: 0xE0C36B,
-        en: .init(
-            tag: "RECENT SESSIONS",
-            title: "Reopen Your Recent Rehearsals Anytime",
-            subtitle: "Keep your latest HYROX efforts close and ready for the next training day."
-        ),
-        ko: .init(
-            tag: "최근 세션",
-            title: "최근 리허설을 다시 불러오기",
-            subtitle: "지난 운동 기록을 빠르게 찾아 다시 확인할 수 있습니다."
+            tag: "결과",
+            title: "완주 직후 구간 기록 확인",
+            subtitle: "끝나자마자 총 시간과 구간 기록을 봅니다."
         )
     )
 ]
