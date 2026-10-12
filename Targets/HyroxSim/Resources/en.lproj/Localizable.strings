@@ -542,3 +542,16 @@
 "backup.alert.unreadable" = "This file is not a HyroxSim backup, or it is damaged.";
 "paywall.feature.cloudBackup.title" = "Backup & restore";
 "paywall.feature.cloudBackup.detail" = "Export every record to a file you keep, and restore it on a new iPhone.";
+
+/* 2.0 — coach */
+"coach.running" = "running and Roxzone";
+"coach.standing" = "This finish puts you in the top %@ of race finishers.";
+"coach.biggest_loss" = "Your biggest loss was %1$@: %2$@ slower than athletes at your level. Work on it with %3$@.";
+"coach.strength" = "%1$@ is a strength: %2$@ faster than athletes at your level.";
+"coach.fade" = "Your last run was %d%% slower than your first. Start a little easier so you can hold pace late.";
+"coach.even_pacing" = "You held your running pace from the first lap to the last.";
+"coach.trend_faster" = "Your recent full simulations are getting faster by %@ per week.";
+"coach.trend_slower" = "Your recent full simulations are getting slower by %@ per week. Check your recovery.";
+"level.coach.caption" = "Coach";
+"level.coach.source_rules" = "Based on the numbers above.";
+"level.coach.source_model" = "Written on this iPhone by the built-in model from the numbers above. Nothing was uploaded.";

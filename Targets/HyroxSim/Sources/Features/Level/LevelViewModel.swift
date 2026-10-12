@@ -145,6 +145,13 @@ struct LevelViewModel {
 
     var footnote: String { L.footnote(dataset.datasetVersion) }
 
+    // MARK: - 코치
+
+    /// 이 기록에서 코치가 짚을 사실.
+    var coachInsights: [CoachInsight] {
+        CoachInsightBuilder.build(workout: workout, diagnosis: diagnosis, prediction: prediction)
+    }
+
     // MARK: - 예측
 
     var predictionTime: String? { prediction.map { DurationFormatter.hms($0.seconds) } }

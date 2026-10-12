@@ -140,6 +140,8 @@ final class LevelViewController: UIViewController {
             }
         }
 
+        addCoachSection()
+
         let footnote = UILabel()
         footnote.font = .systemFont(ofSize: 11)
         footnote.textColor = DesignTokens.Color.textTertiary
@@ -147,6 +149,54 @@ final class LevelViewController: UIViewController {
         footnote.text = viewModel.footnote
         contentStack.setCustomSpacing(22, after: contentStack.arrangedSubviews.last!)
         add(footnote, spacing: 0)
+    }
+
+    // MARK: - 코치
+
+    private var coachTask: Task<Void, Never>?
+
+    /// 정해진 문장을 바로 보여 주고, 기기 내 모델을 쓸 수 있으면 한 문단으로 바꿔 쓴다.
+    private func addCoachSection() {
+        coachTask?.cancel()
+        guard PremiumAccess.gate().allows(.aiCoach) else { return }
+        let lines = CoachWriter.lines(for: viewModel.coachInsights)
+        guard !lines.isEmpty else { return }
+
+        contentStack.setCustomSpacing(26, after: contentStack.arrangedSubviews.last!)
+        add(caption(L.Coach.caption.uppercased(), color: DesignTokens.Color.accent), spacing: 8)
+
+        let body = UILabel()
+        body.font = .systemFont(ofSize: 15)
+        body.textColor = DesignTokens.Color.textPrimary
+        body.numberOfLines = 0
+        body.accessibilityIdentifier = "level.coach"
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = 4
+        paragraph.paragraphSpacing = 8
+        func set(_ text: String) {
+            body.attributedText = NSAttributedString(string: text, attributes: [.paragraphStyle: paragraph])
+        }
+        set(lines.joined(separator: "\n"))
+        add(body, spacing: 8)
+
+        let source = UILabel()
+        source.font = .systemFont(ofSize: 11)
+        source.textColor = DesignTokens.Color.textTertiary
+        source.numberOfLines = 0
+        source.text = L.Coach.sourceRules
+        source.accessibilityIdentifier = "level.coachSource"
+        add(source, spacing: 0)
+
+        guard CoachWriter.isOnDeviceModelAvailable else { return }
+        let language = Locale.current.localizedString(forLanguageCode: Locale.current.language.languageCode?.identifier ?? "en") ?? "English"
+        coachTask = Task { [weak body, weak source] in
+            guard let rewritten = await CoachWriter.rewrite(lines: lines, languageName: language),
+                  !Task.isCancelled else { return }
+            if let body {
+                body.attributedText = NSAttributedString(string: rewritten, attributes: [.paragraphStyle: paragraph])
+            }
+            source?.text = HyroxSimStrings.Localizable.Level.Coach.sourceModel
+        }
     }
 
     private func addPredictionSection() {

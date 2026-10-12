@@ -542,3 +542,16 @@
 "backup.alert.unreadable" = "此檔案不是 HyroxSim 備份，或已損毀。";
 "paywall.feature.cloudBackup.title" = "備份與回復";
 "paywall.feature.cloudBackup.detail" = "把全部紀錄輸出成檔案保存，並在新 iPhone 上回復。";
+
+/* 2.0 — coach */
+"coach.running" = "跑步與 Roxzone";
+"coach.standing" = "這個成績在完賽者中位列前 %@。";
+"coach.biggest_loss" = "流失時間最多的是 %1$@：比同程度選手慢 %2$@。用 %3$@ 來補強。";
+"coach.strength" = "%1$@ 是你的強項：比同程度選手快 %2$@。";
+"coach.fade" = "最後一段跑步比第一段慢了 %d%%。開局稍微放慢，才能把配速維持到最後。";
+"coach.even_pacing" = "從第一圈到最後一圈，你維持住了跑步配速。";
+"coach.trend_faster" = "最近的完整模擬每週快 %@。";
+"coach.trend_slower" = "最近的完整模擬每週慢 %@。請檢查恢復狀況。";
+"level.coach.caption" = "教練";
+"level.coach.source_rules" = "以上建議依據上方數據。";
+"level.coach.source_model" = "由這支 iPhone 的內建模型依上方數據撰寫，未上傳任何內容。";

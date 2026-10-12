@@ -542,3 +542,16 @@
 "backup.alert.unreadable" = "HyroxSimのバックアップファイルではないか、破損しています。";
 "paywall.feature.cloudBackup.title" = "バックアップと復元";
 "paywall.feature.cloudBackup.detail" = "すべての記録をファイルに書き出して保管し、新しいiPhoneで復元できます。";
+
+/* 2.0 — coach */
+"coach.running" = "ランとロックスゾーン";
+"coach.standing" = "この記録はレース完走者の上位 %@ です。";
+"coach.biggest_loss" = "最も失ったのは %1$@ です。同レベルの選手より %2$@ 遅れました。%3$@ で補強しましょう。";
+"coach.strength" = "%1$@ は強みです。同レベルの選手より %2$@ 速いタイムでした。";
+"coach.fade" = "最後のランは最初のランより %d%% 遅くなりました。序盤を少し抑えて、終盤までペースを保ちましょう。";
+"coach.even_pacing" = "最初のラップから最後までランのペースを保てました。";
+"coach.trend_faster" = "最近のフルシミュレーションは週あたり %@ 速くなっています。";
+"coach.trend_slower" = "最近のフルシミュレーションは週あたり %@ 遅くなっています。回復状態を確認しましょう。";
+"level.coach.caption" = "コーチ";
+"level.coach.source_rules" = "上の数値に基づく案内です。";
+"level.coach.source_model" = "上の数値をもとに、このiPhoneの内蔵モデルが作成しました。アップロードはしていません。";
