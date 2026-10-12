@@ -443,7 +443,7 @@ h3 {
 }
 
 .screenshot-row-phone {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .screenshot-row-watch {
@@ -787,4 +787,24 @@ h3 {
   .pricing-table td {
     white-space: normal;
   }
+}
+
+/* 2.0 — Garmin captures are round */
+.screenshot-row .device-garmin {
+  margin: 0;
+  width: 100%;
+  max-width: 220px;
+  justify-self: center;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 6px solid #1b1d20;
+  background: #000;
+}
+
+.device-garmin img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
