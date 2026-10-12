@@ -45,6 +45,12 @@ final class RaceTargetEditorViewController: UIViewController {
         symbol: "person.2.fill",
         action: #selector(teamSplitTapped)
     )
+    private lazy var trainingPlanRow = makeToolRow(
+        title: HyroxSimStrings.Localizable.TrainingPlan.entryTitle,
+        subtitle: HyroxSimStrings.Localizable.TrainingPlan.entrySubtitle,
+        symbol: "calendar",
+        action: #selector(trainingPlanTapped)
+    )
     private lazy var benchmarkRow = makeToolRow(
         title: BenchmarkStrings.entryTitle,
         subtitle: BenchmarkStrings.entrySubtitle,
@@ -232,6 +238,7 @@ final class RaceTargetEditorViewController: UIViewController {
         contentStack.addArrangedSubview(makeNoteRow())
 
         contentStack.addArrangedSubview(makeFieldHeader(TeamSplitStrings.planningSection))
+        contentStack.addArrangedSubview(trainingPlanRow)
         contentStack.addArrangedSubview(teamSplitRow)
         contentStack.addArrangedSubview(benchmarkRow)
     }
@@ -507,6 +514,26 @@ final class RaceTargetEditorViewController: UIViewController {
     }
 
     /// 분담 계획 화면. 저장 전 상태에서도 열 수 있어야 하므로 입력값을 먼저 반영한다.
+    /// 대회 날짜에서 거꾸로 센 주간 계획. 날짜가 지났으면 만들 것이 없다.
+    @objc private func trainingPlanTapped() {
+        view.endEditing(true)
+        syncControlsToForm()
+        guard PremiumAccess.require(.trainingPlan) else { return }
+        let division = form.division ?? .menOpenSingle
+        guard let plan = TrainingPlanBuilder.build(
+            raceDate: form.date, weaknesses: PremiumAccess.latestWeaknesses(division)
+        ) else {
+            updatePastDateHint()
+            return
+        }
+        let name = form.eventName.trimmingCharacters(in: .whitespacesAndNewlines)
+        presentTool(TrainingPlanViewController(
+            plan: plan,
+            division: division,
+            eventName: name.isEmpty ? HyroxSimStrings.Localizable.TrainingPlan.title : name
+        ))
+    }
+
     @objc private func teamSplitTapped() {
         view.endEditing(true)
         syncControlsToForm()

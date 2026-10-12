@@ -447,3 +447,24 @@
 "team_split.strategy.intro_doubles" = "为每个站点选出更强的搭档，由其承担 65%。保持“差不多”的站点用于平衡负荷。";
 "team_split.strategy.applied" = "已应用建议。可在下方逐站调整。";
 "team_split.strategy.unhonored_format" = "未能分给所选队员的站点：%@（每人两段）。";
+
+/* 2.0 — training plan */
+"training_plan.title" = "训练计划";
+"training_plan.entry_title" = "训练计划";
+"training_plan.entry_subtitle" = "逐周备战到比赛日";
+"training_plan.race_today" = "比赛日";
+"training_plan.intro" = "从比赛日倒推的每周三练计划。点按训练即可打开。";
+"training_plan.intro_truncated" = "显示未来 %d 周。每周三练，点按训练即可打开。";
+"training_plan.this_week" = "本周";
+"training_plan.week_of_format" = "%@ 当周";
+"training_plan.weeks_out_format" = "赛前 %d 周";
+"training_plan.race_week_tag" = "比赛周";
+"training_plan.full_simulation" = "完整比赛模拟";
+"training_plan.full_simulation_detail" = "以比赛强度完成整条官方赛道。最后一次完整模拟应在赛前至少 10 天完成。";
+"training_plan.race_day" = "比赛";
+"training_plan.footnote" = "这是通用模板，不构成医疗或教练建议。生病、受伤或过度疲劳时请跳过或缩短训练。";
+"training_plan.phase.base" = "基础";
+"training_plan.phase.build" = "强化";
+"training_plan.phase.peak" = "巅峰";
+"training_plan.phase.taper" = "减量";
+"training_plan.phase.race_week" = "比赛";

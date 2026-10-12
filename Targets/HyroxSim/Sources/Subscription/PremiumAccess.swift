@@ -18,6 +18,8 @@ enum PremiumAccess {
 
     static var gate: () -> FeatureGate = { FeatureGate(tier: .subscriber) }
     static var presentPaywall: (PremiumFeature) -> Void = { _ in }
+    /// 가장 최근 공식 코스 기록에서 본 약점(손실이 큰 순). 훈련 계획이 강조할 곳을 정할 때 쓴다.
+    static var latestWeaknesses: (HyroxDivision) -> [WeaknessItem.Kind] = { _ in [] }
 
     /// 열려 있으면 `true`. 잠겨 있으면 페이월을 띄우고 `false`.
     static func require(_ feature: PremiumFeature) -> Bool {

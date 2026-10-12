@@ -447,3 +447,24 @@
 "team_split.strategy.intro_doubles" = "Pick the stronger partner at each station. They take 65%. Stations left on Even are used to keep the workload balanced.";
 "team_split.strategy.applied" = "Recommendation applied. You can still adjust any station below.";
 "team_split.strategy.unhonored_format" = "Could not give the preferred teammate: %@ (two legs each).";
+
+/* 2.0 — training plan */
+"training_plan.title" = "Training Plan";
+"training_plan.entry_title" = "Training plan";
+"training_plan.entry_subtitle" = "Week by week to race day";
+"training_plan.race_today" = "RACE DAY";
+"training_plan.intro" = "Three sessions a week, counted back from race day. Tap a session to open it.";
+"training_plan.intro_truncated" = "Showing the next %d weeks. Three sessions a week; tap a session to open it.";
+"training_plan.this_week" = "This week";
+"training_plan.week_of_format" = "Week of %@";
+"training_plan.weeks_out_format" = "%d wk out";
+"training_plan.race_week_tag" = "Race week";
+"training_plan.full_simulation" = "Full race simulation";
+"training_plan.full_simulation_detail" = "The whole official course at race effort. Your last one should be at least 10 days before the race.";
+"training_plan.race_day" = "Race";
+"training_plan.footnote" = "A general template, not medical or coaching advice. Skip or shorten sessions when you are ill, injured or overly tired.";
+"training_plan.phase.base" = "Base";
+"training_plan.phase.build" = "Build";
+"training_plan.phase.peak" = "Peak";
+"training_plan.phase.taper" = "Taper";
+"training_plan.phase.race_week" = "Race";

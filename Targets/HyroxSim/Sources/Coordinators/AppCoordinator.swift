@@ -132,6 +132,22 @@ public final class AppCoordinator {
         window.rootViewController = tabBarController
         window.makeKeyAndVisible()
         PremiumAccess.presentPaywall = { [weak self] feature in self?.presentPaywall(trigger: feature) }
+        PremiumAccess.latestWeaknesses = { [weak self] division in
+            guard let self, let dataset = self.paceData.dataset(for: division),
+                  let latest = (try? self.persistence.fetchAllCompletedWorkouts())?
+                    .first(where: { $0.division == division && $0.isStandardHyroxCourse }),
+                  let diagnosis = WeaknessDiagnoser.diagnose(latest, dataset: dataset) else { return [] }
+            return diagnosis.weaknesses.map(\.kind)
+        }
+        NotificationCenter.default.addObserver(
+            forName: .trainingPlanDidSelectTemplate, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let template = note.object as? WorkoutTemplate else { return }
+            Task { @MainActor in
+                self?.tabBarController.selectedIndex = 0
+                self?.showTemplateDetail(template)
+            }
+        }
         #if DEBUG
         presentPaywallIfRequestedByLaunchArguments()
         #endif
@@ -599,6 +615,18 @@ public final class AppCoordinator {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 let history = ScreenshotFixtures.fullRaceHistory(endingAt: Date())
                 self?.showLevel(for: history[0], history: history, goalSeconds: 85 * 60)
+            }
+        }
+        if arguments.contains("-ShowTrainingPlan") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                guard let self, let plan = TrainingPlanBuilder.build(
+                    raceDate: Date().addingTimeInterval(40 * 86_400),
+                    weaknesses: [.station(.wallBalls), .station(.sledPush)]
+                ) else { return }
+                let vc = TrainingPlanViewController(plan: plan, division: .menOpenSingle, eventName: "HYROX Seoul")
+                let nav = UINavigationController(rootViewController: vc)
+                nav.applyDarkTheme()
+                self.topmostPresentedViewController.present(nav, animated: false)
             }
         }
         if arguments.contains("-ShowTeamSplit") {

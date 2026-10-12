@@ -447,3 +447,24 @@
 "team_split.strategy.intro_doubles" = "ステーションごとに強いほうのパートナーを選んでください。その人が65%を担当します。「同じくらい」のステーションは負荷の調整に使います。";
 "team_split.strategy.applied" = "提案を適用しました。下でステーションごとに調整できます。";
 "team_split.strategy.unhonored_format" = "希望のメンバーに割り当てられなかった箇所: %@（1人2区間）。";
+
+/* 2.0 — training plan */
+"training_plan.title" = "トレーニング計画";
+"training_plan.entry_title" = "トレーニング計画";
+"training_plan.entry_subtitle" = "レースまで週ごとに";
+"training_plan.race_today" = "レース当日";
+"training_plan.intro" = "レース日から逆算した週3回の計画です。セッションをタップすると開きます。";
+"training_plan.intro_truncated" = "今後%d週間を表示しています。週3回、セッションをタップすると開きます。";
+"training_plan.this_week" = "今週";
+"training_plan.week_of_format" = "%@ の週";
+"training_plan.weeks_out_format" = "%d週前";
+"training_plan.race_week_tag" = "レース週";
+"training_plan.full_simulation" = "フルレースシミュレーション";
+"training_plan.full_simulation_detail" = "公式コース全体をレース強度で。最後のフルシミュレーションはレースの10日前までに。";
+"training_plan.race_day" = "レース";
+"training_plan.footnote" = "一般的な目安であり、医療・コーチングの助言ではありません。体調不良やけが、強い疲労のときはセッションを休むか短くしてください。";
+"training_plan.phase.base" = "ベース";
+"training_plan.phase.build" = "ビルド";
+"training_plan.phase.peak" = "ピーク";
+"training_plan.phase.taper" = "テーパー";
+"training_plan.phase.race_week" = "レース";

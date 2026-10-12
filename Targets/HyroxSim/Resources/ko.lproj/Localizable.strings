@@ -447,3 +447,24 @@
 "team_split.strategy.intro_doubles" = "스테이션마다 더 강한 파트너를 고르세요. 그 사람이 65%를 맡습니다. ‘비슷’으로 둔 스테이션은 부하를 고르게 맞추는 데 씁니다.";
 "team_split.strategy.applied" = "추천을 적용했습니다. 아래에서 스테이션별로 다시 조정할 수 있습니다.";
 "team_split.strategy.unhonored_format" = "지목한 팀원에게 주지 못한 곳: %@ (한 사람당 두 구간).";
+
+/* 2.0 — training plan */
+"training_plan.title" = "훈련 계획";
+"training_plan.entry_title" = "훈련 계획";
+"training_plan.entry_subtitle" = "대회까지 주 단위로";
+"training_plan.race_today" = "대회 당일";
+"training_plan.intro" = "대회 날짜에서 거꾸로 센 주 3회 계획입니다. 세션을 누르면 바로 열립니다.";
+"training_plan.intro_truncated" = "앞으로 %d주를 보여 줍니다. 주 3회이고, 세션을 누르면 바로 열립니다.";
+"training_plan.this_week" = "이번 주";
+"training_plan.week_of_format" = "%@ 주";
+"training_plan.weeks_out_format" = "%d주 전";
+"training_plan.race_week_tag" = "대회 주";
+"training_plan.full_simulation" = "풀 레이스 시뮬레이션";
+"training_plan.full_simulation_detail" = "공식 코스 전체를 대회 강도로. 마지막 풀 시뮬레이션은 대회 10일 전까지 끝내세요.";
+"training_plan.race_day" = "대회";
+"training_plan.footnote" = "일반적인 틀이며 의료·코칭 조언이 아닙니다. 아프거나 다쳤거나 많이 피곤할 때는 세션을 건너뛰거나 줄이세요.";
+"training_plan.phase.base" = "기초";
+"training_plan.phase.build" = "강화";
+"training_plan.phase.peak" = "정점";
+"training_plan.phase.taper" = "조절";
+"training_plan.phase.race_week" = "대회";
