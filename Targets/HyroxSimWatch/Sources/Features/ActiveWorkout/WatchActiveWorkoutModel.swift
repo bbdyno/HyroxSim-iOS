@@ -71,6 +71,14 @@ final class WatchActiveWorkoutModel {
     @ObservationIgnored private var mirroringTask: Task<Void, Never>?
     private var segmentStartHKDistance: Double = 0
     private var isMirroringActive = false
+    /// 세션 유실 뒤 다시 붙이는 시도 횟수. 무한 재시도는 배터리만 쓴다.
+    private var sessionRestartAttempts = 0
+    private static let maxSessionRestartAttempts = 3
+    private var mirroringRetryTask: Task<Void, Never>?
+    /// 폰으로 나가는 실시간 상태: 전송은 하나만 진행하고, 밀린 것은 최신 하나만 남긴다.
+    private var isSendingLiveState = false
+    private var pendingLiveState: LiveSyncPacket?
+    private var lastLiveStateSentAt = Date.distantPast
     private var didStart = false
     /// 이미 HealthKit builder 에 넣은 구간 기록 개수. 매 advance 마다 나머지만 추가한다.
     private var addedSegmentEventCount = 0
@@ -589,7 +597,45 @@ private extension WatchActiveWorkoutModel {
             } catch {
                 guard !Task.isCancelled else { return }
                 errorHandler?(error)
+                // 세션 없이 타이머만 도는 상태로 두지 않는다.
+                handleSessionLost(error)
             }
+        }
+    }
+
+    /// 운동 세션이 우리 의도와 무관하게 끝났을 때: 기록을 지키고 세션을 다시 붙인다.
+    func handleSessionLost(_ error: Error?) {
+        guard !engine.isFinished else { return }
+        if let error { print("[WatchWorkout] Workout session lost: \(error)") }
+        isMirroringActive = false
+        saveCheckpoint()
+        guard sessionRestartAttempts < Self.maxSessionRestartAttempts else { return }
+        sessionRestartAttempts += 1
+        let delay = UInt64(sessionRestartAttempts) * 2_000_000_000
+        heartRateTask?.cancel()
+        sensorStartupTask?.cancel()
+        sensorStartupTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: delay)
+            guard let self, !Task.isCancelled, !self.engine.isFinished else { return }
+            do {
+                try await self.workoutSession.start()
+                self.heartRateTask = self.engine.attachHeartRateStream(self.workoutSession)
+                self.segmentStartHKDistance = self.workoutSession.cumulativeDistanceMeters
+                self.startMirroring()
+            } catch {
+                guard !Task.isCancelled else { return }
+                self.handleSessionLost(error)
+            }
+        }
+    }
+
+    /// 미러링이 끊기면 그대로 두지 않고 간격을 늘려 가며 다시 건다.
+    func scheduleMirroringRetry() {
+        mirroringRetryTask?.cancel()
+        mirroringRetryTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard let self, !Task.isCancelled, !self.engine.isFinished, !self.isMirroringActive else { return }
+            self.startMirroring()
         }
     }
 
@@ -607,6 +653,7 @@ private extension WatchActiveWorkoutModel {
                 guard !Task.isCancelled else { return }
                 isMirroringActive = false
                 print("[WatchWorkout] Failed to start mirroring: \(error)")
+                scheduleMirroringRetry()
             }
         }
     }
@@ -620,6 +667,10 @@ private extension WatchActiveWorkoutModel {
             if let error {
                 print("[WatchWorkout] Mirroring disconnected: \(error)")
             }
+            self?.scheduleMirroringRetry()
+        }
+        workoutSession.onSessionLost = { [weak self] error in
+            self?.handleSessionLost(error)
         }
         syncCoordinator?.onReceiveCommand = { [weak self] command in
             self?.handleRemoteCommandIfNeeded(command)
@@ -644,7 +695,27 @@ private extension WatchActiveWorkoutModel {
     }
 
     func sendPacket(_ packet: LiveSyncPacket) {
-        Task { await self.sendPacketNow(packet) }
+        // 실시간 상태는 초당 여러 번 만들어진다. 링크가 약하면 전송이 밀려 작업과 페이로드가
+        // 끝없이 쌓이므로, 전송 중이면 최신 하나만 대기시키고 0.5초보다 자주 보내지 않는다.
+        guard case .liveState = packet else {
+            Task { await self.sendPacketNow(packet) }
+            return
+        }
+        pendingLiveState = packet
+        guard !isSendingLiveState else { return }
+        isSendingLiveState = true
+        Task { @MainActor [weak self] in
+            while let self, let next = self.pendingLiveState {
+                let wait = 0.5 - Date().timeIntervalSince(self.lastLiveStateSentAt)
+                if wait > 0 { try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) }
+                guard let latest = self.pendingLiveState else { break }
+                _ = next
+                self.pendingLiveState = nil
+                self.lastLiveStateSentAt = Date()
+                await self.sendPacketNow(latest)
+            }
+            self?.isSendingLiveState = false
+        }
     }
 
     func sendPacketNow(_ packet: LiveSyncPacket) async {
@@ -655,6 +726,9 @@ private extension WatchActiveWorkoutModel {
                 return
             } catch {
                 print("[WatchWorkout] Failed to send mirrored payload: \(error)")
+                // 끊긴 채로 매 틱 인코딩·실패를 반복하지 않도록 내리고 다시 건다.
+                isMirroringActive = false
+                scheduleMirroringRetry()
             }
         }
 
@@ -689,6 +763,7 @@ private extension WatchActiveWorkoutModel {
                 .reduce(0, +)
             guard combinedGoal > 0 else { return (nil, 0) }
             var actualBase: TimeInterval = 0
+            guard start <= currentIndex else { return (nil, 0) }
             for i in start..<currentIndex {
                 if let rec = engine.records.first(where: { $0.index == i }) {
                     actualBase += rec.activeDuration
@@ -741,6 +816,7 @@ private extension WatchActiveWorkoutModel {
             guard combinedGoal > 0 else { return ("—", "—", false) }
 
             var blockActual: TimeInterval = 0
+            guard start <= currentIndex else { return ("—", "—", false) }
             for i in start..<currentIndex {
                 if let rec = engine.records.first(where: { $0.index == i }) {
                     blockActual += rec.activeDuration

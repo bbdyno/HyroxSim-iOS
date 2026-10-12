@@ -56,6 +56,9 @@ public final class WatchWorkoutSession: NSObject, @preconcurrency HeartRateStrea
 
     var onRemoteDataReceived: (([Data]) -> Void)?
     var onRemoteDisconnect: ((Error?) -> Void)?
+    /// 우리가 끝내지 않았는데 세션이 끝났거나 실패했을 때. 세션이 없으면 손목을 내리는 순간
+    /// 앱이 일시중단되고 시스템이 종료시켜, 사용자에게는 운동 중 충돌로 보인다.
+    var onSessionLost: ((Error?) -> Void)?
 
     public init(purpose: Purpose = .heartRateRelay) {
         self.purpose = purpose
@@ -122,7 +125,15 @@ public final class WatchWorkoutSession: NSObject, @preconcurrency HeartRateStrea
 
         let startDate = Date()
         session.startActivity(with: startDate)
-        try await builder.beginCollection(at: startDate)
+        do {
+            try await builder.beginCollection(at: startDate)
+        } catch {
+            // 수집을 시작하지 못한 세션을 남겨 두면 다음 시작 시도가 막힌다.
+            session.end()
+            self.session = nil
+            self.builder = nil
+            throw SensorError.startFailed(reason: error.localizedDescription)
+        }
 
         isStarted = true
         flushSegmentEvents()
@@ -270,15 +281,28 @@ extension WatchWorkoutSession: HKWorkoutSessionDelegate {
         from fromState: HKWorkoutSessionState,
         date: Date
     ) {
-        // State transitions are logged but not acted upon in this version.
-        // Future: notify UI of session state changes.
+        guard toState == .ended || toState == .stopped else { return }
+        Task { @MainActor [weak self] in
+            // `end()` 가 먼저 isStarted 를 내리므로, 아직 켜져 있으면 우리가 끝낸 게 아니다.
+            guard let self, self.isStarted, self.session === workoutSession else { return }
+            self.isStarted = false
+            self.session = nil
+            self.builder = nil
+            self.onSessionLost?(nil)
+        }
     }
 
     nonisolated public func workoutSession(
         _ workoutSession: HKWorkoutSession,
         didFailWithError error: Error
     ) {
-        // Non-fatal — session may recover.
+        Task { @MainActor [weak self] in
+            guard let self, self.isStarted, self.session === workoutSession else { return }
+            self.isStarted = false
+            self.session = nil
+            self.builder = nil
+            self.onSessionLost?(error)
+        }
     }
 
     nonisolated public func workoutSession(
@@ -320,8 +344,11 @@ extension WatchWorkoutSession: HKLiveWorkoutBuilderDelegate {
                 let statistics = workoutBuilder.statistics(for: heartRateType)
                 if let mostRecentQuantity = statistics?.mostRecentQuantity() {
                     let bpmUnit = HKUnit.count().unitDivided(by: .minute())
-                    let bpm = Int(mostRecentQuantity.doubleValue(for: bpmUnit))
-                    self?.hrContinuation?.yield(HeartRateSample(timestamp: Date(), bpm: bpm))
+                    let value = mostRecentQuantity.doubleValue(for: bpmUnit)
+                    // 유한하지 않은 값을 Int 로 바꾸면 트랩이 난다.
+                    if value.isFinite, value >= 0, value < 400 {
+                        self?.hrContinuation?.yield(HeartRateSample(timestamp: Date(), bpm: Int(value)))
+                    }
                 }
             }
 
