@@ -510,3 +510,22 @@
 "share.running" = "跑步 + ROXZONE";
 "share.finish" = "完賽";
 "share.vs_goal" = "對比目標";
+
+/* 2.0 — season */
+"home.action.season_report" = "賽季報告";
+"season.title" = "賽季報告";
+"season.subtitle" = "這一年的訓練與比賽";
+"season.empty" = "今年還沒有紀錄。完成一次訓練後會彙整在這裡。";
+"season.best" = "最快完賽";
+"season.best_official" = "正式比賽";
+"season.best_simulation" = "模擬";
+"season.improvement_format" = "比今年第一次完賽快 %@";
+"season.sessions" = "訓練";
+"season.simulations" = "完整模擬";
+"season.races" = "比賽";
+"season.hours" = "訓練小時";
+"season.running_km" = "跑步公里";
+"season.stations" = "完成站點";
+"season.active_weeks" = "訓練週數";
+"season.streak" = "最長連續週";
+"season.busiest_format" = "訓練最多的月份：%@";

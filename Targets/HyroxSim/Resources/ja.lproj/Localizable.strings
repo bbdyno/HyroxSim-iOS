@@ -510,3 +510,22 @@
 "share.running" = "ラン + ロックスゾーン";
 "share.finish" = "フィニッシュ";
 "share.vs_goal" = "目標比";
+
+/* 2.0 — season */
+"home.action.season_report" = "シーズンレポート";
+"season.title" = "シーズンレポート";
+"season.subtitle" = "一年のトレーニングとレース";
+"season.empty" = "今年の記録はまだありません。ワークアウトを完了するとここにまとまります。";
+"season.best" = "最速フィニッシュ";
+"season.best_official" = "公式レース";
+"season.best_simulation" = "シミュレーション";
+"season.improvement_format" = "今年最初の完走より %@ 速くなりました";
+"season.sessions" = "ワークアウト";
+"season.simulations" = "フルシミュレーション";
+"season.races" = "レース";
+"season.hours" = "トレーニング時間";
+"season.running_km" = "ラン km";
+"season.stations" = "ステーション";
+"season.active_weeks" = "運動した週";
+"season.streak" = "最長連続週";
+"season.busiest_format" = "最も多く運動した月: %@";

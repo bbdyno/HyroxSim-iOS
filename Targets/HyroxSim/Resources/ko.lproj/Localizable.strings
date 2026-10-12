@@ -510,3 +510,22 @@
 "share.running" = "러닝 + 록스존";
 "share.finish" = "완주";
 "share.vs_goal" = "목표 대비";
+
+/* 2.0 — season */
+"home.action.season_report" = "시즌 리포트";
+"season.title" = "시즌 리포트";
+"season.subtitle" = "한 해의 훈련과 대회";
+"season.empty" = "올해 기록이 아직 없습니다. 운동을 마치면 여기에 정리됩니다.";
+"season.best" = "가장 빠른 완주";
+"season.best_official" = "공식 대회";
+"season.best_simulation" = "시뮬레이션";
+"season.improvement_format" = "올해 첫 완주보다 %@ 빨라졌습니다";
+"season.sessions" = "운동";
+"season.simulations" = "풀 시뮬레이션";
+"season.races" = "대회";
+"season.hours" = "운동 시간";
+"season.running_km" = "러닝 km";
+"season.stations" = "스테이션";
+"season.active_weeks" = "운동한 주";
+"season.streak" = "최장 연속 주";
+"season.busiest_format" = "가장 많이 운동한 달: %@";

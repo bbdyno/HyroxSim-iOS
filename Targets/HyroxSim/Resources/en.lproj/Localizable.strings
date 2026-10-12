@@ -510,3 +510,22 @@
 "share.running" = "RUNNING + ROXZONE";
 "share.finish" = "Finish";
 "share.vs_goal" = "vs goal";
+
+/* 2.0 — season */
+"home.action.season_report" = "Season Report";
+"season.title" = "Season Report";
+"season.subtitle" = "Your year in training and racing";
+"season.empty" = "Nothing recorded this year yet. Finish a workout and it shows up here.";
+"season.best" = "Fastest finish";
+"season.best_official" = "official race";
+"season.best_simulation" = "simulation";
+"season.improvement_format" = "%@ faster than your first finish this year";
+"season.sessions" = "Workouts";
+"season.simulations" = "Full simulations";
+"season.races" = "Races";
+"season.hours" = "Hours trained";
+"season.running_km" = "Km run";
+"season.stations" = "Stations done";
+"season.active_weeks" = "Active weeks";
+"season.streak" = "Best week streak";
+"season.busiest_format" = "Busiest month: %@";

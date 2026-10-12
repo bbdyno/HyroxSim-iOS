@@ -28,6 +28,8 @@ protocol HomeViewControllerDelegate: AnyObject {
     func homeDidTapLevel()
     /// 대회 기록 보관함 — 실제 대회에서 받은 공식 기록.
     func homeDidTapRaceArchive()
+    /// 시즌 리포트 — 한 해의 훈련과 대회 요약.
+    func homeDidTapSeasonReport()
 }
 
 final class HomeViewController: UIViewController {
@@ -211,6 +213,13 @@ final class HomeViewController: UIViewController {
         )
         archive.accessibilityIdentifier = "home.raceArchive"
         contentStack.addArrangedSubview(inset(archive))
+        let season = makeLinkRow(
+            title: HyroxSimStrings.Localizable.Home.Action.seasonReport,
+            accessory: makeRowArrow(),
+            action: #selector(seasonReportTapped)
+        )
+        season.accessibilityIdentifier = "home.seasonReport"
+        contentStack.addArrangedSubview(inset(season))
         contentStack.addArrangedSubview(inset(makeLinkRow(
             title: HyroxSimStrings.Localizable.Home.Action.raceDay,
             accessory: makeRowArrow(),
@@ -689,6 +698,7 @@ final class HomeViewController: UIViewController {
     @objc private func raceDayTapped() { delegate?.homeDidTapRaceDay() }
     @objc private func levelTapped() { delegate?.homeDidTapLevel() }
     @objc private func raceArchiveTapped() { delegate?.homeDidTapRaceArchive() }
+    @objc private func seasonReportTapped() { delegate?.homeDidTapSeasonReport() }
 }
 
 // MARK: - UIContextMenuInteractionDelegate

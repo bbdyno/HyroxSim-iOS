@@ -618,6 +618,17 @@ public final class AppCoordinator {
                 self?.showLevel(for: history[0], history: history, goalSeconds: 85 * 60)
             }
         }
+        if arguments.contains("-ShowSeason") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                let now = Date()
+                var sample = ScreenshotFixtures.fullRaceHistory(endingAt: now)
+                sample.append(ScreenshotFixtures.summaryWorkout)
+                self?.presentSeasonReport(workouts: sample, races: [RaceResult(
+                    eventName: "HYROX Seoul", date: now.addingTimeInterval(-20 * 86_400),
+                    division: .menOpenSingle, totalSeconds: 5180
+                )])
+            }
+        }
         if arguments.contains("-ShowShare") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 self?.showSummary(for: ScreenshotFixtures.fullRaceWorkout, fromHistory: true, animated: false)
@@ -738,6 +749,22 @@ extension AppCoordinator: HomeViewControllerDelegate {
 
     func homeDidTapProgress() {
         navigationController.pushViewController(makeProgressViewController(), animated: true)
+    }
+
+    func homeDidTapSeasonReport() {
+        guard subscription.gate.allows(.seasonReport) else {
+            presentPaywall(trigger: .seasonReport)
+            return
+        }
+        presentSeasonReport(workouts: (try? persistence.fetchAllCompletedWorkouts()) ?? [], races: raceResultStore.all())
+    }
+
+    func presentSeasonReport(workouts: [CompletedWorkout], races: [RaceResult]) {
+        let nav = UINavigationController(
+            rootViewController: SeasonReportViewController(workouts: workouts, races: races)
+        )
+        nav.applyDarkTheme()
+        topmostPresentedViewController.present(nav, animated: true)
     }
 
     func homeDidTapRaceArchive() {
