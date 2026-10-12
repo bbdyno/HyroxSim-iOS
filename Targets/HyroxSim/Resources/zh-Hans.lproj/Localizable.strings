@@ -555,3 +555,17 @@
 "level.coach.caption" = "教练";
 "level.coach.source_rules" = "以上建议基于上方数据。";
 "level.coach.source_model" = "由这台 iPhone 的内置模型根据上方数据撰写，未上传任何内容。";
+
+/* 2.0 — voice */
+"settings.section.workout" = "训练";
+"settings.row.voice_guide" = "语音提示";
+"settings.row.voice_guide.subtitle" = "每次切换分段时播报用时和与目标的差距";
+"voice.finished" = "%1$@，%2$@。";
+"voice.ahead" = "比目标快%@。";
+"voice.behind" = "比目标慢%@。";
+"voice.on_goal" = "与目标一致。";
+"voice.next" = "接下来，%@。";
+"voice.done" = "训练完成。";
+"voice.run" = "跑步";
+"voice.rox_zone" = "过渡区";
+"voice.station" = "站点";

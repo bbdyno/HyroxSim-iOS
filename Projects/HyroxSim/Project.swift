@@ -120,7 +120,8 @@ let project = Project(
                 "NSHealthUpdateUsageDescription": "HYROX SIM saves completed workout results to the Health app.",
                 "NSBluetoothAlwaysUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
                 "NSBluetoothPeripheralUsageDescription": "HYROX SIM uses Bluetooth to communicate with your Garmin watch for workout syncing.",
-                "UIBackgroundModes": ["location", "bluetooth-central"],
+                // audio: 화면이 꺼진 채 운동 중일 때도 구간 전환 음성 안내가 나오게 한다.
+                "UIBackgroundModes": ["location", "bluetooth-central", "audio"],
                 "NSSupportsLiveActivities": true,
                 // 앱이 쓰는 암호화는 OS 가 제공하는 HTTPS 와 CryptoKit 해시뿐이라 수출
                 // 규정 면제 대상이다. 이 키가 있으면 업로드마다 App Store Connect 에서

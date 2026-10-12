@@ -555,3 +555,17 @@
 "level.coach.caption" = "コーチ";
 "level.coach.source_rules" = "上の数値に基づく案内です。";
 "level.coach.source_model" = "上の数値をもとに、このiPhoneの内蔵モデルが作成しました。アップロードはしていません。";
+
+/* 2.0 — voice */
+"settings.section.workout" = "ワークアウト";
+"settings.row.voice_guide" = "音声ガイド";
+"settings.row.voice_guide.subtitle" = "区間が変わるたびにタイムと目標との差を読み上げます";
+"voice.finished" = "%1$@、%2$@。";
+"voice.ahead" = "目標より%@速い。";
+"voice.behind" = "目標より%@遅い。";
+"voice.on_goal" = "目標どおり。";
+"voice.next" = "次は、%@。";
+"voice.done" = "ワークアウト完了。";
+"voice.run" = "ラン";
+"voice.rox_zone" = "ロックスゾーン";
+"voice.station" = "ステーション";

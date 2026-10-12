@@ -555,3 +555,17 @@
 "level.coach.caption" = "Coach";
 "level.coach.source_rules" = "Based on the numbers above.";
 "level.coach.source_model" = "Written on this iPhone by the built-in model from the numbers above. Nothing was uploaded.";
+
+/* 2.0 — voice */
+"settings.section.workout" = "WORKOUT";
+"settings.row.voice_guide" = "Voice Cues";
+"settings.row.voice_guide.subtitle" = "Speak the split and goal gap at each segment change";
+"voice.finished" = "%1$@, %2$@.";
+"voice.ahead" = "%@ ahead of goal.";
+"voice.behind" = "%@ behind goal.";
+"voice.on_goal" = "On goal.";
+"voice.next" = "Next, %@.";
+"voice.done" = "Workout complete.";
+"voice.run" = "run";
+"voice.rox_zone" = "Roxzone";
+"voice.station" = "station";

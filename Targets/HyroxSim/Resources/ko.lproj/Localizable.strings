@@ -555,3 +555,17 @@
 "level.coach.caption" = "코치";
 "level.coach.source_rules" = "위 숫자를 바탕으로 한 안내입니다.";
 "level.coach.source_model" = "위 숫자를 바탕으로 이 iPhone의 내장 모델이 작성했습니다. 업로드된 것은 없습니다.";
+
+/* 2.0 — voice */
+"settings.section.workout" = "운동";
+"settings.row.voice_guide" = "음성 안내";
+"settings.row.voice_guide.subtitle" = "구간이 바뀔 때 기록과 목표 대비 차이를 말해 줍니다";
+"voice.finished" = "%1$@ %2$@.";
+"voice.ahead" = "목표보다 %@ 빠름.";
+"voice.behind" = "목표보다 %@ 느림.";
+"voice.on_goal" = "목표대로.";
+"voice.next" = "다음, %@.";
+"voice.done" = "운동 완료.";
+"voice.run" = "러닝";
+"voice.rox_zone" = "록스존";
+"voice.station" = "스테이션";

@@ -91,6 +91,7 @@ public final class ActiveWorkoutViewModel {
     private var heartRateTask: Task<Void, Never>?
     private var lastKnownBpm: Int?
     private var liveActivity: Activity<WorkoutActivityAttributes>?
+    private let voiceGuide = VoiceGuide()
     private var lastActivityKey = ""
     private var lastActivityUpdateAt = Date.distantPast
     private var isActivityUpdateInFlight = false
@@ -223,7 +224,16 @@ public final class ActiveWorkoutViewModel {
 
     public func advance() {
         do {
-            try engine.advance(at: Date())
+            let now = Date()
+            // 넘기기 전에 방금 끝나는 구간을 잡아 둔다 — 음성 안내가 그 기록을 읽는다.
+            let finished = engine.currentSegment
+            let finishedSeconds = engine.segmentElapsed(at: now)
+            try engine.advance(at: now)
+            if let finished {
+                voiceGuide.announce(VoiceCue.make(
+                    finished: finished, finishedSeconds: finishedSeconds, next: engine.currentSegment
+                ))
+            }
             refresh()
             if engine.isFinished {
                 Task { await finishAndSave() }
@@ -881,6 +891,8 @@ public final class ActiveWorkoutViewModel {
     }
 
     private func cleanup() {
+        // 마지막 안내("완주")는 끝까지 말하게 둔다. 중간에 끝낸 경우에만 끊는다.
+        if !engine.isFinished { voiceGuide.stop() }
         stopDisplayTimer()
         stopCheckpointTimer()
         endLiveActivity()

@@ -148,6 +148,9 @@ final class SettingsViewController: UIViewController {
         garminDisconnectRow = disconnectRow
         contentStack.addArrangedSubview(disconnectRow)
 
+        contentStack.addArrangedSubview(makeSectionHeader(HyroxSimStrings.Localizable.Settings.Section.workout))
+        contentStack.addArrangedSubview(makeVoiceGuideRow())
+
         contentStack.addArrangedSubview(makeSectionHeader(HyroxSimStrings.Localizable.Settings.Section.backup))
         let exportRow = makeActionRow(
             title: HyroxSimStrings.Localizable.Settings.Row.Backup.export,
@@ -242,6 +245,38 @@ final class SettingsViewController: UIViewController {
         guard let url = URL(string: "https://github.com/bbdyno/HyroxSim-iOS") else { return }
         UIApplication.shared.open(url)
     }
+    // MARK: - 음성 안내
+
+    private let voiceSwitch = UISwitch()
+
+    private func makeVoiceGuideRow() -> UIView {
+        let row = makeActionRow(
+            title: HyroxSimStrings.Localizable.Settings.Row.voiceGuide,
+            subtitle: HyroxSimStrings.Localizable.Settings.Row.VoiceGuide.subtitle,
+            icon: "speaker.wave.2",
+            action: nil
+        )
+        voiceSwitch.onTintColor = DesignTokens.Color.accent
+        voiceSwitch.isOn = VoiceGuide.isEnabled && PremiumAccess.gate().allows(.voiceGuide)
+        voiceSwitch.accessibilityIdentifier = "settings.voiceGuide"
+        voiceSwitch.addTarget(self, action: #selector(voiceSwitchChanged), for: .valueChanged)
+        voiceSwitch.translatesAutoresizingMaskIntoConstraints = false
+        row.addSubview(voiceSwitch)
+        NSLayoutConstraint.activate([
+            voiceSwitch.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+            voiceSwitch.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -(hMargin + 16))
+        ])
+        return row
+    }
+
+    @objc private func voiceSwitchChanged() {
+        if voiceSwitch.isOn, !PremiumAccess.require(.voiceGuide) {
+            voiceSwitch.setOn(false, animated: true)
+            return
+        }
+        VoiceGuide.isEnabled = voiceSwitch.isOn
+    }
+
     @objc private func exportBackupTapped() { delegate?.settingsDidTapExportBackup(from: backupExportRow ?? view) }
     @objc private func importBackupTapped() { delegate?.settingsDidTapImportBackup() }
     @objc private func fitBoostTapped() { UIApplication.shared.open(LevelViewController.Links.fitBoost) }
